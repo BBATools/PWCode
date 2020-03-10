@@ -103,6 +103,12 @@ class App:
         self.root.mainloop() 
 
 
+    def focus(self):
+        """ Focus existing frame """
+        self.root.wm_state('iconic')        
+        self.root.wm_state('normal')
+
+
     def start_rcp_server(self, port):
         server = SimpleXMLRPCServer(('localhost', int(port)),logRequests=True, allow_none=True)
         server.register_instance(self)

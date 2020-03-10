@@ -57,18 +57,7 @@ if __name__ == "__main__":
     if pid:
         app = xmlrpc.client.ServerProxy('http://localhost:' + str(port))
         open_files(sys.argv, app)
-        # app.run_command('focus_app')
-        
-
-        # display = Gdk.Display.get_default()
-        # screen = display.get_default_screen()
-        # workspace = Gdk.Display.get_current_desktop ()
-        # # windowList = screen.get_windows()  
-
-        # for window in windowList:
-        #     if window.get_pid() == pid:
-        #         print('fdsaf')
-
+        app.focus()
     else:            
         app = App()
         app.build_ui()
