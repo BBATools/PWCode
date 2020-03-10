@@ -60,8 +60,16 @@ class App:
         """  builds the user interface """
         self.root = root = tk.Tk()
         root.title(self.settings.name)
-        root.minsize(300, 300)
-        root.geometry("1000x700")
+
+        w = 1200 # width for the Tk root
+        h = 800 # height for the Tk root
+        ws = root.winfo_screenwidth() 
+        hs = root.winfo_screenheight()
+
+        x = (ws/2) - (w/2)
+        y = (hs/2) - (h/2)
+
+        root.geometry('%dx%d+%d+%d' % (w, h, x, y))
 
         style = theme.build_style(self.settings.colors)
         style.theme_use("pwcode")
