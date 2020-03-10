@@ -15,26 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os, sys, psutil, xmlrpc.client, gi
-# gi.require_version('Wnck', '3.0')
-# from gi.repository import Wnck
-gi.require_version('Gdk', '3.0')
-from gi.repository import Gdk
+import os, sys, psutil, xmlrpc.client, socket
 sys.path.append('bin')
 from bin.app import App
-
-
-
-
-def getWindow(pid):
-    found = False
-    for window in windowList:
-        if window.get_pid() == pid:
-            found = True
-            return window
-
-    if not found:
-        return None
 
 
 def is_running(script): # WAIT: Bare sjekke om får kontakt med serverproxy heller?
@@ -44,30 +27,51 @@ def is_running(script): # WAIT: Bare sjekke om får kontakt med serverproxy hell
                 return str(p.pid)
 
 
-def open_files(args, app):
+def find_free_port():
+    s = socket.socket()
+    s.bind(('', 0))  
+    return s.getsockname()[1]   
+
+
+def open_files_from_arg(args, app):
     if len(args) > 1:
         for file in sys.argv[1:]:
             if os.path.isfile(file):
                 app.run_command('open_file', file)
 
 
+def open_files_from_tmp(app):
+    for r, d, f in os.walk(app.model.tmp_dir):
+        for file in f:
+            if 'Untitled-' in file:
+                app.run_command('open_file', app.model.tmp_dir + '/' + file)    
+
+
+def start_client():
+    port=open('bin/tmp/port', 'r').read()
+    app = xmlrpc.client.ServerProxy('http://localhost:' + port)
+    open_files_from_arg(sys.argv, app)
+    app.focus()
+
+
+def start_server():  
+    app = App()
+    app.build_ui()
+    open_files_from_tmp(app)
+    app.run_command('show_welcome')
+    open_files_from_arg(sys.argv, app)                  
+    port = find_free_port()
+    with open(app.model.tmp_dir + '/port', 'w') as file:
+        file.write(str(port))      
+    app.run(port)
+
+
 if __name__ == "__main__":
-    port = 9000
-    pid = is_running(os.path.basename(__file__))
-    if pid:
-        app = xmlrpc.client.ServerProxy('http://localhost:' + str(port))
-        open_files(sys.argv, app)
-        app.focus()
-    else:            
-        app = App()
-        app.build_ui()
+    server = is_running(os.path.basename(__file__))
+    if server:
+        start_client()
+    else:
+        start_server()            
+ 
 
-        for r, d, f in os.walk(app.model.tmp_dir):
-            for file in f:
-                if 'Untitled-' in file:
-                    app.run_command('open_file', app.model.tmp_dir + '/' + file)
-
-        app.run_command('show_welcome')
-        open_files(sys.argv, app)
-        app.run(port)
 
