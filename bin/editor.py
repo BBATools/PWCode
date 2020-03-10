@@ -25,7 +25,7 @@ import os, pathlib
 import tkinter as tk
 from settings import COLORS
 from welcome import WelcomeTab
-from vendor.tktextext import TweakableText
+from vendor.tktextext import EnhancedText
 
 # pylint: disable=too-many-ancestors
 
@@ -33,8 +33,13 @@ from vendor.tktextext import TweakableText
 class EditorFrame(tk.ttk.Frame):
     """ A container for the notebook, including bottom console """
 
-    def __init__(self, parent, app):
+    def __init__(
+        self, 
+        parent, 
+        app,
+        ):
         super().__init__(parent)
+        
         self.app = app
         app.model.add_observer(self)
         self.notebook = tk.ttk.Notebook(self)
@@ -44,8 +49,10 @@ class EditorFrame(tk.ttk.Frame):
         self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
         self.welcome_id = None
 
+
     def focus(self):
-        self.lift()
+        self.lift() 
+
 
     def show_welcome(self):
         """ show a welcome tab at the first notebook position """
@@ -148,15 +155,18 @@ class EditorFrame(tk.ttk.Frame):
 class TextEditorFrame(tk.ttk.Frame):
     """ A frame that contains a text editor """
 
-    def __init__(self, parent, file_obj=None):
+    def __init__(
+        self, 
+        parent, 
+        file_obj=None,
+        # text_class=EnhancedText,
+        vertical_scrollbar=True,
+        # vertical_scrollbar_class=tk.ttk.Scrollbar,
+        # vertical_scrollbar_style=None
+        ):
         super().__init__(parent)
-        # tk.Text is not a ttk widget ! color customization "by hand"
-        # TODO : dig colors from the theme
 
-        # TODO:
-        # --> test scrollbar mm herfra: https://github.com/thonny/thonny/blob/1b71af343df5c2d1362360d3845752d99c257fa7/thonny/tktextext.py (nyere versjon enn den jeg kopierte)
-
-        self.text = TweakableText(
+        self.text = EnhancedText(
             self,
             background=COLORS.text_bg,
             foreground="#eeeeee",
@@ -166,8 +176,49 @@ class TextEditorFrame(tk.ttk.Frame):
             highlightthickness=0,
             relief=tk.FLAT,
             takefocus=1,
-            insertofftime=0 #Disable blinking cursor
+            insertofftime =0, #Disable blinking cursor
+            insertwidth = 2,
+            spacing1 = 0,
+            spacing3 = 0,
+            inactiveselectbackground = COLORS.status_bg,
+            padx = 5,
+            pady = 5,
         )
+
+        if vertical_scrollbar: # TODO: Fix colors how?
+            self._vbar = tk.ttk.Scrollbar(
+                self, orient=tk.VERTICAL, 
+                # style = None
+            )
+            self._vbar.pack(side="right", fill="y", expand=False)
+            # self._vbar.config(troughcolor="black")
+            self._vbar["command"] = self._vertical_scroll
+            self.text["yscrollcommand"] = self._vertical_scrollbar_update        
+
+
+    # def __init__(self, parent, file_obj=None):
+    #     super().__init__(parent)
+        # tk.Text is not a ttk widget ! color customization "by hand"
+        # TODO : dig colors from the theme
+
+        # TODO:
+        # --> test scrollbar mm herfra: https://github.com/thonny/thonny/blob/1b71af343df5c2d1362360d3845752d99c257fa7/thonny/tktextext.py (nyere versjon enn den jeg kopierte)
+
+
+        # self.yscrollframe = Frame(self.master)
+        # self.yscroll = ttk.Scrollbar(self.yscrollframe, orient = 'vertical', cursor = 'arrow', command = self.yview)
+        # self.config(yscrollcommand = self.yscroll.set)
+        # self.yscrollframe.pack(side = 'right', fill = 'y')
+        # self.yscroll.pack(expand = True, fill = 'y')
+        # self.text.vertical_scrollbar=True
+
+        # self._vbar = tk.ttk.Scrollbar(
+        #     self, orient=tk.VERTICAL, style=tk.ttk.Scrollbar
+        # )
+        # self._vbar.grid(row=0, column=3, sticky=tk.NSEW)
+        # self._vbar["command"] = self._vertical_scroll
+        # self.text["yscrollcommand"] = self._vertical_scrollbar_update
+
         self.text.pack(expand=tk.YES, fill=tk.BOTH)
         self.set_file_obj(file_obj) 
         self.modified = False    
@@ -191,3 +242,13 @@ class TextEditorFrame(tk.ttk.Frame):
                 self.text.insert(tk.END, file_obj.content)  
             self.text.focus_set()                              
 
+    def _vertical_scroll(self, *args):
+        self.text.yview(*args)
+        self.text.event_generate("<<VerticalScroll>>")   
+
+    def _vertical_scrollbar_update(self, *args):
+        if not hasattr(self, "_vbar"):
+            return
+
+        self._vbar.set(*args)
+        self.text.event_generate("<<VerticalScroll>>")        
