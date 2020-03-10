@@ -29,6 +29,12 @@ from commander import command
 import tkinter as tk
 from tkinter import messagebox
 
+# WAIT: Gjør konsekvent med app, self under
+
+@command(title=_("Focus App"), description=_("Focus app"))
+def focus_app(self):
+    self.editor_frame.focus()
+
 
 @command(title=_("Show Welcome"), description=_("Show welcome screen"))
 def show_welcome(app):
@@ -62,7 +68,7 @@ def quit_app(app):
         if unsaved and not confirm:
             return
 
-    app.root.destroy()  
+    app.root.destroy() 
 
 
 @command(
@@ -85,7 +91,7 @@ def show_commands(self):
 )
 def new_file(self):
     """ open new empty file """
-    self.model.new_file()  
+    self.model.new_file()        
      
 
 @command(
@@ -182,4 +188,10 @@ def save_file_as(app, originator=None):
     if '!welcometab' not in str(tab_name):      
         file_obj = app.model.current_file
         new_path = pwb_choose_file('save')
-        app.model.save_file(file_obj, new_path, originator)    
+        app.model.save_file(file_obj, new_path, originator)  
+
+
+
+
+
+       

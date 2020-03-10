@@ -44,6 +44,8 @@ class EditorFrame(tk.ttk.Frame):
         self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
         self.welcome_id = None
 
+    def focus(self):
+        self.lift()
 
     def show_welcome(self):
         """ show a welcome tab at the first notebook position """

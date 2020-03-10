@@ -1,10 +1,12 @@
 """ tkcode.app module contains the main application class """
-import os, model, settings, theme, commands
+import os, model, settings, theme, commands, threading
 import tkinter as tk
 from commander import Commander
 from sidebar import SideBar
 from editor import EditorFrame
 from statusbar import StatusBar
+from xmlrpc.server import SimpleXMLRPCServer
+
 
 # MIT License
 
@@ -27,29 +29,7 @@ from statusbar import StatusBar
 # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
-
-# TODO: Tror den under virker, men ikke på tvers av prosesser
-# from abc import ABC
-
-# def singleton(real_cls):
-
-#     class SingletonFactory(ABC):
-
-#         instance = None
-
-#         def __new__(cls, *args, **kwargs):
-#             if not cls.instance:
-#                 print('test')
-#                 cls.instance = real_cls(*args, **kwargs)
-#             return cls.instance
-
-#     SingletonFactory.register(real_cls)
-#     return SingletonFactory
-
-# @singleton    
-
+# SOFTWARE.  
 
 class App:    
     """
@@ -111,30 +91,27 @@ class App:
         # self.welcome = WelcomeTab(paned, self)
 
         self.statusbar = StatusBar(root, self)
-        self.statusbar.pack(fill=tk.X, side=tk.BOTTOM)
+        self.statusbar.pack(fill=tk.X, side=tk.BOTTOM)       
 
 
-    def run(self, running):
-        """ launch the application """
-        # if not running:
-
-        # for i in self._instances:
-        #     print(i)
+    def run(self, port):
+        """ launch application and server """
+        threading.Thread(target=self.start_rcp_server, args=(port,),daemon = True).start()
 
         if not self.root:
             self.build_ui()
-        self.root.mainloop()
-        # else:
+        self.root.mainloop() 
 
-        #     # self.editor_frame = EditorFrame(paned, self)
-        #     # editor_frame.show_welcome()
-        #     # self.root.mainloop()
-        #     self.run_command('new_file')            
+
+    def start_rcp_server(self, port):
+        server = SimpleXMLRPCServer(('localhost', int(port)),logRequests=True, allow_none=True)
+        server.register_instance(self)
+        server.serve_forever()
 
 
     def after(self, delay, command):
         """ proxy method to Tk.after() """
-        self.root.after(delay, command)
+        self.root.after(delay, command)    
 
 
     def on_file_selected(self, file_obj):
@@ -161,5 +138,4 @@ class App:
     def select_file(self, file_obj, originator):
         """ set a file as selected """
         self.model.set_current_file(file_obj, originator)
-  
   

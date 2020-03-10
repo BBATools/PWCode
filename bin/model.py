@@ -205,7 +205,7 @@ class PWCodeModel:
             self.set_current_file(file_obj, originator)
         else:
             self.openfiles.append(file_obj)
-            self.update_observers("on_file_open", file_obj, originator=originator)
+            self.update_observers("on_file_open", file_obj, originator=originator) 
                                     
 
     def set_current_file(self, file_obj, originator=None):
@@ -255,7 +255,7 @@ class PWCodeModel:
 
     def new_file(self, originator=None):
         """open new empty file"""
-        # WAIT: Slå sammen med open_file. For mye duplisering nå. Tmp_dir på overordnet nivå heller?  
+        # WAIT: Slå sammen med open_file. For mye duplisering nå. 
         i = 1
         while True:
             file_name = 'Untitled-' + str(i)
@@ -276,5 +276,5 @@ class PWCodeModel:
                     self.update_observers("on_file_open", file_obj, originator=originator) 
                 break  
             else:
-                i += 1               
+                i += 1  
 

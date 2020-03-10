@@ -15,40 +15,70 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import sys
+import os, sys, psutil, xmlrpc.client, gi
+# gi.require_version('Wnck', '3.0')
+# from gi.repository import Wnck
+gi.require_version('Gdk', '3.0')
+from gi.repository import Gdk
 sys.path.append('bin')
+from bin.app import App
 
-import os, psutil
-from app import App
 
-def is_running(script):
+
+
+def getWindow(pid):
+    found = False
+    for window in windowList:
+        if window.get_pid() == pid:
+            found = True
+            return window
+
+    if not found:
+        return None
+
+
+def is_running(script): # WAIT: Bare sjekke om får kontakt med serverproxy heller?
     for p in psutil.process_iter():
         if p.name().startswith('python'):
             if len(p.cmdline())>1 and script in p.cmdline()[1] and p.pid !=os.getpid():
-                print(p.pid)
-                return True
-    return False
+                return str(p.pid)
 
 
-if __name__ == "__main__":
-    # TODO: Legg inn if else når lagt til pyro4
-    running = is_running(os.path.basename(__file__))
-    # if running:
-    # else:   
-    #      
-    app = App()
-    app.build_ui()
-
-    for r, d, f in os.walk(app.model.tmp_dir):
-        for file in f:
-            if 'Untitled-' in file:
-                app.run_command('open_file', app.model.tmp_dir + '/' + file)
-
-    app.run_command('show_welcome')
-
-    if len(sys.argv) > 1:
+def open_files(args, app):
+    if len(args) > 1:
         for file in sys.argv[1:]:
             if os.path.isfile(file):
                 app.run_command('open_file', file)
 
-    app.run(running)
+
+if __name__ == "__main__":
+    port = 9000
+    pid = is_running(os.path.basename(__file__))
+    if pid:
+        app = xmlrpc.client.ServerProxy('http://localhost:' + str(port))
+        open_files(sys.argv, app)
+        # app.run_command('focus_app')
+        
+
+        # display = Gdk.Display.get_default()
+        # screen = display.get_default_screen()
+        # workspace = Gdk.Display.get_current_desktop ()
+        # # windowList = screen.get_windows()  
+
+        # for window in windowList:
+        #     if window.get_pid() == pid:
+        #         print('fdsaf')
+
+    else:            
+        app = App()
+        app.build_ui()
+
+        for r, d, f in os.walk(app.model.tmp_dir):
+            for file in f:
+                if 'Untitled-' in file:
+                    app.run_command('open_file', app.model.tmp_dir + '/' + file)
+
+        app.run_command('show_welcome')
+        open_files(sys.argv, app)
+        app.run(port)
+
