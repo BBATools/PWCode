@@ -1,13 +1,3 @@
-""" tkcode.app module contains the main application class """
-import os, model, settings, theme, commands, threading
-import tkinter as tk
-from commander import Commander
-from sidebar import SideBar
-from editor import EditorFrame
-from statusbar import StatusBar
-from xmlrpc.server import SimpleXMLRPCServer
-
-
 # MIT License
 
 # Original work Copyright (c) 2018 François Girault
@@ -30,6 +20,16 @@ from xmlrpc.server import SimpleXMLRPCServer
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.  
+
+
+import os, model, settings, theme, commands, threading
+import tkinter as tk
+from commander import Commander
+from sidebar import SideBar
+from editor import EditorFrame
+from statusbar import StatusBar
+from xmlrpc.server import SimpleXMLRPCServer
+
 
 class App:    
     """

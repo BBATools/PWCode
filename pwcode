@@ -47,31 +47,35 @@ def open_files_from_tmp(app):
                 app.run_command('open_file', app.model.tmp_dir + '/' + file)    
 
 
-def start_client():
-    port=open('bin/tmp/port', 'r').read()
+def start_client(port_file):
+    port=open(port_file, 'r').read()
     app = xmlrpc.client.ServerProxy('http://localhost:' + port)
     open_files_from_arg(sys.argv, app)
     app.focus()
 
 
-def start_server():  
+def start_server(tmp_dir, port_file):  
     app = App()
     app.build_ui()
+    app.model.tmp_dir = tmp_dir
     open_files_from_tmp(app)
     app.run_command('show_welcome')
     open_files_from_arg(sys.argv, app)                  
     port = find_free_port()
-    with open(app.model.tmp_dir + '/port', 'w') as file:
-        file.write(str(port))      
+    with open(port_file, 'w') as file:
+        file.write(str(port))    
     app.run(port)
 
 
 if __name__ == "__main__":
+    tmp_dir = 'bin/tmp/'
+    port_file = tmp_dir + 'port'
+
     server = is_running(os.path.basename(__file__))
     if server:
-        start_client()
+        start_client(port_file)
     else:
-        start_server()            
+        start_server(tmp_dir, port_file)            
  
 
 

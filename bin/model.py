@@ -154,7 +154,8 @@ class PWCodeModel:
         self.current_file = None
         self.current_folder = None
         self.preview = None
-        self.tmp_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'tmp'))
+        self.tmp_dir = None
+        # self.tmp_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'tmp'))
 
 
     def add_observer(self, obverser):
