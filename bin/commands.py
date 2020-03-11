@@ -21,99 +21,77 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import gettext, webbrowser, os
-from gettext import gettext as _
+import gettext, os
+from gettext import gettext as _get
 from common.gui_gtk import pwb_choose_file
 from palette import PaletteFrame
 from commander import command
 import tkinter as tk
 from tkinter import messagebox
 
-# WAIT: Gjør konsekvent med app, self under
-
-@command(title=_("Focus App"), description=_("Focus app"))
-def focus_app(self):
-    self.editor_frame.focus()
+def focus_app(app):
+    app.editor_frame.focus()
 
 
-@command(title=_("Show Welcome"), description=_("Show welcome screen"))
+@command(title=_get("Show Welcome"), description=_get("Show welcome screen"))
 def show_welcome(app):
     """ show welcome frame """
     app.editor_frame.show_welcome()
 
 
 @command(
-    title=_("Quit App"),
-    category=_("APP"),
-    description=_("Exit program"),
-    shortcut=_("<Control-q>"),
+    title=_get("Quit App"),
+    category=_get("APP"),
+    description=_get("Exit program"),
+    shortcut=_get("<Control-q>"),
 )
 def quit_app(app):
     """ Exit program """
-    unsaved = False
-    for tab_name in app.editor_frame.notebook.tabs():
-        if '!welcometab' not in str(tab_name): 
-            text_editor = app.editor_frame.notebook.nametowidget(tab_name)
-            if text_editor.modified: 
-                unsaved = True
-                break
-
-    if unsaved:
-        confirm = messagebox.askyesno(
-            message = 'You have unsaved changes. Are you sure you want to quit?',
-            icon = 'question',
-            title = 'Confirm Quit'
-        )
-
-        if unsaved and not confirm:
-            return
-
-    os.remove(app.port_file)
-    app.root.destroy() 
+    app.quit_app()
 
 
 @command(
-    title=_("Show Commands"),
-    category=_("APP"),
-    description=_("Show available commands"),
-    shortcut=_("<Alt-x"),
+    title=_get("Show Commands"),
+    category=_get("APP"),
+    description=_get("Show available commands"),
+    shortcut=_get("<Alt-x>"),
 )
-def show_commands(self):
+def show_commands(app):
     """ Show available commands """
-    palette = PaletteFrame(self.editor_frame, self.commander)
+    palette = PaletteFrame(app.editor_frame, app.commander)
     palette.show()  
 
 
 @command(
-    title=_("New File"),
-    category=_("FILE"),
-    description=_("Open new empty file"),
-    shortcut=_("<Control-n>"),
+    title=_get("New File"),
+    category=_get("FILE"),
+    description=_get("Open new empty file"),
+    shortcut=_get("<Control-n>"),
 )
-def new_file(self):
+def new_file(app):
     """ open new empty file """
-    self.model.new_file(self.tmp_dir)        
+    app.model.new_file(app.tmp_dir)        
      
 
 @command(
-    title=_("Open File"),
-    category=_("FILE"),
-    description=_("Open file from filesystem"),
-    shortcut=_("<Control-o>"),
+    title=_get("Open File"),
+    category=_get("FILE"),
+    description=_get("Open file from filesystem"),
+    shortcut=_get("<Control-o>"),
 )
-def open_file(self, path=None):
+def open_file(app, path=None):
     """ Open file from filesystem  """
     if not path:
         path = pwb_choose_file()
     if path:       
-        self.model.open_file(path)        
+        app.model.open_file(path)        
 
 
 @command(
-    title=_("Open Folder"),
-    category=_("FILE"),
-    description=_("Open folder from filesystem"),
-    shortcut=_("<Control-Shift-o>"),
+    title=_get("Open Folder"),
+    category=_get("FILE"),
+    description=_get("Open folder from filesystem"),
+    shortcut=_get("<Control-Shift-o>"),
 )
 def open_folder(app, path=None):
     """" Open folder from filesystem  """
@@ -122,22 +100,12 @@ def open_folder(app, path=None):
     if path:        
         app.model.open_folder(path)
 
-@command(
-    title=_("Open home url"),
-    category=_("WEB"),
-    description=_("Open home url in default browser"),
-)
-def open_home_url(self):
-    """" Open home url in default browser  """
-    # WAIT: Gjør URL til konfigvalg og/eller argument
-    webbrowser.open('https://github.com/BBATools/PreservationWorkbench', new=2)
-
 
 @command(
-    title=_("Close file"),
-    category=_("FILE"),
-    description=_("Close file"),
-    shortcut=_("<Control-W>"),
+    title=_get("Close file"),
+    category=_get("FILE"),
+    description=_get("Close file"),
+    shortcut=_get("<Control-W>"),
 )
 def close_file(app, originator=None):
     """ Close file """
@@ -164,10 +132,10 @@ def close_file(app, originator=None):
 
 
 @command(   
-    title=_("Save file"),
-    category=_("FILE"),
-    description=_("Save file"),
-    shortcut=_("<Control-s>"),
+    title=_get("Save file"),
+    category=_get("FILE"),
+    description=_get("Save file"),
+    shortcut=_get("<Control-s>"),
 )
 def save_file(app, originator=None):
     """ Save file """
@@ -178,10 +146,10 @@ def save_file(app, originator=None):
 
 
 @command(
-    title=_("Save As..."),
-    category=_("FILE"),
-    description=_("Save As..."),
-    shortcut=_("<Alt-s>"),
+    title=_get("Save As..."),
+    category=_get("FILE"),
+    description=_get("Save As..."),
+    shortcut=_get("<Alt-s>"),
 )
 def save_file_as(app, originator=None):
     """ Save As... """

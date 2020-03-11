@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 
 # Copyright (C) 2020 Morten Eek
 
@@ -23,7 +23,7 @@ from bin.app import App
 
 def is_running(script): # WAIT: Bare sjekke om får kontakt med serverproxy heller?
     for p in psutil.process_iter():
-        if p.name().startswith('python'):
+        if p.name() == 'pwcode': 
             if len(p.cmdline())>1 and script in p.cmdline()[1] and p.pid !=os.getpid():
                 return str(p.pid)
 
@@ -67,6 +67,8 @@ def start_server(tmp_dir, port_file):
     app.run(port)
 
 
+# TODO: Se for hvordan endre prosessnavn fra python i windows (ie rename bundlet python.exe til pwcode.exe)
+# https://superuser.com/questions/427642/is-it-possible-to-set-the-process-name-with-pythonw
 if __name__ == "__main__":
     tmp_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'bin/tmp'))
     port_file = tmp_dir + '/port'

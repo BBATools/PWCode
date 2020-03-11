@@ -29,6 +29,7 @@ from sidebar import SideBar
 from editor import EditorFrame
 from statusbar import StatusBar
 from xmlrpc.server import SimpleXMLRPCServer
+from tkinter import messagebox
 
 
 class App:    
@@ -63,6 +64,7 @@ class App:
         """  builds the user interface """
         self.root = root = tk.Tk()
         root.title(self.settings.name)
+        root.protocol("WM_DELETE_WINDOW", self.quit_app)
 
         w = 1200 # width for the Tk root
         h = 800 # height for the Tk root
@@ -102,7 +104,33 @@ class App:
         # self.welcome = WelcomeTab(paned, self)
 
         self.statusbar = StatusBar(root, self)
-        self.statusbar.pack(fill=tk.X, side=tk.BOTTOM)       
+        self.statusbar.pack(fill=tk.X, side=tk.BOTTOM)   
+
+
+    def quit_app(self):
+        """ Exit program """
+        unsaved = False
+        for tab_name in self.editor_frame.notebook.tabs():
+            if '!welcometab' not in str(tab_name): 
+                text_editor = self.editor_frame.notebook.nametowidget(tab_name)
+                if text_editor.modified: 
+                    unsaved = True
+                    break
+
+        if unsaved:
+            confirm = messagebox.askyesno(
+                message = 'You have unsaved changes. Are you sure you want to quit?',
+                icon = 'question',
+                title = 'Confirm Quit'
+            )
+
+            if unsaved and not confirm:
+                return
+
+        os.remove(self.port_file)
+        self.root.destroy() 
+
+                
 
 
     def run(self, port):

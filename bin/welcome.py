@@ -21,6 +21,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import webbrowser
 import tkinter as tk
 from tkinter import ttk
 
@@ -137,7 +138,12 @@ class WelcomeTab(ttk.Frame):
                 # ("Product documentation", None),
                 # ("Introductory videos", None),
                 # ("GitHub repository", app.command_callable("open_home_url('https://github.com/BBATools/PreservationWorkbench')")),
-                ("GitHub repository", app.command_callable("open_home_url")),
+                # ("GitHub repository", app.command_callable("open_home_url")),
+                ("GitHub repository", self.open_home_url),                
                 # ("StackOverflow", None),
             ),
         ).pack(side=tk.TOP, anchor=tk.W, pady=12)
+
+
+    def open_home_url(self):
+        webbrowser.open('https://github.com/BBATools/PWCode', new=2)
