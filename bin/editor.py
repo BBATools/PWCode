@@ -26,6 +26,7 @@ import tkinter as tk
 from settings import COLORS
 from welcome import WelcomeTab
 from vendor.tktextext import EnhancedText
+from scrollbar import PWScrollbar 
 
 # pylint: disable=too-many-ancestors
 
@@ -159,10 +160,7 @@ class TextEditorFrame(tk.ttk.Frame):
         self, 
         parent, 
         file_obj=None,
-        # text_class=EnhancedText,
         vertical_scrollbar=True,
-        # vertical_scrollbar_class=tk.ttk.Scrollbar,
-        # vertical_scrollbar_style=None
         ):
         super().__init__(parent)
 
@@ -185,39 +183,21 @@ class TextEditorFrame(tk.ttk.Frame):
             pady = 5,
         )
 
-        if vertical_scrollbar: # TODO: Fix colors how?
-            self._vbar = tk.ttk.Scrollbar(
-                self, orient=tk.VERTICAL, 
-                # style = None
-            )
+        if vertical_scrollbar:
+            self._vbar = PWScrollbar( # WAIT: Mulig å få til bordercolor i denne?
+                self, 
+                width = 10, 
+                command = self._vertical_scroll,
+                troughcolor = COLORS.bg, 
+                # thumbcolor = COLORS.sidebar_bg, 
+                thumbcolor = COLORS.status_bg, 
+                troughoutline = 'grey',
+                # troughoutline = COLORS.bg,                
+                buttoncolor = COLORS.bg
+                )
+
             self._vbar.pack(side="right", fill="y", expand=False)
-            # self._vbar.config(troughcolor="black")
-            self._vbar["command"] = self._vertical_scroll
             self.text["yscrollcommand"] = self._vertical_scrollbar_update        
-
-
-    # def __init__(self, parent, file_obj=None):
-    #     super().__init__(parent)
-        # tk.Text is not a ttk widget ! color customization "by hand"
-        # TODO : dig colors from the theme
-
-        # TODO:
-        # --> test scrollbar mm herfra: https://github.com/thonny/thonny/blob/1b71af343df5c2d1362360d3845752d99c257fa7/thonny/tktextext.py (nyere versjon enn den jeg kopierte)
-
-
-        # self.yscrollframe = Frame(self.master)
-        # self.yscroll = ttk.Scrollbar(self.yscrollframe, orient = 'vertical', cursor = 'arrow', command = self.yview)
-        # self.config(yscrollcommand = self.yscroll.set)
-        # self.yscrollframe.pack(side = 'right', fill = 'y')
-        # self.yscroll.pack(expand = True, fill = 'y')
-        # self.text.vertical_scrollbar=True
-
-        # self._vbar = tk.ttk.Scrollbar(
-        #     self, orient=tk.VERTICAL, style=tk.ttk.Scrollbar
-        # )
-        # self._vbar.grid(row=0, column=3, sticky=tk.NSEW)
-        # self._vbar["command"] = self._vertical_scroll
-        # self.text["yscrollcommand"] = self._vertical_scrollbar_update
 
         self.text.pack(expand=tk.YES, fill=tk.BOTH)
         self.set_file_obj(file_obj) 
