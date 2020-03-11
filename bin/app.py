@@ -37,7 +37,7 @@ class App:
     like a controller
     """
     
-    def __init__(self):
+    def __init__(self, tmp_dir, port_file):
       
         """ constructor """
         self.model = model.PWCodeModel()  # observable data model
@@ -54,6 +54,9 @@ class App:
 
         # later:
         # self.console = None
+
+        self.tmp_dir = tmp_dir
+        self.port_file = port_file       
      
 
     def build_ui(self):

@@ -68,6 +68,7 @@ def quit_app(app):
         if unsaved and not confirm:
             return
 
+    os.remove(app.port_file)
     app.root.destroy() 
 
 
@@ -91,7 +92,7 @@ def show_commands(self):
 )
 def new_file(self):
     """ open new empty file """
-    self.model.new_file()        
+    self.model.new_file(self.tmp_dir)        
      
 
 @command(

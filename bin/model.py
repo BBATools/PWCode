@@ -154,8 +154,6 @@ class PWCodeModel:
         self.current_file = None
         self.current_folder = None
         self.preview = None
-        self.tmp_dir = None
-        # self.tmp_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'tmp'))
 
 
     def add_observer(self, obverser):
@@ -254,13 +252,13 @@ class PWCodeModel:
             return path_or_obj
 
 
-    def new_file(self, originator=None):
+    def new_file(self, tmp_dir, originator=None):
         """open new empty file"""
         # WAIT: Slå sammen med open_file. For mye duplisering nå. 
         i = 1
         while True:
             file_name = 'Untitled-' + str(i)
-            file_path = self.tmp_dir + '/' + file_name
+            file_path = tmp_dir + '/' + file_name
 
             if self.factory.get_file(file_path) not in self.openfiles and not os.path.isfile(file_path):
                 file_obj = self.factory.get_file(file_path)

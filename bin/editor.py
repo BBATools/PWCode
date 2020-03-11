@@ -118,7 +118,7 @@ class EditorFrame(tk.ttk.Frame):
     def on_file_save(self, file_obj, new_path = None):
         """ save editor content to file """
         # WAIT: Print any errors to status line?
-        pathlib.Path(self.app.model.tmp_dir).mkdir(parents=True, exist_ok=True) # TODO: Flytte til commands?        
+        pathlib.Path(self.app.tmp_dir).mkdir(parents=True, exist_ok=True) # TODO: Flytte til commands?        
         original_path = file_obj.path
         path = original_path
         if new_path:
@@ -141,7 +141,7 @@ class EditorFrame(tk.ttk.Frame):
                     self.app.model.close_file(file_obj)
                     self.app.model.open_file(new_path)
 
-                    if original_path.startswith(self.app.model.tmp_dir + '/Untitled-'):
+                    if original_path.startswith(self.app.tmp_dir + '/Untitled-'):
                         if os.path.isfile(original_path):
                             os.remove(original_path)
      
