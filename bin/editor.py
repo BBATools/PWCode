@@ -25,8 +25,7 @@ import os, pathlib
 import tkinter as tk
 from settings import COLORS
 from welcome import WelcomeTab
-from vendor.tktextext import EnhancedText
-from gui.scrollbar import PWScrollbar 
+from text.tktextext import EnhancedText
 from gui.scrollbar_autohide import AutoHideScrollbar
 
 # pylint: disable=too-many-ancestors
@@ -189,11 +188,13 @@ class TextEditorFrame(tk.ttk.Frame):
             self.text.v_scrollbar = AutoHideScrollbar(
                 self.text, 
                 command = self.v_scrollbar_scroll,
-                width = 10, 
+                width = 10,               
                 troughcolor = COLORS.sidebar_bg, 
-                troughoutline = COLORS.sidebar_bg,
+                # troughoutline = COLORS.sidebar_bg,
+                # thumboutline = COLORS.sidebar_bg,
                 buttoncolor = COLORS.sidebar_bg,
                 thumbcolor = COLORS.status_bg, 
+                # thumbcolor = COLORS.sidebar_fg,                 
                 )
             self.text["yscrollcommand"] = self.text.v_scrollbar.set 
             self.text.v_scrollbar.pack(side="right", fill="y")
@@ -219,7 +220,7 @@ class TextEditorFrame(tk.ttk.Frame):
             self.text.delete("0.0", tk.END)
             if file_obj.content != 'empty_buffer':
                 self.text.insert(tk.END, file_obj.content)  
-            self.text.focus_set()                              
+            self.text.focus_set()  
 
     def v_scrollbar_scroll(self, *args):
         self.text.yview(*args)

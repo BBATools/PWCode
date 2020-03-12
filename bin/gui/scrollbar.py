@@ -94,10 +94,10 @@ class PWScrollbar(tk.Canvas):
             return self._scroll_kwargs[element.replace('outline', 'color')] # fetch default for main element
 
     def _width(self):
-        return self.winfo_width() - 2 # return width minus 2 pixes to ensure fit in canvas
+        return self.winfo_width() 
 
     def _height(self):
-        return self.winfo_height() - 2 # return height minus 2 pixes to ensure fit in canvas
+        return self.winfo_height()
 
     def _resize(self, event):
         width = self._width()
@@ -250,9 +250,10 @@ class PWScrollbar(tk.Canvas):
         width = self._width()
         height = self._height()
 
-        if oldsize != size:
-            self.delete(self.elements['thumb'])
-            self.elements['thumb'] = None
+        # TODO: Legg inn bedre sjekk under eller beholde uten sjekk? Grunn til "flash" noen ganger nå?
+        # if oldsize != size:
+        self.delete(self.elements['thumb'])
+        self.elements['thumb'] = None
 
         if (self._scroll_kwargs['orient'] == 'vertical'):
             thumbrange = height - width

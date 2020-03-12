@@ -126,8 +126,8 @@ class App:
 
             if unsaved and not confirm:
                 return
-
-        os.remove(self.port_file)
+        if os.path.exists(self.port_file):
+            os.remove(self.port_file)
         self.root.destroy() 
 
                 
