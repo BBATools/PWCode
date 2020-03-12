@@ -26,11 +26,13 @@ import tkinter as tk
 from settings import COLORS
 from welcome import WelcomeTab
 from vendor.tktextext import EnhancedText
-from scrollbar import PWScrollbar 
+from gui.scrollbar import PWScrollbar 
+from gui.scrollbar_autohide import AutoHideScrollbar
 
 # pylint: disable=too-many-ancestors
 
 
+# class EditorFrame(ScrollableNotebook):
 class EditorFrame(tk.ttk.Frame):
     """ A container for the notebook, including bottom console """
 
@@ -184,20 +186,17 @@ class TextEditorFrame(tk.ttk.Frame):
         )
 
         if vertical_scrollbar:
-            self._vbar = PWScrollbar( # WAIT: Mulig å få til bordercolor i denne?
-                self, 
+            self.text.v_scrollbar = AutoHideScrollbar(
+                self.text, 
+                command = self.v_scrollbar_scroll,
                 width = 10, 
-                command = self._vertical_scroll,
-                troughcolor = COLORS.bg, 
-                # thumbcolor = COLORS.sidebar_bg, 
+                troughcolor = COLORS.sidebar_bg, 
+                troughoutline = COLORS.sidebar_bg,
+                buttoncolor = COLORS.sidebar_bg,
                 thumbcolor = COLORS.status_bg, 
-                troughoutline = 'grey',
-                # troughoutline = COLORS.bg,                
-                buttoncolor = COLORS.bg
                 )
-
-            self._vbar.pack(side="right", fill="y", expand=False)
-            self.text["yscrollcommand"] = self._vertical_scrollbar_update        
+            self.text["yscrollcommand"] = self.text.v_scrollbar.set 
+            self.text.v_scrollbar.pack(side="right", fill="y")
 
         self.text.pack(expand=tk.YES, fill=tk.BOTH)
         self.set_file_obj(file_obj) 
@@ -222,13 +221,8 @@ class TextEditorFrame(tk.ttk.Frame):
                 self.text.insert(tk.END, file_obj.content)  
             self.text.focus_set()                              
 
-    def _vertical_scroll(self, *args):
+    def v_scrollbar_scroll(self, *args):
         self.text.yview(*args)
         self.text.event_generate("<<VerticalScroll>>")   
 
-    def _vertical_scrollbar_update(self, *args):
-        if not hasattr(self, "_vbar"):
-            return
-
-        self._vbar.set(*args)
-        self.text.event_generate("<<VerticalScroll>>")        
+      

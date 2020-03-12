@@ -23,7 +23,7 @@
 
 import gettext, os
 from gettext import gettext as _get
-from common.gui_gtk import pwb_choose_file
+from gui.gtk import pwb_choose_file
 from palette import PaletteFrame
 from commander import command
 import tkinter as tk
