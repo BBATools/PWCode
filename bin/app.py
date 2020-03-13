@@ -66,8 +66,8 @@ class App:
         root.title(self.settings.name)
         root.protocol("WM_DELETE_WINDOW", self.quit_app)
 
-        w = 1200 # width for the Tk root
-        h = 800 # height for the Tk root
+        w = 1400 # width for the Tk root
+        h = 900 # height for the Tk root
         ws = root.winfo_screenwidth() 
         hs = root.winfo_screenheight()
 
@@ -129,8 +129,6 @@ class App:
         if os.path.exists(self.port_file):
             os.remove(self.port_file)
         self.root.destroy() 
-
-                
 
 
     def run(self, port):

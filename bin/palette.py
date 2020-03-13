@@ -41,7 +41,7 @@ class CommandFrame(ttk.Frame):
     """a frame with information about a command"""
 
     def __init__(self, parent, command):
-        super().__init__(parent, padding=(5, 5, 5, 8))
+        super().__init__(parent, padding=(50, 5, 50, 5))
         self.command = command
         self.label = ttk.Label(self, text=command.title)
         self.label.pack(side=tk.LEFT, anchor=tk.W)
