@@ -24,11 +24,15 @@
 import os, pathlib, logging, threading, time, queue, datetime
 # from logging.handlers import QueueHandler
 import tkinter as tk
-from tkinter.scrolledtext import ScrolledText
+from tkinter import font
+# from tkinter.scrolledtext import ScrolledText
 from settings import COLORS
 from welcome import WelcomeTab
 from text.tktextext import EnhancedText
 from gui.scrollbar_autohide import AutoHideScrollbar
+from pygments.lexers.python import PythonLexer
+from pygments.lexers.special import TextLexer
+from pygments.styles import get_style_by_name
 
 # pylint: disable=too-many-ancestors
 
@@ -80,7 +84,10 @@ class EditorFrame(tk.ttk.Frame):
             self.on_file_selected(file_obj)
             return
 
-        editor = TextEditorFrame(self.notebook, file_obj)
+        lexer = None
+        lexer = PythonLexer()
+        # TODO: Sjekk her om hvilken lexer som skal brukes basert på extension
+        editor = TextEditorFrame(self.notebook, file_obj, lexer)
         tab_id = self.notebook.select()
 
         if tab_id:
@@ -166,6 +173,7 @@ class TextEditorFrame(tk.ttk.Frame):
         self, 
         parent, 
         file_obj=None,
+        lexer = None,
         vertical_scrollbar=True,
         console=True
         ):
@@ -235,6 +243,8 @@ class TextEditorFrame(tk.ttk.Frame):
             # self.text.v_scrollbar.pack(side="right", fill="y")            
 
         self.text.pack(expand=tk.YES, fill=tk.BOTH)
+        self.create_tags()
+        self.lexer = lexer
         self.set_file_obj(file_obj) 
         self.modified = False    
 
@@ -256,10 +266,72 @@ class TextEditorFrame(tk.ttk.Frame):
             if file_obj.content != 'empty_buffer':
                 self.text.insert(tk.END, file_obj.content)  
             self.text.focus_set()  
+            self.recolorize()
 
     def v_scrollbar_scroll(self, *args):
         self.text.yview(*args)
         self.text.event_generate("<<VerticalScroll>>")   
+
+
+    def create_tags(self):
+        """
+            thmethod creates the tags associated with each distinct style element of the 
+            source code 'dressing'
+        """
+        bold_font = font.Font(self.text, self.text.cget("font"))
+        bold_font.configure(weight=font.BOLD)
+        italic_font = font.Font(self.text, self.text.cget("font"))
+        italic_font.configure(slant=font.ITALIC)
+        bold_italic_font = font.Font(self.text, self.text.cget("font"))
+        bold_italic_font.configure(weight=font.BOLD, slant=font.ITALIC)
+        style = get_style_by_name('default')
+        
+        for ttype, ndef in style:
+            tag_font = None
+        
+            if ndef['bold'] and ndef['italic']:
+                tag_font = bold_italic_font
+            elif ndef['bold']:
+                tag_font = bold_font
+            elif ndef['italic']:
+                tag_font = italic_font
+ 
+            if ndef['color']:
+                foreground = "#%s" % ndef['color'] 
+            else:
+                foreground = None
+ 
+            self.text.tag_configure(str(ttype), foreground=foreground, font=tag_font) 
+
+    def recolorize(self):
+        """
+            this method colors and styles the prepared tags
+        """
+        code = self.text.get("1.0", "end-1c")
+        tokensource = self.lexer.get_tokens(code)
+        start_line=1
+        start_index = 0
+        end_line=1
+        end_index = 0
+        
+        for ttype, value in tokensource:
+            if "\n" in value:
+                end_line += value.count("\n")
+                end_index = len(value.rsplit("\n",1)[1])
+            else:
+                end_index += len(value)
+ 
+            if value not in (" ", "\n"):
+                index1 = "%s.%s" % (start_line, start_index)
+                index2 = "%s.%s" % (end_line, end_index)
+ 
+                for tagname in self.text.tag_names(index1): # FIXME
+                    self.text.tag_remove(tagname, index1, index2)
+ 
+                self.text.tag_add(str(ttype), index1, index2)
+ 
+            start_line = end_line
+            start_index = end_index        
 
 
 # class Processing(threading.Thread):
@@ -339,6 +411,27 @@ class ConsoleUi:
         logger.addHandler(self.queue_handler)
         # Start polling messages from the queue
         self.frame.after(100, self.poll_log_queue)
+
+        # self.text.v_scrollbar = AutoHideScrollbar(
+        #     self.text, 
+        #     command = self.v_scrollbar_scroll,
+        #     width = 10,               
+        #     # troughcolor = COLORS.sidebar_bg, 
+        #     # buttoncolor = COLORS.sidebar_bg,
+
+        #     troughcolor = COLORS.bg, 
+        #     buttoncolor = COLORS.bg,                
+        #     # troughoutline = COLORS.sidebar_bg,
+        #     # thumboutline = COLORS.sidebar_bg,
+        #     thumbcolor = COLORS.status_bg, 
+        #     # thumbcolor = COLORS.sidebar_fg,                 
+        #     )
+        # self.text["yscrollcommand"] = self.text.v_scrollbar.set 
+        # self.text.v_scrollbar.pack(side="right", fill="y")
+
+    def v_scrollbar_scroll(self, *args):
+        self.text.yview(*args)
+        self.text.event_generate("<<VerticalScroll>>")           
 
     def display(self, record):
         msg = self.queue_handler.format(record)
