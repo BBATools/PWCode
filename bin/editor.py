@@ -21,24 +21,69 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import os, pathlib, logging, threading, time, queue, datetime
-# from logging.handlers import QueueHandler
+import os, pathlib, logging, threading, time, queue, datetime, sys
 import tkinter as tk
 from tkinter import font
-# from tkinter.scrolledtext import ScrolledText
 from settings import COLORS
 from welcome import WelcomeTab
 from text.tktextext import EnhancedText
 from gui.scrollbar_autohide import AutoHideScrollbar
 from pygments.lexers.python import PythonLexer
-from pygments.lexers.special import TextLexer
-from pygments.styles import get_style_by_name
+from pygments.lexers.html import HtmlLexer
+from pygments.lexers.html import XmlLexer
+from pygments.lexers.templates import HtmlPhpLexer
+from pygments.lexers.perl import Perl6Lexer
+from pygments.lexers.ruby import RubyLexer
+from pygments.lexers.configs import IniLexer
+from pygments.lexers.shell import BashLexer
+from pygments.lexers.diff import DiffLexer
+from pygments.lexers.dotnet import CSharpLexer
+from pygments.lexers.markup import MarkdownLexer
+from pygments.styles import get_style_by_name, get_all_styles
 
 # pylint: disable=too-many-ancestors
 
-
 logger = logging.getLogger(__name__)
 
+lexer_from_ext = { # WAIT: Denne bør hentes fra configfil heller
+    'py': PythonLexer(), 
+    'pyw': PythonLexer(), 
+    'htm': HtmlLexer(), 
+    'html': HtmlLexer(), 
+    'xml': XmlLexer(), # WAIT: Virker dårlig
+    'xsl': XmlLexer(),
+    'rss': XmlLexer(),
+    'xslt': XmlLexer(),
+    'xsd': XmlLexer(),
+    'wsdl': XmlLexer(),
+    'php': HtmlPhpLexer(),
+    'php5': HtmlPhpLexer(),
+    'pl': Perl6Lexer(),
+    'pm': Perl6Lexer(),
+    'nqp': Perl6Lexer(),
+    'p6': Perl6Lexer(),
+    '6pl': Perl6Lexer(),
+    'p6l': Perl6Lexer(),
+    'pl6': Perl6Lexer(),
+    'p6m': Perl6Lexer(),
+    'pm6': Perl6Lexer(),
+    't': Perl6Lexer(),
+    'rb': RubyLexer(),
+    'rbw': RubyLexer(),
+    'rake': RubyLexer(),
+    'rbx': RubyLexer(),
+    'duby': RubyLexer(),
+    'gemspec': RubyLexer(),
+    'ini': IniLexer(),
+    'init': IniLexer(),
+    'sh': BashLexer(),
+    'diff': DiffLexer(),
+    'patch': DiffLexer(),
+    'cs': CSharpLexer(),
+    'md': MarkdownLexer(),  # WAIT: Virker dårlig  
+    }
+
+known_extensions = list(lexer_from_ext.keys())
 
 # class EditorFrame(ScrollableNotebook):
 class EditorFrame(tk.ttk.Frame):
@@ -65,6 +110,14 @@ class EditorFrame(tk.ttk.Frame):
         self.lift() 
 
 
+    def get_lexer(self, path):
+        lexer = None
+        extension = os.path.splitext(path)[1][1:].lower()
+        if extension in known_extensions:
+            lexer = lexer_from_ext.get(extension)
+        return lexer                           
+
+
     def show_welcome(self):
         """ show a welcome tab at the first notebook position """
         if not self.welcome_id:
@@ -84,9 +137,7 @@ class EditorFrame(tk.ttk.Frame):
             self.on_file_selected(file_obj)
             return
 
-        lexer = None
-        lexer = PythonLexer()
-        # TODO: Sjekk her om hvilken lexer som skal brukes basert på extension
+        lexer = self.get_lexer(file_obj.path)
         editor = TextEditorFrame(self.notebook, file_obj, lexer)
         tab_id = self.notebook.select()
 
@@ -128,6 +179,7 @@ class EditorFrame(tk.ttk.Frame):
         del self.id2path[tab_id]      
 
 
+    # TODO: Save as overskriver ikke eksisterende fil?
     def on_file_save(self, file_obj, new_path = None):
         """ save editor content to file """
         # WAIT: Print any errors to status line?
@@ -137,6 +189,7 @@ class EditorFrame(tk.ttk.Frame):
         if new_path:
             path = new_path
 
+        lexer = self.get_lexer(path)
         tab_name = self.notebook.select()
         if tab_name:
             text_editor = self.notebook.nametowidget(tab_name)
@@ -243,8 +296,11 @@ class TextEditorFrame(tk.ttk.Frame):
             # self.text.v_scrollbar.pack(side="right", fill="y")            
 
         self.text.pack(expand=tk.YES, fill=tk.BOTH)
-        self.create_tags()
+
         self.lexer = lexer
+        if self.lexer:
+            self.create_tags()
+
         self.set_file_obj(file_obj) 
         self.modified = False    
 
@@ -253,6 +309,8 @@ class TextEditorFrame(tk.ttk.Frame):
 
     def unsaved_text(self, event):
         self.modified = True
+        if self.lexer:
+            self.colorize() # TODO: Sjekk at ikke oppdaterer hele filen hver gang
 
 
     def get_content(self):
@@ -265,8 +323,9 @@ class TextEditorFrame(tk.ttk.Frame):
             self.text.delete("0.0", tk.END)
             if file_obj.content != 'empty_buffer':
                 self.text.insert(tk.END, file_obj.content)  
-            self.text.focus_set()  
-            self.recolorize()
+            self.text.focus_set() 
+            if self.lexer: 
+                self.colorize()
 
     def v_scrollbar_scroll(self, *args):
         self.text.yview(*args)
@@ -274,18 +333,14 @@ class TextEditorFrame(tk.ttk.Frame):
 
 
     def create_tags(self):
-        """
-            thmethod creates the tags associated with each distinct style element of the 
-            source code 'dressing'
-        """
         bold_font = font.Font(self.text, self.text.cget("font"))
         bold_font.configure(weight=font.BOLD)
         italic_font = font.Font(self.text, self.text.cget("font"))
         italic_font.configure(slant=font.ITALIC)
         bold_italic_font = font.Font(self.text, self.text.cget("font"))
         bold_italic_font.configure(weight=font.BOLD, slant=font.ITALIC)
-        style = get_style_by_name('default')
-        
+        style = get_style_by_name('monokai_pro')
+
         for ttype, ndef in style:
             tag_font = None
         
@@ -303,10 +358,8 @@ class TextEditorFrame(tk.ttk.Frame):
  
             self.text.tag_configure(str(ttype), foreground=foreground, font=tag_font) 
 
-    def recolorize(self):
-        """
-            this method colors and styles the prepared tags
-        """
+
+    def colorize(self):
         code = self.text.get("1.0", "end-1c")
         tokensource = self.lexer.get_tokens(code)
         start_line=1

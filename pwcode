@@ -19,7 +19,7 @@
 
 
 import os, sys, psutil, xmlrpc.client, socket
-sys.path.append('bin')
+sys.path.insert(0, 'bin') # Look for modules here fist
 from bin.app import App
 
 
