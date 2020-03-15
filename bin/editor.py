@@ -237,7 +237,7 @@ class TextEditorFrame(tk.ttk.Frame):
         self.text = EnhancedText(
             self,
             background=COLORS.text_bg,
-            foreground="#eeeeee",
+            foreground=COLORS.text_fg,
             insertbackground=COLORS.status_bg,
             # insertbackground="#eeeeee",
             borderwidth=0,
@@ -248,7 +248,9 @@ class TextEditorFrame(tk.ttk.Frame):
             insertwidth = 2,
             spacing1 = 0,
             spacing3 = 0,
-            inactiveselectbackground = COLORS.status_bg,
+            selectbackground=COLORS.sidebar_bg,
+            selectforeground=COLORS.text_fg,
+            inactiveselectbackground = COLORS.sidebar_bg,
             undo=True,
             wrap=tk.NONE,
             padx = 5,
@@ -276,30 +278,10 @@ class TextEditorFrame(tk.ttk.Frame):
         if console:
             self.console = ConsoleUi(self)
             self.processing = Processing()
-            self.processing.run()
-            # Clock.run(self)
-            # self.console.pack(side="bottom", fill="y")
-            # self.ttk.Label(self.frame, text='Message:').grid(column=0, row=1, sticky=W)
-            # tk.ttk.Entry(self, textvariable=self.message, width=25).pack(side='bottom', fill='y')         
-            
-        #     import asyncio
-        #     from gui.console import AsyncConsole
-            
-        #     loop = asyncio.get_event_loop()
-        #     console = AsyncConsole()
-        #     # self.console = AsyncConsole()
-
-
-
-
-
-            # self.text.v_scrollbar = AutoHideScrollbar(
-            
-            #     )
-            # self.text["yscrollcommand"] = self.text.v_scrollbar.set 
-            # self.text.v_scrollbar.pack(side="right", fill="y")            
+            self.processing.run()        
 
         self.text.pack(expand=tk.YES, fill=tk.BOTH)
+        # self.text.pack_propagate(0)
 
         self.lexer = lexer
         if self.lexer:
@@ -313,7 +295,7 @@ class TextEditorFrame(tk.ttk.Frame):
     def unsaved_text(self, event):
         self.modified = True
         if self.lexer:
-            self.colorize() # TODO: Sjekk at ikke oppdaterer hele filen hver gang
+            self.colorize() # TODO: Sjekk at denne ikke oppdaterer hele filen hver gang
 
 
     def get_content(self):
@@ -471,6 +453,7 @@ class ConsoleUi:
             height=10)
 
         self.text.pack(side="bottom", fill="both")
+        self.text.pack_propagate(0)
         self.text.configure(font='TkFixedFont')
         self.text.tag_config('INFO', foreground='green')
         self.text.tag_config('DEBUG', foreground='blue')
@@ -487,22 +470,22 @@ class ConsoleUi:
         # Start polling messages from the queue
         self.frame.after(100, self.poll_log_queue)
 
-        # self.text.v_scrollbar = AutoHideScrollbar(
-        #     self.text, 
-        #     command = self.v_scrollbar_scroll,
-        #     width = 10,               
-        #     # troughcolor = COLORS.sidebar_bg, 
-        #     # buttoncolor = COLORS.sidebar_bg,
+        self.text.v_scrollbar = AutoHideScrollbar(
+            self.text, 
+            command = self.v_scrollbar_scroll,
+            width = 10,               
+            # troughcolor = COLORS.sidebar_bg, 
+            # buttoncolor = COLORS.sidebar_bg,
 
-        #     troughcolor = COLORS.bg, 
-        #     buttoncolor = COLORS.bg,                
-        #     # troughoutline = COLORS.sidebar_bg,
-        #     # thumboutline = COLORS.sidebar_bg,
-        #     thumbcolor = COLORS.status_bg, 
-        #     # thumbcolor = COLORS.sidebar_fg,                 
-        #     )
-        # self.text["yscrollcommand"] = self.text.v_scrollbar.set 
-        # self.text.v_scrollbar.pack(side="right", fill="y")
+            troughcolor = COLORS.bg, 
+            buttoncolor = COLORS.bg,                
+            # troughoutline = COLORS.sidebar_bg,
+            # thumboutline = COLORS.sidebar_bg,
+            thumbcolor = COLORS.status_bg, 
+            # thumbcolor = COLORS.sidebar_fg,                 
+            )
+        self.text["yscrollcommand"] = self.text.v_scrollbar.set 
+        self.text.v_scrollbar.pack(side="right", fill="y")
 
     def v_scrollbar_scroll(self, *args):
         self.text.yview(*args)
