@@ -19,8 +19,8 @@
 
 
 import os, sys, psutil, xmlrpc.client, socket
-sys.path.insert(0, 'bin') # Look for modules here fist
-from bin.app import App
+# sys.path.insert(0, '.') # Look for modules here fist
+from app import App
 
 
 def is_running(script): # WAIT: Bare sjekke om får kontakt med serverproxy heller?
@@ -72,7 +72,7 @@ def start_server(tmp_dir, port_file):
 # TODO: Se for hvordan endre prosessnavn fra python i windows (ie rename bundlet python.exe til pwcode.exe)
 # https://superuser.com/questions/427642/is-it-possible-to-set-the-process-name-with-pythonw
 if __name__ == "__main__":
-    tmp_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'bin/tmp'))
+    tmp_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'tmp'))
     port_file = tmp_dir + '/port'
 
     server = is_running(os.path.basename(__file__))

@@ -458,9 +458,26 @@ class EnhancedText(TweakableText):
     def get_line_count(self):
         return list(map(int, self.index("end-1c").split(".")))[0]
 
+    # def perform_return(self, event):
+    #     self.insert("insert", "\n")
+    #     return "break"
+
+
     def perform_return(self, event):
-        self.insert("insert", "\n")
-        return "break"
+        # WAIT: Gjør smartere. Bl.a. når linje ender på :
+        # WAIT: Tar denne hensyn til config-valg om tab eller ikke lenger oppe?
+        indentation = ""
+        lineindex = self.index("insert").split(".")[0]
+        linetext = self.get(lineindex+".0", lineindex+".end")
+
+        for character in linetext:
+            if character in [" ","\t"]:
+                indentation += character
+            else:
+                break
+                
+        self.insert(self.index("insert"), "\n"+indentation)
+        return "break"        
 
     def perform_page_down(self, event):
         # if last line is visible then go to last line

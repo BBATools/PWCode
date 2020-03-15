@@ -387,7 +387,26 @@ class TextEditorFrame(tk.ttk.Frame):
                 self.text.tag_add(str(ttype), index1, index2)
  
             start_line = end_line
-            start_index = end_index        
+            start_index = end_index    
+
+
+    def autoindent(self, event):
+        """
+            this method implements the callback for the Return Key in the editor widget.
+            arguments: the tkinter event object with which the callback is associated
+        """
+        indentation = ""
+        lineindex = self.text.index("insert").split(".")[0]
+        linetext = self.text.get(lineindex+".0", lineindex+".end")
+
+        for character in linetext:
+            if character in [" ","\t"]:
+                indentation += character
+            else:
+                break
+                
+        self.text.insert(self.text.index("insert"), "\n"+indentation)
+        return "break"
 
 
 # class Processing(threading.Thread):
