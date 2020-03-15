@@ -232,6 +232,8 @@ class TextEditorFrame(tk.ttk.Frame):
         ):
         super().__init__(parent)
 
+        self.modified = False 
+
         self.text = EnhancedText(
             self,
             background=COLORS.text_bg,
@@ -247,6 +249,8 @@ class TextEditorFrame(tk.ttk.Frame):
             spacing1 = 0,
             spacing3 = 0,
             inactiveselectbackground = COLORS.status_bg,
+            undo=True,
+            wrap=tk.NONE,
             padx = 5,
             pady = 5,
         )
@@ -301,10 +305,9 @@ class TextEditorFrame(tk.ttk.Frame):
         if self.lexer:
             self.create_tags()
 
-        self.set_file_obj(file_obj) 
-        self.modified = False    
+        self.set_file_obj(file_obj)    
 
-        self.text.bind("<<TextChange>>", self.unsaved_text, True) 
+        self.text.bind("<<TextChange>>", self.unsaved_text, True)                         
 
 
     def unsaved_text(self, event):

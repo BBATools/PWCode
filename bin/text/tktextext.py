@@ -71,11 +71,12 @@ class TweakableText(tk.Text):
                 return self.tk.call((self._original_widget_name, operation) + args)
 
         except TclError as e:
-            # Some Tk internal actions (eg. paste and cut) can cause this error
-            if (
-                str(e).lower() == '''text doesn't contain any characters tagged with "sel"'''
+            # Some Tk internal actions (eg. paste, cut, redo) can cause this error
+            if (                
+                (str(e).lower() == '''text doesn't contain any characters tagged with "sel"'''
                 and operation in ["delete", "index", "get"]
-                and args in [("sel.first", "sel.last"), ("sel.first",)]
+                and args in [("sel.first", "sel.last"), ("sel.first",)])
+                or (str(e) == "nothing to redo")
             ):
 
                 pass
@@ -204,6 +205,7 @@ class EnhancedText(TweakableText):
         cnf={},
         **kw
     ):
+
         # Parent class shouldn't autoseparate
         # TODO: take client provided autoseparators value into account
         kw["autoseparators"] = False
@@ -324,7 +326,7 @@ class EnhancedText(TweakableText):
 
         if _running_on_x11() or _running_on_mac():
 
-            def custom_redo(event):
+            def custom_redo(event):               
                 self.event_generate("<<Redo>>")
                 return "break"
 
