@@ -58,22 +58,23 @@ class RecentLinksFrame(LinksFrame):
         self.app = app
         app.model.add_observer(self)
 
-    def on_folder_open(self, folder):
-        """model callback"""
-        # print(folder)
+    # def on_folder_open(self, folder):
+    #     """model callback"""
+    #     # print(folder)
 
-        # for f in self.app.model.recent_folders:
-        #     print(f)
+    #     # for f in self.app.model.recent_folders:
+    #     #     print(f)
 
-        # # recent_folders = self.app.model.recent_folders
-        # if folder not in self.app.model.recent_folders:
-        self.add_link(
-            folder.basename,
-            lambda: self.app.command_callable("open_folder")(folder.path),
-        )
+    #     # # recent_folders = self.app.model.recent_folders
+    #     # if folder not in self.app.model.recent_folders:
+    #     self.add_link(
+    #         folder.basename,
+    #         lambda: self.app.command_callable("open_folder")(folder.path),
+    #     )
 
     def on_file_open(self, file_obj):
         """model callback"""
+        print('test')
         self.add_link(
             file_obj.basename,
             lambda: self.app.command_callable("open_file")(file_obj.path),

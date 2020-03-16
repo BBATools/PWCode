@@ -121,6 +121,6 @@ class Settings:
         """ TODO """
         pass
 
-    def on_folder_open(self, folder):
-        """demo callback"""
-        print("demo callback: folder '{}'' has be opened".format(folder))
+    # def on_folder_open(self, folder):
+    #     """demo callback"""
+    #     print("demo callback: folder '{}'' has be opened".format(folder))

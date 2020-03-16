@@ -242,6 +242,8 @@ class EnhancedText(TweakableText):
             self.bind("<<TextChange>>", self._tag_current_line, True)
             self._tag_current_line()
 
+        rebind_control_a(self) #Override default tk binding           
+
     def _bind_mouse_aids(self):
         if _running_on_mac():
             self.bind("<Button-2>", self.on_secondary_click)

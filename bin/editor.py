@@ -311,7 +311,7 @@ class TextEditorFrame(tk.ttk.Frame):
 
         # self.app.statusbar.status_text.set(str(text_line_count)) # TODO: Hvorfor blir ikke tekst oppdatert
         # self.app.statusbar.status_line.text = str(text_line_count)
-        print(text_line_count)
+        # print(text_line_count)
 
     def get_content(self):
         return self.text.get(0.0, tk.END)          
