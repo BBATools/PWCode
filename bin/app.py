@@ -38,34 +38,29 @@ class App:
     like a controller
     """
     
-    def __init__(self, tmp_dir, port_file):
-      
-        """ constructor """
+    def __init__(self, tmp_dir, port_file, icon_file):      
         self.model = model.PWCodeModel()  # observable data model
         self.model.add_observer(self)
         self.settings = settings.Settings(self.model)
-        self.root = None  # tkinter Tk instance
+        self.root = None 
 
-        # The components of the interface
         self.sidebar = None
         self.notebook = None
         self.statusbar = None
         self.commander = None
-        # self.welcome = None 
-
-        # later:
-        # self.console = None
 
         self.tmp_dir = tmp_dir
-        self.port_file = port_file       
+        self.port_file = port_file   
+        self.icon_file = icon_file
      
 
     def build_ui(self):
         """  builds the user interface """
         self.root = root = tk.Tk(className=self.settings.name.lower()) # --> StartupWMClass = pwcode
-        root.title(self.settings.name)
         root.protocol("WM_DELETE_WINDOW", self.quit_app)
-        # root.
+
+        img = tk.Image('photo', file=self.icon_file)
+        root.tk.call('wm','iconphoto',root._w,img)
 
         w = 1400 # width for the Tk root
         h = 900 # height for the Tk root
@@ -161,14 +156,14 @@ class App:
 
     def on_file_selected(self, file_obj):
         """ callback on file selection : set the window title """
+        base_title = ''
         if file_obj:
-            # self.root.title("%s - %s" % (file_obj.basename, self.settings.name))
             if file_obj.path.startswith(self.tmp_dir + '/Untitled-'):
-                self.root.title(file_obj.basename)
+                base_title = file_obj.basename + ' - '
             else:                
-                self.root.title(file_obj.path)
-        else:
-            self.root.title(self.settings.name)  
+                base_title = file_obj.path + ' - '
+
+        self.root.title(base_title + self.settings.name)
 
 
     def command_callable(self, name):

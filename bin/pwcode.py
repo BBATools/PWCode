@@ -57,8 +57,8 @@ def start_client(port_file):
     app.focus()
 
 
-def start_server(tmp_dir, port_file):  
-    app = App(tmp_dir, port_file)
+def start_server(tmp_dir, port_file, icon_file):  
+    app = App(tmp_dir, port_file, icon_file)
     app.build_ui()
     open_files_from_tmp(app)
     app.run_command('show_welcome')
@@ -69,9 +69,8 @@ def start_server(tmp_dir, port_file):
     app.run(port)
 
 
-def fix_desktop_file(bin_dir):
-    desktop_file = os.path.abspath(os.path.join(bin_dir, '..', 'PWCode.desktop')) 
-    icon_file = os.path.join(bin_dir, 'img/arkimint_fin_32px.png')       
+def fix_desktop_file(bin_dir, icon_file):
+    desktop_file = os.path.abspath(os.path.join(bin_dir, '..', 'PWCode.desktop'))        
     for line in fileinput.input(desktop_file, inplace = 1): 
         if line.startswith('Icon='):
             line = 'Icon=' + icon_file
@@ -82,6 +81,7 @@ def fix_desktop_file(bin_dir):
 # https://superuser.com/questions/427642/is-it-possible-to-set-the-process-name-with-pythonw
 if __name__ == "__main__":
     bin_dir = os.path.abspath(os.path.dirname(__file__))
+    icon_file = os.path.join(bin_dir, 'img/arkimint_fin_32px.png')  # WAIT: Replace icon
     tmp_dir = os.path.join(bin_dir, 'tmp')
     port_file = tmp_dir + '/port' 
 
@@ -89,9 +89,10 @@ if __name__ == "__main__":
     if server:
         start_client(port_file)
     else:
-        start_server(tmp_dir, port_file)  
+        start_server(tmp_dir, port_file, icon_file)  
 
-    fix_desktop_file(bin_dir)                  
+    if os.name == "posix":
+        fix_desktop_file(bin_dir, icon_file)                  
  
 
 
