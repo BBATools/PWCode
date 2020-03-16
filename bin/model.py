@@ -57,14 +57,11 @@ class FSEntryFactory:
         return self.get_entry(path, FileEntry)
 
     def clear_cache(self):
-        """clear first elements of the cache. not good but no leaks :) """
-        # TODO: Feil i koden under -> fix
-        print('clear cache er disablet pga bug')
-        # for index, (path, _) in enumerate(self.__cache.keys()):
-        #     if index < self.cache_size:
-        #         del self.__cache[path]
-        #     else:
-        #         break
+        for index, (path, _) in enumerate(self.__cache.keys()).items():
+            if index < self.cache_size:
+                del self.__cache[path]
+            else:
+                break
 
 
 class FSEntry:
@@ -129,7 +126,6 @@ class Folder(FSEntry):
             if not os.path.islink(path) and not bname.startswith('.'):
                 if os.path.isdir(path) and os.access(path, os.W_OK):                    
                     dir_entries.append(self.factory.get_folder(path))
-                    print(path)
                 else:
                     file_entries.append(self.factory.get_file(path))
         dir_entries.sort()

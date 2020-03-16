@@ -32,8 +32,22 @@ class StatusBar(ttk.Frame):
     TODO: be notified when command object are executed, add widgets ...
     """
 
-    def __init__(self, parent, app):
+    def __init__(self, parent, app, initial_status):
         super().__init__(parent, style="StatusBar.TFrame")
-        ttk.Label(self, text="legg inn linje og kolonnenr her", style="StatusBar.TLabel").pack(
-            side=tk.LEFT
-        )
+
+        self.status_line = ttk.Label(self)
+        self.status_line.config(text=initial_status, style="StatusBar.TLabel", padding=(5,0,0,0))
+        self.status_line.pack(side=tk.LEFT)
+
+
+        # self.status_line.config(text='ny tekst')
+        # v = tk.StringVar()
+        # v.set('hhh')
+        # self.status_line = ttk.Label(self, textvariable=initial_status, style="StatusBar.TLabel", padding=(5,0,0,0)).pack(
+        #     side=tk.LEFT
+        # )
+        # app.update_idletasks()
+
+        # v.set(str(initial_status))
+        # print(initial_status)
+        # self.status_line.configure(text="new text")

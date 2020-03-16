@@ -62,9 +62,10 @@ class App:
 
     def build_ui(self):
         """  builds the user interface """
-        self.root = root = tk.Tk()
+        self.root = root = tk.Tk(className=self.settings.name.lower()) # --> StartupWMClass = pwcode
         root.title(self.settings.name)
         root.protocol("WM_DELETE_WINDOW", self.quit_app)
+        # root.
 
         w = 1400 # width for the Tk root
         h = 900 # height for the Tk root
@@ -103,7 +104,8 @@ class App:
 
         # self.welcome = WelcomeTab(paned, self)
 
-        self.statusbar = StatusBar(root, self)
+        initial_status = 'test'
+        self.statusbar = StatusBar(root, self, initial_status)
         self.statusbar.pack(fill=tk.X, side=tk.BOTTOM)   
 
 
@@ -147,7 +149,7 @@ class App:
 
 
     def start_rcp_server(self, port):
-        server = SimpleXMLRPCServer(('localhost', int(port)),logRequests=True, allow_none=True)
+        server = SimpleXMLRPCServer(('localhost', int(port)),logRequests=False, allow_none=True)
         server.register_instance(self)
         server.serve_forever()
 
@@ -160,7 +162,11 @@ class App:
     def on_file_selected(self, file_obj):
         """ callback on file selection : set the window title """
         if file_obj:
-            self.root.title("%s - %s" % (file_obj.basename, self.settings.name))
+            # self.root.title("%s - %s" % (file_obj.basename, self.settings.name))
+            if file_obj.path.startswith(self.tmp_dir + '/Untitled-'):
+                self.root.title(file_obj.basename)
+            else:                
+                self.root.title(file_obj.path)
         else:
             self.root.title(self.settings.name)  
 

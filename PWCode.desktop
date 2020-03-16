@@ -1,7 +1,8 @@
 [Desktop Entry]
 Name=PWCode
-Exec=./bin/pwcode &
-Icon=/usr/share/icons/Mint-X/categories/32/applications-development.png
+Exec=./bin/pwcode
+Icon=/home/bba/bin/PWCode/bin/img/arkimint_fin_32px.png
 Terminal=false
 Type=Application
+StartupWMClass=pwcode
 Name[en_US]=PWCode

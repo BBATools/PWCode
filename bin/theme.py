@@ -94,6 +94,7 @@ def build_style(colors: Palette):
                 "configure": {
                     "background": colors.status_bg,
                     "foreground": colors.status_fg,
+                    "font": ("", 8, ""),
                 }
             },
             "Welcome.TFrame": {"configure": {"background": colors.tab_bg}},
@@ -115,7 +116,7 @@ def build_style(colors: Palette):
                 "configure": {
                     "background": colors.tab_bg,
                     "foreground": colors.fg,
-                    "font": ("", 12, ""),
+                    "font": ("", 16, ""),
                 }
             },            
             "Links.TFrame": {

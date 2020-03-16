@@ -50,7 +50,7 @@ lexer_from_ext = { # WAIT: Denne bør hentes fra configfil heller
     'pyw': PythonLexer(), 
     'htm': HtmlLexer(), 
     'html': HtmlLexer(), 
-    'xml': XmlLexer(), # WAIT: Virker dårlig
+    'xml': XmlLexer(), # WAIT: Se om finnes bedre
     'xsl': XmlLexer(),
     'rss': XmlLexer(),
     'xslt': XmlLexer(),
@@ -138,7 +138,7 @@ class EditorFrame(tk.ttk.Frame):
             return
 
         lexer = self.get_lexer(file_obj.path)
-        editor = TextEditorFrame(self.notebook, file_obj, lexer)
+        editor = TextEditorFrame(self.notebook, file_obj, lexer, self.app)
         tab_id = self.notebook.select()
 
         if tab_id:
@@ -217,6 +217,8 @@ class EditorFrame(tk.ttk.Frame):
         tab_id = self.notebook.select()
         if tab_id in self.id2path:
             self.app.select_file(self.id2path[tab_id], self)
+        elif str(tab_id) == '.!panedwindow.!editorframe.!welcometab':
+            self.app.on_file_selected(None)
 
 
 class TextEditorFrame(tk.ttk.Frame):
@@ -227,18 +229,22 @@ class TextEditorFrame(tk.ttk.Frame):
         parent, 
         file_obj=None,
         lexer = None,
+        app = None,
         vertical_scrollbar=True,
         console=True
         ):
+        
         super().__init__(parent)
 
         self.modified = False 
+        self.app = app
 
         self.text = EnhancedText(
             self,
             background=COLORS.text_bg,
             foreground=COLORS.text_fg,
             insertbackground=COLORS.status_bg,
+            # line_numbers=True,
             # insertbackground="#eeeeee",
             borderwidth=0,
             highlightthickness=0,
@@ -249,8 +255,8 @@ class TextEditorFrame(tk.ttk.Frame):
             spacing1 = 0,
             spacing3 = 0,
             selectbackground=COLORS.sidebar_bg,
-            selectforeground=COLORS.text_fg,
             inactiveselectbackground = COLORS.sidebar_bg,
+            selectforeground=COLORS.text_fg,
             undo=True,
             wrap=tk.NONE,
             padx = 5,
@@ -278,7 +284,9 @@ class TextEditorFrame(tk.ttk.Frame):
         if console:
             self.console = ConsoleUi(self)
             self.processing = Processing()
-            self.processing.run()        
+            self.processing.run()  
+            
+                  
 
         self.text.pack(expand=tk.YES, fill=tk.BOTH)
         # self.text.pack_propagate(0)
@@ -297,9 +305,16 @@ class TextEditorFrame(tk.ttk.Frame):
         if self.lexer:
             self.colorize() # TODO: Sjekk at denne ikke oppdaterer hele filen hver gang
 
+        text_line_count = int(self.text.index("end").split(".")[0])
+
+        self.app.statusbar.status_line.config(text=str(text_line_count))
+
+        # self.app.statusbar.status_text.set(str(text_line_count)) # TODO: Hvorfor blir ikke tekst oppdatert
+        # self.app.statusbar.status_line.text = str(text_line_count)
+        print(text_line_count)
 
     def get_content(self):
-        return self.text.get(0.0, tk.END)  
+        return self.text.get(0.0, tk.END)          
 
 
     def set_file_obj(self, file_obj):
@@ -372,25 +387,6 @@ class TextEditorFrame(tk.ttk.Frame):
             start_index = end_index    
 
 
-    def autoindent(self, event):
-        """
-            this method implements the callback for the Return Key in the editor widget.
-            arguments: the tkinter event object with which the callback is associated
-        """
-        indentation = ""
-        lineindex = self.text.index("insert").split(".")[0]
-        linetext = self.text.get(lineindex+".0", lineindex+".end")
-
-        for character in linetext:
-            if character in [" ","\t"]:
-                indentation += character
-            else:
-                break
-                
-        self.text.insert(self.text.index("insert"), "\n"+indentation)
-        return "break"
-
-
 # class Processing(threading.Thread):
 # Original her: https://github.com/beenje/tkinter-logging-text-widget/blob/master/main.py
 class Processing():
@@ -431,8 +427,7 @@ class ConsoleUi:
         self.text = EnhancedText(
             frame, 
             state='disabled',  # TODO: Denne som gjør at ikke shortcuts for copy mm virker?
-
-            background=COLORS.bg,
+            background=COLORS.bg, 
             # background=COLORS.text_bg,
             # background=COLORS.sidebar_bg,            
             foreground="#eeeeee",
@@ -446,10 +441,11 @@ class ConsoleUi:
             insertwidth = 2,
             spacing1 = 0,
             spacing3 = 0,
-            inactiveselectbackground = COLORS.status_bg,
+            # selectbackground=COLORS.sidebar_bg,
+            # inactiveselectbackground = COLORS.sidebar_bg,
+            # selectforeground=COLORS.text_fg,
             padx = 5,
             pady = 5,            
-
             height=10)
 
         self.text.pack(side="bottom", fill="both")
@@ -474,9 +470,6 @@ class ConsoleUi:
             self.text, 
             command = self.v_scrollbar_scroll,
             width = 10,               
-            # troughcolor = COLORS.sidebar_bg, 
-            # buttoncolor = COLORS.sidebar_bg,
-
             troughcolor = COLORS.bg, 
             buttoncolor = COLORS.bg,                
             # troughoutline = COLORS.sidebar_bg,
