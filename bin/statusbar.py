@@ -36,7 +36,7 @@ class StatusBar(ttk.Frame):
         super().__init__(parent, style="StatusBar.TFrame")
 
         self.status_line = ttk.Label(self)
-        self.status_line.config(text=initial_status, style="StatusBar.TLabel", padding=(5,0,0,0))
+        self.status_line.config(text=initial_status, style="StatusBar.TLabel", padding=(2,0,0,0))
         self.status_line.pack(side=tk.LEFT)
 
 

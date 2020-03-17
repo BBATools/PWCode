@@ -214,11 +214,15 @@ class EditorFrame(tk.ttk.Frame):
 
     def on_tab_changed(self, event):
         """tell the model the current file has changed"""
-        tab_id = self.notebook.select()
-        if tab_id in self.id2path:
-            self.app.select_file(self.id2path[tab_id], self)
-        elif str(tab_id) == '.!panedwindow.!editorframe.!welcometab':
+        tab_name = self.notebook.select()
+        if tab_name in self.id2path:
+            self.app.select_file(self.id2path[tab_name], self)
+        
+        if str(tab_name) == '.!panedwindow.!editorframe.!welcometab':
             self.app.on_file_selected(None)
+        else:  
+            text_editor = self.notebook.nametowidget(tab_name)          
+            text_editor.set_line_and_column()
 
 
 class TextEditorFrame(tk.ttk.Frame):
@@ -297,21 +301,28 @@ class TextEditorFrame(tk.ttk.Frame):
 
         self.set_file_obj(file_obj)    
 
-        self.text.bind("<<TextChange>>", self.unsaved_text, True)                         
+        self.text.bind("<<TextChange>>", self.unsaved_text, True)  
+        self.text.bind("<<CursorMove>>", self.cursor_moved, True)                       
+
+
+    def set_line_and_column(self):
+        # text_line_count = int(self.text.index("end").split(".")[0])
+        line, column = self.text.index("insert").split('.')
+        lc_text = str(line) + ' : ' + str(column)
+        self.app.statusbar.status_line.config(text=lc_text)
+
+
+    def cursor_moved(self, event):
+        self.set_line_and_column()
 
 
     def unsaved_text(self, event):
+        self.set_line_and_column()
         self.modified = True
         if self.lexer:
-            self.colorize() # TODO: Sjekk at denne ikke oppdaterer hele filen hver gang
+            self.colorize() # TODO: Ser ut til å oppdatere hele filen heller enn kun endret linje -> fiks
 
-        text_line_count = int(self.text.index("end").split(".")[0])
 
-        self.app.statusbar.status_line.config(text=str(text_line_count))
-
-        # self.app.statusbar.status_text.set(str(text_line_count)) # TODO: Hvorfor blir ikke tekst oppdatert
-        # self.app.statusbar.status_line.text = str(text_line_count)
-        # print(text_line_count)
 
     def get_content(self):
         return self.text.get(0.0, tk.END)          

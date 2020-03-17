@@ -125,7 +125,6 @@ class LinksFrame(ttk.Frame):
                 widget.destroy()   
 
         for path, file_obj in reversed(self.recent_links.items()):
-            action = lambda p=path: self.app.command_callable("open_file")(p)  
             self.add_link(file_obj.basename,lambda p=path: self.app.command_callable("open_file")(p))                                                  
 
 
