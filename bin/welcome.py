@@ -24,61 +24,7 @@
 import webbrowser
 import tkinter as tk
 from tkinter import ttk
-
-
-class LinksFrame(ttk.Frame):
-    """ A container of links and label that packs vertically"""
-
-    def __init__(self, parent, title, links=None):
-        super().__init__(parent, style="Links.TFrame")
-        ttk.Label(self, text=title, style="SubHeading.TLabel").pack(
-            side=tk.TOP, anchor=tk.W, pady=4, padx=1
-        )
-        if links:
-            for label, action in links:
-                if action:
-                    self.add_link(label, action)
-                else:                  
-                    self.add_label(label)
-
-    def add_link(self, label, action):
-        ttk.Button(self, text=label, style="Links.TButton", command=action).pack(
-            side=tk.TOP, anchor=tk.W
-        )
-
-    def add_label(self, text):
-        ttk.Label(self, text=text, style="Links.TLabel").pack(side=tk.TOP, anchor=tk.W)
-
-
-class RecentLinksFrame(LinksFrame):
-    """A frame display a list of last opened  in the model"""
-
-    def __init__(self, parent, app):
-        super().__init__(parent, "Open Recent")
-        self.app = app
-        app.model.add_observer(self)
-
-    # def on_folder_open(self, folder):
-    #     """model callback"""
-    #     # print(folder)
-
-    #     # for f in self.app.model.recent_folders:
-    #     #     print(f)
-
-    #     # # recent_folders = self.app.model.recent_folders
-    #     # if folder not in self.app.model.recent_folders:
-    #     self.add_link(
-    #         folder.basename,
-    #         lambda: self.app.command_callable("open_folder")(folder.path),
-    #     )
-
-    def on_file_open(self, file_obj):
-        """model callback"""
-        print('test')
-        self.add_link(
-            file_obj.basename,
-            lambda: self.app.command_callable("open_file")(file_obj.path),
-        )        
+from collections import OrderedDict
 
 
 class WelcomeTab(ttk.Frame):
@@ -113,7 +59,7 @@ class WelcomeTab(ttk.Frame):
             ),
         ).pack(side=tk.TOP, anchor=tk.W, pady=12)
 
-        RecentLinksFrame(left_frame, app).pack(side=tk.TOP, anchor=tk.W, pady=12)
+        self.recent_links_frame = RecentLinksFrame(left_frame, app).pack(side=tk.TOP, anchor=tk.W, pady=12)
 
         # LinksFrame(
         #     left_frame,
@@ -148,3 +94,70 @@ class WelcomeTab(ttk.Frame):
 
     def open_home_url(self):
         webbrowser.open('https://github.com/BBATools/PWCode', new=2)
+
+
+class LinksFrame(ttk.Frame):
+    """ A container of links and label that packs vertically"""
+
+    def __init__(self, parent, title, links=None):
+        super().__init__(parent, style="Links.TFrame")
+        ttk.Label(self, text=title, style="SubHeading.TLabel").pack(
+            side=tk.TOP, anchor=tk.W, pady=4, padx=1
+        )
+
+        self.recent_links = OrderedDict() 
+
+        if links:
+            for label, action in links:
+                if action:
+                    self.add_link(label, action)
+                else:                  
+                    self.add_label(label)
+
+
+    def update_recent_links(self, file_obj):  
+        if file_obj.path in self.recent_links.keys():
+            del self.recent_links[file_obj.path]
+        self.recent_links.update({file_obj.path:file_obj})
+
+        for widget in self.winfo_children():
+            if isinstance(widget, ttk.Button):
+                widget.destroy()   
+
+        for path, file_obj in reversed(self.recent_links.items()):
+            action = lambda p=path: self.app.command_callable("open_file")(p)  
+            self.add_link(file_obj.basename,lambda p=path: self.app.command_callable("open_file")(p))                                                  
+
+
+    def add_link(self, label, action):     
+        ttk.Button(self, text=label, style="Links.TButton", command=action).pack(side=tk.TOP, anchor=tk.W)
+
+
+    def add_label(self, text):
+        ttk.Label(self, text=text, style="Links.TLabel").pack(side=tk.TOP, anchor=tk.W)
+
+
+class RecentLinksFrame(LinksFrame):
+    """A frame display a list of last opened  in the model"""
+
+    def __init__(self, parent, app):
+        super().__init__(parent, "Open Recent")
+        self.app = app
+
+        app.model.add_observer(self)
+
+
+    def on_file_closed(self, file_obj):
+        """model callback"""
+        self.update_recent_links(file_obj)
+
+
+    # def on_file_open(self, file_obj):
+    #     """model callback"""
+    #     if file_obj.path in self.recent_links.keys():
+    #         link = self.recent_links[file_obj.path]
+    #         link.destroy()
+    #         del self.recent_links[file_obj.path]
+  
+
+

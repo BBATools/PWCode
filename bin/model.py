@@ -190,11 +190,11 @@ class PWCodeModel:
         """open a single file"""
         file_obj = self.factory.get_file(path)
 
-        # if file_obj.content:
+        # # if file_obj.content:
         if file_obj in self.recent_files:
             self.recent_files.remove(file_obj)
 
-        self.recent_files.insert(0, file_obj)
+        # self.recent_files.insert(0, file_obj)
 
         if file_obj in self.openfiles:
             self.set_current_file(file_obj, originator)
@@ -202,6 +202,25 @@ class PWCodeModel:
             self.openfiles.append(file_obj)
             self.update_observers("on_file_open", file_obj, originator=originator) 
                                     
+
+    def close_file(self, file_obj, originator=None):
+        """ remove a file entry from the model """
+        if file_obj not in self.openfiles:
+            return
+
+        self.recent_files.insert(0, file_obj)
+
+        i = self.openfiles.index(file_obj)
+        self.openfiles.remove(file_obj)
+        self.update_observers("on_file_closed", file_obj, originator=originator)
+        if self.openfiles:
+            if i == 0:
+                self.set_current_file(self.openfiles[0])
+            else:
+                self.set_current_file(self.openfiles[i - 1])
+        else:
+            self.set_current_file(None)  
+
 
     def set_current_file(self, file_obj, originator=None):
         """ fire on_file_selected event to observers"""
@@ -212,24 +231,7 @@ class PWCodeModel:
     def set_current_folder(self, folder, originator=None):
         """ fire on_folder_selected event to observers"""
         self.current_folder = folder
-        self.update_observers("on_folder_selected", folder, originator=originator)        
-
-
-    def close_file(self, file_obj, originator=None):
-        """ remove a file entry from the model """
-        if file_obj not in self.openfiles:
-            return
-          
-        i = self.openfiles.index(file_obj)
-        self.openfiles.remove(file_obj)
-        self.update_observers("on_file_closed", file_obj, originator=originator)
-        if self.openfiles:
-            if i == 0:
-                self.set_current_file(self.openfiles[0])
-            else:
-                self.set_current_file(self.openfiles[i - 1])
-        else:
-            self.set_current_file(None)                
+        self.update_observers("on_folder_selected", folder, originator=originator)                      
 
 
     def save_file(self, file_obj, new_path, originator=None):
@@ -262,7 +264,7 @@ class PWCodeModel:
                 if file_obj in self.recent_files:
                     self.recent_files.remove(file_obj)
 
-                self.recent_files.insert(0, file_obj)
+                # self.recent_files.insert(0, file_obj)
 
                 if file_obj in self.openfiles:
                     self.set_current_file(file_obj, originator)
