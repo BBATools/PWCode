@@ -28,27 +28,30 @@ from settings import COLORS
 from welcome import WelcomeTab
 from text.tktextext import EnhancedText
 from gui.scrollbar_autohide import AutoHideScrollbar
-from vendor.pygments.lexers.python import PythonLexer
-from vendor.pygments.lexers.html import HtmlLexer
-from vendor.pygments.lexers.html import XmlLexer
-from vendor.pygments.lexers.templates import HtmlPhpLexer
-from vendor.pygments.lexers.perl import Perl6Lexer
-from vendor.pygments.lexers.ruby import RubyLexer
-from vendor.pygments.lexers.configs import IniLexer
-from vendor.pygments.lexers.shell import BashLexer
-from vendor.pygments.lexers.diff import DiffLexer
-from vendor.pygments.lexers.dotnet import CSharpLexer
-from vendor.pygments.lexers.markup import MarkdownLexer
-from vendor.pygments.styles import get_style_by_name, get_all_styles
-from text.monokai_pro import MonokaiProStyle
+
+sys.path.append('vendor/pygments.whl')
+from pygments.lexers.python import PythonLexer
+from pygments.lexers.html import HtmlLexer
+from pygments.lexers.html import XmlLexer
+from pygments.lexers.templates import HtmlPhpLexer
+from pygments.lexers.perl import Perl6Lexer
+from pygments.lexers.ruby import RubyLexer
+from pygments.lexers.configs import IniLexer
+from pygments.lexers.shell import BashLexer
+from pygments.lexers.diff import DiffLexer
+from pygments.lexers.dotnet import CSharpLexer
+from pygments.lexers.markup import MarkdownLexer
+from pygments.styles import get_style_by_name, get_all_styles
 from pygments.formatters.html import HtmlFormatter
+from pygments.lexers import get_lexer_by_name, get_lexer_for_filename
+from text.monokai_pro import MonokaiProStyle
 
 # pylint: disable=too-many-ancestors
 
 logger = logging.getLogger(__name__)
 
 lexer_from_ext = { # WAIT: Denne bør hentes fra configfil heller
-    'py': PythonLexer(style=None), 
+    'py': PythonLexer(), 
     'pyw': PythonLexer(), 
     'htm': HtmlLexer(), 
     'html': HtmlLexer(), 

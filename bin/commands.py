@@ -56,6 +56,7 @@ def next_tab(app):
     # app.editor_frame.notebook.id2path[tab_id] = file_obj
     # app.editor_frame.notebook.select(tab_name)
 
+# https://stackoverflow.com/questions/6687108/how-to-set-the-tab-order-in-a-tkinter-application
 # TODO: Previous tab gjøres hvordan?        
 
 

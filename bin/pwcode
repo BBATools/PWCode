@@ -2,11 +2,12 @@
 
 silent_background() {
     { 2>&3 "$@"& } 3>&2 2>/dev/null
-    disown &>/dev/null  
+    disown &>/dev/null
 }
 
+PYTHONPATH="$(printf "%s:" ./*/)"
 SCRIPT_PATH="$(dirname "$(readlink -f "$0")")"
-silent_background $SCRIPT_PATH/pwcode.py $@     
- 
+silent_background $SCRIPT_PATH/pwcode.py $@
+
 
 
