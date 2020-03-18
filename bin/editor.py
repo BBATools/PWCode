@@ -29,7 +29,8 @@ from welcome import WelcomeTab
 from text.tktextext import EnhancedText
 from gui.scrollbar_autohide import AutoHideScrollbar
 
-sys.path.append('vendor/pygments.whl')
+# python3 -m pip download --only-binary=wheel pygments
+sys.path.insert(0, 'vendor/pygments.whl') 
 from pygments.lexers.python import PythonLexer
 from pygments.lexers.html import HtmlLexer
 from pygments.lexers.html import XmlLexer

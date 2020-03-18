@@ -21,7 +21,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import webbrowser
+import os, webbrowser, pickle
 import tkinter as tk
 from tkinter import ttk
 from collections import OrderedDict
@@ -105,29 +105,13 @@ class LinksFrame(ttk.Frame):
             side=tk.TOP, anchor=tk.W, pady=4, padx=1
         )
 
-        self.recent_links = OrderedDict() 
-
         if links:
             for label, action in links:
                 if action:
                     self.add_link(label, action)
                 else:                  
                     self.add_label(label)
-
-
-    def update_recent_links(self, file_obj):  
-        if file_obj.path in self.recent_links.keys():
-            del self.recent_links[file_obj.path]
-        self.recent_links.update({file_obj.path:file_obj})
-
-        for widget in self.winfo_children():
-            if isinstance(widget, ttk.Button):
-                widget.destroy()   
-
-        for path, file_obj in reversed(self.recent_links.items()):
-            self.add_link(file_obj.basename,lambda p=path: self.app.command_callable("open_file")(p))                                                  
-
-
+                                    
     def add_link(self, label, action):     
         ttk.Button(self, text=label, style="Links.TButton", command=action).pack(side=tk.TOP, anchor=tk.W)
 
@@ -144,6 +128,26 @@ class RecentLinksFrame(LinksFrame):
         self.app = app
 
         app.model.add_observer(self)
+        # self.recent_links = OrderedDict() 
+        # self.recent_links = self.app.recent_links
+
+        if os.path.exists(self.app.tmp_dir + "/recent_files.p"):
+            self.app.recent_links = pickle.load(open(self.app.tmp_dir + "/recent_files.p", "rb"))
+            self.update_recent_links(None)
+
+
+    def update_recent_links(self, file_obj): 
+        if file_obj: 
+            if file_obj.path in self.app.recent_links.keys():
+                del self.app.recent_links[file_obj.path]
+            self.app.recent_links.update({file_obj.path:file_obj})
+
+        for widget in self.winfo_children():
+            if isinstance(widget, ttk.Button):
+                widget.destroy()   
+
+        for path, file_obj in reversed(self.app.recent_links.items()):
+            self.add_link(file_obj.basename,lambda p=path: self.app.command_callable("open_file")(p))             
 
 
     def on_file_closed(self, file_obj):

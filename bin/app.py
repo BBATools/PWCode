@@ -22,7 +22,7 @@
 # SOFTWARE.  
 
 
-import os, model, settings, theme, commands, threading
+import os, model, settings, theme, commands, threading, pickle
 import tkinter as tk
 from commander import Commander
 from sidebar import SideBar
@@ -30,6 +30,7 @@ from editor import EditorFrame
 from statusbar import StatusBar
 from xmlrpc.server import SimpleXMLRPCServer
 from tkinter import messagebox
+from collections import OrderedDict
 
 
 class App:    
@@ -52,6 +53,8 @@ class App:
         self.tmp_dir = tmp_dir
         self.port_file = port_file   
         self.icon_file = icon_file
+
+        self.recent_links = OrderedDict() 
      
 
     def build_ui(self):
@@ -134,6 +137,7 @@ class App:
         if os.path.exists(self.port_file):
             os.remove(self.port_file)
         self.root.destroy() 
+        pickle.dump(self.recent_links, open(self.tmp_dir + "/recent_files.p", "wb"))
 
 
     def run(self, port):
