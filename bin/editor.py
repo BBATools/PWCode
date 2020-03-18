@@ -130,6 +130,21 @@ class EditorFrame(tk.ttk.Frame):
         self.notebook.select(self.welcome_id)
 
 
+    def next_tab(self):
+        """ show a welcome tab at the first notebook position """
+        # text_editor = self.notebook.nametowidget(tab_name)  
+
+
+        if not self.welcome_id:
+            if self.notebook.index("end"):
+                self.notebook.insert(0, WelcomeTab(self, self.app), text="Welcome")
+            else:
+                self.notebook.add(WelcomeTab(self, self.app), text="Welcome")
+            self.welcome_id = self.notebook.tabs()[0]
+
+        self.notebook.select(self.welcome_id)        
+
+
     def on_file_open(self, file_obj):
         """open the file object in a tab """
         # check if not already opened
@@ -220,8 +235,9 @@ class EditorFrame(tk.ttk.Frame):
         
         if str(tab_name) == '.!panedwindow.!editorframe.!welcometab':
             self.app.on_file_selected(None)
+            self.app.statusbar.status_line.config(text='')
         else:  
-            text_editor = self.notebook.nametowidget(tab_name)          
+            text_editor = self.notebook.nametowidget(tab_name) 
             text_editor.set_line_and_column()
 
 
@@ -302,14 +318,16 @@ class TextEditorFrame(tk.ttk.Frame):
         self.set_file_obj(file_obj)    
 
         self.text.bind("<<TextChange>>", self.unsaved_text, True)  
-        self.text.bind("<<CursorMove>>", self.cursor_moved, True)                       
+        self.text.bind("<<CursorMove>>", self.cursor_moved, True)   
+        self.bind("<Control-Tab>", lambda x: self.app.run_command('next_tab'))                       
 
 
     def set_line_and_column(self):
         # text_line_count = int(self.text.index("end").split(".")[0])
         line, column = self.text.index("insert").split('.')
-        lc_text = str(line) + ' : ' + str(column)
+        lc_text = str(line) + ' : ' + str(column)   
         self.app.statusbar.status_line.config(text=lc_text)
+
 
 
     def cursor_moved(self, event):

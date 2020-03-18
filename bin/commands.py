@@ -21,13 +21,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import gettext, os
+import gettext, os, filetype
 from gettext import gettext as _get
 from gui.gtk import pwb_choose_file
 from palette import PaletteFrame
 from commander import command
 import tkinter as tk
 from tkinter import messagebox
+from common.file import xdg_open_file
+
 
 def focus_app(app):
     app.editor_frame.focus()
@@ -40,6 +42,23 @@ def show_welcome(app):
 
 
 @command(
+    title=_get("Next Tab"),
+    category=_get("APP"),
+    description=_get("Next Tab"),
+    shortcut=_get("<Control-Right>"),
+)
+def next_tab(app):
+    """ Go to next tab """
+    app.editor_frame.next_tab()
+
+    # tab_name = app.editor_frame.notebook.select()
+    # app.editor_frame.notebook.id2path[tab_id] = file_obj
+    # app.editor_frame.notebook.select(tab_name)
+
+# TODO: Previous tab gjøres hvordan?        
+
+
+@command(
     title=_get("Quit App"),
     category=_get("APP"),
     description=_get("Exit program"),
@@ -48,6 +67,8 @@ def show_welcome(app):
 def quit_app(app):
     """ Exit program """
     app.quit_app()
+
+
 
 
 @command(
@@ -83,9 +104,17 @@ def open_file(app, path=None):
     """ Open file from filesystem  """
     if not path:
         path = pwb_choose_file()
-    if path:       
-        app.model.open_file(path)        
+    if path:  
+        kind = filetype.guess(path)
+        if kind:
+            xdg_open_file(path)
+        else:             
+            app.model.open_file(path)        
 
+# kind = filetype.guess(self.path)
+# if kind:
+#     xdg_open_file(self.path)
+# else:   
 
 @command(
     title=_get("Open Folder"),

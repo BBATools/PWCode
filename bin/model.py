@@ -21,8 +21,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import os, filetype
-from common.file import xdg_open_file
+import os
 
 # pylint: disable=too-few-public-methods
 
@@ -99,12 +98,8 @@ class FileEntry(FSEntry):
 
     def __get_content(self): 
         content = None
-        if os.path.isfile(self.path):
-            kind = filetype.guess(self.path)
-            if kind:
-                xdg_open_file(self.path)
-            else:                
-                content =  open(self.path).read() 
+        if os.path.isfile(self.path):             
+            content =  open(self.path).read() 
         else:
             content = 'empty_buffer'                            
       

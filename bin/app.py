@@ -85,7 +85,17 @@ class App:
         root.bind("<Control-n>", lambda x: self.run_command('new_file'))       
         root.bind("<Control-w>", lambda x: self.run_command('close_file'))       
         root.bind("<Control-s>", lambda x: self.run_command('save_file'))     
-        root.bind("<Control-S>", lambda x: self.run_command('save_file_as'))          
+        root.bind("<Control-S>", lambda x: self.run_command('save_file_as')) 
+
+        # TODO: Feil med def next_tab (keybinding virker)
+        root.bind("<Control-Right>", lambda x: self.run_command('next_tab'))  
+        root.bind("<Control-KP_Right>", lambda x: self.run_command('next_tab')) # on keypad
+        root.bind("<Control-KP_6>", lambda x: self.run_command('next_tab'))  # on keypad with num lock     
+
+
+
+
+
 
         # horizontal layout for the sidebar to expand / collapse panels
         self.paned = paned = tk.ttk.PanedWindow(root, orient=tk.HORIZONTAL)
@@ -97,9 +107,7 @@ class App:
         self.editor_frame = EditorFrame(paned, self)
         paned.add(self.editor_frame)
 
-        # self.welcome = WelcomeTab(paned, self)
-
-        initial_status = 'test'
+        initial_status = ''
         self.statusbar = StatusBar(root, self, initial_status)
         self.statusbar.pack(fill=tk.X, side=tk.BOTTOM)   
 
