@@ -21,7 +21,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import gettext, os, filetype
+import gettext, os
 from gettext import gettext as _get
 from gui.gtk import pwb_choose_file
 from palette import PaletteFrame
@@ -29,6 +29,7 @@ from commander import command
 import tkinter as tk
 from tkinter import messagebox
 from common.file import xdg_open_file
+from vendor import filetype
 
 
 def focus_app(app):
@@ -107,14 +108,10 @@ def open_file(app, path=None):
     if path:  
         kind = filetype.guess(path)
         if kind:
-            xdg_open_file(path)
+            xdg_open_file(path) # WAIT: Make Windows-version of xdg_open
         else:             
             app.model.open_file(path)        
-
-# kind = filetype.guess(self.path)
-# if kind:
-#     xdg_open_file(self.path)
-# else:   
+  
 
 @command(
     title=_get("Open Folder"),

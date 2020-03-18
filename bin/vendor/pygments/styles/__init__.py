@@ -50,8 +50,7 @@ STYLE_MAP = {
     'stata':       'stata_light::StataLightStyle',
     'stata-light': 'stata_light::StataLightStyle',
     'stata-dark':  'stata_dark::StataDarkStyle',
-    'inkpot':      'inkpot::InkPotStyle',
-    'monokai_pro': 'monokai_pro::MonokaiProStyle'
+    'inkpot':      'inkpot::InkPotStyle'
 }
 
 

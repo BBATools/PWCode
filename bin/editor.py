@@ -28,25 +28,27 @@ from settings import COLORS
 from welcome import WelcomeTab
 from text.tktextext import EnhancedText
 from gui.scrollbar_autohide import AutoHideScrollbar
-from pygments.lexers.python import PythonLexer
-from pygments.lexers.html import HtmlLexer
-from pygments.lexers.html import XmlLexer
-from pygments.lexers.templates import HtmlPhpLexer
-from pygments.lexers.perl import Perl6Lexer
-from pygments.lexers.ruby import RubyLexer
-from pygments.lexers.configs import IniLexer
-from pygments.lexers.shell import BashLexer
-from pygments.lexers.diff import DiffLexer
-from pygments.lexers.dotnet import CSharpLexer
-from pygments.lexers.markup import MarkdownLexer
-from pygments.styles import get_style_by_name, get_all_styles
+from vendor.pygments.lexers.python import PythonLexer
+from vendor.pygments.lexers.html import HtmlLexer
+from vendor.pygments.lexers.html import XmlLexer
+from vendor.pygments.lexers.templates import HtmlPhpLexer
+from vendor.pygments.lexers.perl import Perl6Lexer
+from vendor.pygments.lexers.ruby import RubyLexer
+from vendor.pygments.lexers.configs import IniLexer
+from vendor.pygments.lexers.shell import BashLexer
+from vendor.pygments.lexers.diff import DiffLexer
+from vendor.pygments.lexers.dotnet import CSharpLexer
+from vendor.pygments.lexers.markup import MarkdownLexer
+from vendor.pygments.styles import get_style_by_name, get_all_styles
+from text.monokai_pro import MonokaiProStyle
+from pygments.formatters.html import HtmlFormatter
 
 # pylint: disable=too-many-ancestors
 
 logger = logging.getLogger(__name__)
 
 lexer_from_ext = { # WAIT: Denne bør hentes fra configfil heller
-    'py': PythonLexer(), 
+    'py': PythonLexer(style=None), 
     'pyw': PythonLexer(), 
     'htm': HtmlLexer(), 
     'html': HtmlLexer(), 
@@ -368,7 +370,8 @@ class TextEditorFrame(tk.ttk.Frame):
         italic_font.configure(slant=font.ITALIC)
         bold_italic_font = font.Font(self.text, self.text.cget("font"))
         bold_italic_font.configure(weight=font.BOLD, slant=font.ITALIC)
-        style = get_style_by_name('monokai_pro')
+        # style = get_style_by_name('murphy') # Eks på bruk av innebygget style
+        style = HtmlFormatter(style=MonokaiProStyle).style # Eks på bruk av custom style
 
         for ttype, ndef in style:
             tag_font = None
