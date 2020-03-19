@@ -255,7 +255,7 @@ class TextEditorFrame(tk.ttk.Frame):
         self.modified = False 
         self.app = app
         self.font_style = tk.font.Font(family="Ubuntu Monospace", size=11)
-        # self.font_style = font.Font(size=11) # WAIT: Virker og -> ha som backup når ikke ønsket font finnes?
+        # self.font_style = tk.font.Font(size=11) # WAIT: Virker og -> ha som backup når ikke ønsket font finnes?
 
         self.text = EnhancedText(
             self,

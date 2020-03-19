@@ -140,7 +140,7 @@ def open_file(app, path=None):
     """ Open file from filesystem  """
     if not path:
         path = pwb_choose_file()
-        
+
     if path:
         if os.path.isfile(path):      
             kind = filetype.guess(path)
@@ -193,6 +193,9 @@ def close_file(app, originator=None):
         if not cancel:                                                 
             app.model.close_file(file_obj, originator)   
 
+        # if app.tmp_dir + '/Untitled-' in file_obj.path and os.path.getsize(file_obj.path) == 0:
+        #     os.remove(file_obj.path)
+
 
 @command(   
     title=_get("Save file"),
@@ -223,7 +226,34 @@ def save_file_as(app, originator=None):
         app.model.save_file(file_obj, new_path, originator)  
 
 
+@command(
+    title=_get("Increase Font Size"),
+    category=_get("FILE"),
+    description=_get("Increase Font Size"),
+    shortcut=_get("<Control-+>"),
+)
+def increase_text_font(app):
+    """ Increase Text Font Size """
+    tab_name = app.editor_frame.notebook.select()
+    if '!welcometab' not in str(tab_name): 
+        text_editor = app.editor_frame.notebook.nametowidget(tab_name)
+        font_size = text_editor.font_style['size']
+        text_editor.font_style.configure(size=font_size + 2)
 
+
+@command(
+    title=_get("Decrease Font Size"),
+    category=_get("FILE"),
+    description=_get("Decrease Font Size"),
+    shortcut=_get("<Control-->"),
+)
+def decrease_text_font(app):
+    """ Decrease Text Font Size """
+    tab_name = app.editor_frame.notebook.select()
+    if '!welcometab' not in str(tab_name):     
+        text_editor = app.editor_frame.notebook.nametowidget(tab_name)
+        font_size = text_editor.font_style['size']
+        text_editor.font_style.configure(size=font_size - 2)
 
 
        

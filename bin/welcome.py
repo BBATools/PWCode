@@ -148,7 +148,10 @@ class RecentLinksFrame(LinksFrame):
 
         for path, file_obj in reversed(self.app.recent_links.items()):
             if os.path.isfile(file_obj.path): 
-                self.add_link(file_obj.basename,lambda p=path: self.app.command_callable("open_file")(p))             
+                if self.app.tmp_dir + '/Untitled-' in file_obj.path and os.path.getsize(file_obj.path) == 0:
+                    os.remove(file_obj.path)
+                else:                    
+                    self.add_link(file_obj.basename,lambda p=path: self.app.command_callable("open_file")(p))             
 
 
     def on_file_closed(self, file_obj):

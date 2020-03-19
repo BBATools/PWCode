@@ -99,6 +99,9 @@ class App:
  
         root.bind("<Control-Tab>", self.perform_ctrl_tab, True)
 
+        root.bind("<Control-plus>", lambda x: self.run_command('increase_text_font')) 
+        root.bind("<Control-minus>", lambda x: self.run_command('decrease_text_font')) 
+
 
         # horizontal layout for the sidebar to expand / collapse panels
         self.paned = paned = tk.ttk.PanedWindow(root, orient=tk.HORIZONTAL)
