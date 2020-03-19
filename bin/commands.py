@@ -193,9 +193,6 @@ def close_file(app, originator=None):
         if not cancel:                                                 
             app.model.close_file(file_obj, originator)   
 
-        # if app.tmp_dir + '/Untitled-' in file_obj.path and os.path.getsize(file_obj.path) == 0:
-        #     os.remove(file_obj.path)
-
 
 @command(   
     title=_get("Save file"),

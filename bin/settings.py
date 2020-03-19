@@ -31,7 +31,7 @@ APP_NAME = "PWCode"
 APP_DESC = "\nPreserve data in style"
 
 # a long description
-APP_LONG_DESC = """Data and code editor for digital preservation work.\n"""
+APP_LONG_DESC = """Data and code editor for digital preservation work\n"""
 
 # application version
 APP_VERSION = "0.0a"

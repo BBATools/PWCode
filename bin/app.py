@@ -120,18 +120,22 @@ class App:
 
     def perform_ctrl_tab(self, event=None):
         self.run_command('previous_tab')
-        return "break"
+        return "break"      
 
 
     def quit_app(self):
         """ Exit program """
         unsaved = False
-        for tab_name in self.editor_frame.notebook.tabs():
-            if '!welcometab' not in str(tab_name): 
-                text_editor = self.editor_frame.notebook.nametowidget(tab_name)
-                if text_editor.modified: 
+        for tab_id in self.editor_frame.notebook.tabs():
+            if '!welcometab' not in str(tab_id): 
+                file_obj = self.editor_frame.id2path[tab_id]
+                if file_obj.path in self.recent_links.keys():
+                    del self.recent_links[file_obj.path]
+                self.recent_links.update({file_obj.path:file_obj})
+
+                text_editor = self.editor_frame.notebook.nametowidget(tab_id)
+                if text_editor.modified and not unsaved: 
                     unsaved = True
-                    break
 
         if unsaved:
             confirm = messagebox.askyesno(
@@ -189,7 +193,7 @@ class App:
             if file_obj.path.startswith(self.tmp_dir + '/Untitled-'):
                 base_title = file_obj.basename + ' - '
             else:                
-                base_title = file_obj.path + ' - '
+                base_title = file_obj.path + ' - '              
 
         self.root.title(base_title + self.settings.name)
 

@@ -140,7 +140,7 @@ class PWCodeModel:
         self.openfiles = []
         self.folders = []
         self.recent_folders = []
-        self.recent_files = []
+        self.recent_files = [] # TODO: Sjekk hva denne brukes til ift. Kombinere med recent_links i app?
         self.initial_activity = None
         self.observers = []
         self.current_file = None

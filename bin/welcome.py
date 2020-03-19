@@ -128,43 +128,42 @@ class RecentLinksFrame(LinksFrame):
         self.app = app
 
         app.model.add_observer(self)
-        # self.recent_links = OrderedDict() 
-        # self.recent_links = self.app.recent_links
 
         if os.path.exists(self.app.tmp_dir + "/recent_files.p"):
             self.app.recent_links = pickle.load(open(self.app.tmp_dir + "/recent_files.p", "rb"))
             self.update_recent_links(None)
 
 
-    def update_recent_links(self, file_obj): 
-        if file_obj: 
-            if file_obj.path in self.app.recent_links.keys():
-                del self.app.recent_links[file_obj.path]
-            self.app.recent_links.update({file_obj.path:file_obj})
+    def update_recent_links(self, new_file_obj): 
+        if new_file_obj: 
+            if new_file_obj.path in self.app.recent_links.keys():
+                del self.app.recent_links[new_file_obj.path]
+            self.app.recent_links.update({new_file_obj.path:new_file_obj})
 
         for widget in self.winfo_children():
             if isinstance(widget, ttk.Button):
-                widget.destroy()   
+                widget.destroy()         
 
         for path, file_obj in reversed(self.app.recent_links.items()):
             if os.path.isfile(file_obj.path): 
                 if self.app.tmp_dir + '/Untitled-' in file_obj.path and os.path.getsize(file_obj.path) == 0:
                     os.remove(file_obj.path)
-                else:                    
-                    self.add_link(file_obj.basename,lambda p=path: self.app.command_callable("open_file")(p))             
+                    continue
+                    
+                if file_obj in self.app.model.openfiles: 
+                    continue   
+
+                self.add_link(file_obj.basename,lambda p=path: self.app.command_callable("open_file")(p))             
 
 
     def on_file_closed(self, file_obj):
         """model callback"""
         self.update_recent_links(file_obj)
 
+    def on_file_open(self, file_obj):
+        """model callback"""
+        self.update_recent_links(None)        
 
-    # def on_file_open(self, file_obj):
-    #     """model callback"""
-    #     if file_obj.path in self.recent_links.keys():
-    #         link = self.recent_links[file_obj.path]
-    #         link.destroy()
-    #         del self.recent_links[file_obj.path]
   
 
 
