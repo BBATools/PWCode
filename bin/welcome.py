@@ -147,7 +147,8 @@ class RecentLinksFrame(LinksFrame):
                 widget.destroy()   
 
         for path, file_obj in reversed(self.app.recent_links.items()):
-            self.add_link(file_obj.basename,lambda p=path: self.app.command_callable("open_file")(p))             
+            if os.path.isfile(file_obj.path): 
+                self.add_link(file_obj.basename,lambda p=path: self.app.command_callable("open_file")(p))             
 
 
     def on_file_closed(self, file_obj):

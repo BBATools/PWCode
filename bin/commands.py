@@ -140,12 +140,14 @@ def open_file(app, path=None):
     """ Open file from filesystem  """
     if not path:
         path = pwb_choose_file()
-    if path:  
-        kind = filetype.guess(path)
-        if kind:
-            xdg_open_file(path) # WAIT: Make Windows-version of xdg_open
-        else:             
-            app.model.open_file(path)        
+        
+    if path:
+        if os.path.isfile(path):      
+            kind = filetype.guess(path)
+            if kind:
+                xdg_open_file(path) # WAIT: Make Windows-version of xdg_open
+            else:             
+                app.model.open_file(path)        
   
 
 @command(
