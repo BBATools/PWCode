@@ -90,10 +90,16 @@ class App:
         root.bind("<Control-s>", lambda x: self.run_command('save_file'))     
         root.bind("<Control-S>", lambda x: self.run_command('save_file_as')) 
 
-        # TODO: Feil med def next_tab (keybinding virker)
-        root.bind("<Control-Right>", lambda x: self.run_command('next_tab'))  
-        root.bind("<Control-KP_Right>", lambda x: self.run_command('next_tab')) # on keypad
-        root.bind("<Control-KP_6>", lambda x: self.run_command('next_tab'))  # on keypad with num lock     
+        root.bind("<Control-Right>", lambda x: self.run_command('next_tab_in_index'))  
+        root.bind("<Control-KP_Right>", lambda x: self.run_command('next_tab_in_index')) # on keypad
+        root.bind("<Control-KP_6>", lambda x: self.run_command('next_tab_in_index'))  # on keypad with num lock  
+
+        root.bind("<Control-Left>", lambda x: self.run_command('previous_tab_in_index'))  
+        root.bind("<Control-KP_Left>", lambda x: self.run_command('previous_in_index')) # on keypad
+        root.bind("<Control-KP_4>", lambda x: self.run_command('previous_tab_in_index'))  # on keypad with num lock  
+
+        # TODO: <Control-Tab> blir overstyr av noe -> finn hva
+        root.bind("<Control-k>", lambda x: self.run_command('previous_tab')) # TODO: Lag def for switch til forrige tab en var på (ikke forrige i index)              
 
 
 

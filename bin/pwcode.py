@@ -1,4 +1,5 @@
-#!/usr/bin/python3
+#!/usr/bin/python3 
+# Don't change shebang
 
 # GPL3 License
 
@@ -19,7 +20,6 @@
 
 
 import os, sys, psutil, xmlrpc.client, socket, fileinput
-# sys.path.insert(0, '.') # Look for modules here fist
 from app import App
 
 

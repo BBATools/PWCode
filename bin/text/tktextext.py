@@ -465,6 +465,7 @@ class EnhancedText(TweakableText):
     #     return "break"
 
 
+    # TODO: Bug i denne (samt utkommentert variant over) gjør at en med retunr kan havne utenfor synlig del av text widget
     def perform_return(self, event):
         # WAIT: Gjør smartere. Bl.a. når linje ender på :
         # WAIT: Tar denne hensyn til config-valg om tab eller ikke lenger oppe?
@@ -520,6 +521,7 @@ class EnhancedText(TweakableText):
             insertpt = 0
         return "insert linestart+" + str(insertpt) + "c"
 
+
     def perform_smart_home(self, event):
         if (event.state & 4) != 0 and event.keysym == "Home":
             # state&4==Control. If <Control-Home>, use the Tk binding.
@@ -549,6 +551,7 @@ class EnhancedText(TweakableText):
         self.see("insert")
         return "break"
 
+
     def move_to_edge_if_selection(self, edge_index):
         """Cursor move begins at start or end of selection
 
@@ -568,6 +571,7 @@ class EnhancedText(TweakableText):
 
         return move_at_edge
 
+
     def perform_tab(self, event=None):
         self._log_keypress_for_undo(event)
         if event.state & 0x0001:  # shift is pressed (http://stackoverflow.com/q/32426250/261181)
@@ -581,11 +585,14 @@ class EnhancedText(TweakableText):
             else:
                 return self.perform_midline_tab(event)
 
+
     def indent_region(self, event=None):
         return self._change_indentation(True)
 
+
     def dedent_region(self, event=None):
         return self._change_indentation(False)
+
 
     def _change_indentation(self, increase=True):
         head, tail, chars, lines = self._get_region()
@@ -610,9 +617,11 @@ class EnhancedText(TweakableText):
         self._set_region(head, tail, chars, lines)
         return "break"
 
+
     def select_all(self, event):
         self.tag_remove("sel", "1.0", tk.END)
         self.tag_add("sel", "1.0", tk.END)
+
 
     def set_read_only(self, value):
         if value == self.is_read_only():
@@ -623,6 +632,7 @@ class EnhancedText(TweakableText):
         if self._should_tag_current_line:
             self._tag_current_line()
 
+
     def _reindent_to(self, column):
         # Delete from beginning of line to insert point, then reinsert
         # column logical (meaning use tabs if appropriate) spaces.
@@ -630,6 +640,7 @@ class EnhancedText(TweakableText):
             self.delete("insert linestart", "insert")
         if column:
             self.insert("insert", self._make_blanks(column))
+
 
     def _get_region(self):
         first, last = self.get_selection_indices()
@@ -643,6 +654,7 @@ class EnhancedText(TweakableText):
         lines = chars.split("\n")
         return head, tail, chars, lines
 
+
     def _set_region(self, head, tail, chars, lines):
         newchars = "\n".join(lines)
         if newchars == chars:
@@ -653,6 +665,7 @@ class EnhancedText(TweakableText):
         self.delete(head, tail)
         self.insert(head, newchars)
         self.tag_add("sel", head, "insert")
+
 
     def _log_keypress_for_undo(self, e):
         if e is None:
@@ -672,6 +685,7 @@ class EnhancedText(TweakableText):
         self._last_event_kind = event_kind
         self._last_key_time = time.time()
 
+
     def _get_event_kind(self, event):
         if event.keysym in ("BackSpace", "Delete"):
             return "delete"
@@ -681,6 +695,7 @@ class EnhancedText(TweakableText):
             # eg. e.keysym in ("Left", "Up", "Right", "Down", "Home", "End", "Prior", "Next"):
             return "other_key"
 
+
     def _make_blanks(self, n):
         # Make string that displays as n leading blanks.
         if self.indent_with_tabs:
@@ -689,19 +704,24 @@ class EnhancedText(TweakableText):
         else:
             return " " * n
 
+
     def _on_undo(self, e):
         self._last_event_kind = "undo"
 
+
     def _on_redo(self, e):
         self._last_event_kind = "redo"
+
 
     def _on_cut(self, e):
         self._last_event_kind = "cut"
         self.edit_separator()
 
+
     def _on_copy(self, e):
         self._last_event_kind = "copy"
         self.edit_separator()
+
 
     def _on_paste(self, e):
         if self.is_read_only():
@@ -718,19 +738,24 @@ class EnhancedText(TweakableText):
         self.see("insert")
         self.after_idle(lambda: self.see("insert"))
 
+
     def _on_get_focus(self, e):
         self._last_event_kind = "get_focus"
         self.edit_separator()
+
 
     def _on_lose_focus(self, e):
         self._last_event_kind = "lose_focus"
         self.edit_separator()
 
+
     def _on_key_press(self, e):
         return self._log_keypress_for_undo(e)
 
+
     def _on_mouse_click(self, event):
         self.edit_separator()
+
 
     def _tag_current_line(self, event=None):
         self.tag_remove("current_line", "1.0", "end")
@@ -743,11 +768,13 @@ class EnhancedText(TweakableText):
             lineno = int(self.index("insert").split(".")[0])
             self.tag_add("current_line", str(lineno) + ".0", str(lineno + 1) + ".0")
 
+
     def on_secondary_click(self, event=None):
         "Use this for invoking context menu"
         self.focus_set()
         if event:
             self.mark_set("insert", "@%d,%d" % (event.x, event.y))
+
 
     def _reload_theme_options(self, event=None):
 
@@ -772,6 +799,7 @@ class EnhancedText(TweakableText):
                 self.configure(foreground=foreground)
                 self.configure(insertbackground=foreground)
 
+
     def _insert_untypable_characters_on_windows(self, event):
         if event.state == 131084:  # AltGr or Ctrl+Alt
             lang_id = get_keyboard_language()
@@ -781,13 +809,16 @@ class EnhancedText(TweakableText):
             if char is not None:
                 self.insert("insert", char)
 
+
     def destroy(self):
         self.unbind("<<ThemeChanged>>", self._ui_theme_change_binding)
         super().destroy()
 
+
     def direct_insert(self, index, chars, tags=None, **kw):
         chars = self.check_convert_tabs_to_spaces(chars)
         super().direct_insert(index, chars, tags, **kw)
+
 
     def check_convert_tabs_to_spaces(self, chars):
         if not self.replace_tabs:

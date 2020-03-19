@@ -43,18 +43,80 @@ def show_welcome(app):
 
 
 @command(
-    title=_get("Next Tab"),
+    title=_get("Next Tab in Index"),
     category=_get("APP"),
-    description=_get("Next Tab"),
+    description=_get("Next Tab in Index"),
     shortcut=_get("<Control-Right>"),
 )
-def next_tab(app):
-    """ Go to next tab """
-    app.editor_frame.next_tab()
+def next_tab_in_index(app):
+    """ Go to next tab in index """
+    app.editor_frame.next_tab_in_index()
 
-    # tab_name = app.editor_frame.notebook.select()
-    # app.editor_frame.notebook.id2path[tab_id] = file_obj
-    # app.editor_frame.notebook.select(tab_name)
+
+@command(
+    title=_get("Previous Tab in Index"),
+    category=_get("APP"),
+    description=_get("Previous Tab in Index"),
+    shortcut=_get("<Control-Left>"),
+)
+def previous_tab_in_index(app):
+    """ Go to previous tab in index """
+    app.editor_frame.previous_tab_in_index()  
+
+
+@command(
+    title=_get("Previous Tab by use"),
+    category=_get("APP"),
+    description=_get("Previous Tab by use"),
+    shortcut=_get("<Control-Tab>"),
+)
+def previous_tab(app):
+    """ Go to previous tab by use """
+
+    path = app.editor_frame.previous_tab_path
+    print(path)
+    open_file(app, path)
+    # app.editor_frame.previous_tab()   
+
+
+    # if not path:
+    #     path = pwb_choose_file()
+    # if path:  
+    #     kind = filetype.guess(path)
+    #     if kind:
+    #         xdg_open_file(path) # WAIT: Make Windows-version of xdg_open
+    #     else:             
+    #         app.model.open_file(path)     
+
+# def previous_tab(self):
+#     """ Switch to previous tab by use """
+
+#     file_obj = self.previous_tab_path
+#     self.on_file_open(file_obj)          
+#     # tab_id = self.notebook.select(self.previous_tab_path)
+#     # if tab_id:
+#     #     pos = self.notebook.index(tab_id)
+#     # else:                             
+#     #     pos = 0
+
+#     # self.notebook.select(pos) 
+
+#     """tell the model the current file has changed"""
+#     # tab_id = self.notebook.select()
+#     # if tab_id in self.id2path:
+#     #     self.app.select_file(self.id2path[tab_id], self)
+    
+#     # if str(tab_id) == '.!panedwindow.!editorframe.!welcometab':
+#     #     self.app.on_file_selected(None)
+#     #     self.app.statusbar.status_line.config(text='')
+#     # else:  
+#     #     text_editor = self.notebook.nametowidget(tab_id) 
+#     #     text_editor.set_line_and_column()
+
+#     #     file_obj = self.id2path[tab_id]
+#     #     self.previous_tab_path = file_obj.path          
+
+
 
 # https://stackoverflow.com/questions/6687108/how-to-set-the-tab-order-in-a-tkinter-application
 # TODO: Previous tab gjøres hvordan?        
@@ -69,8 +131,6 @@ def next_tab(app):
 def quit_app(app):
     """ Exit program """
     app.quit_app()
-
-
 
 
 @command(
