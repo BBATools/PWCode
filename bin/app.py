@@ -139,8 +139,16 @@ class App:
 
             if unsaved and not confirm:
                 return
+
         if os.path.exists(self.port_file):
             os.remove(self.port_file)
+
+        for r, d, f in os.walk(self.tmp_dir):
+            for file in f:
+                path = self.tmp_dir + '/' + file
+                if 'Untitled-' in file and os.path.getsize(path) == 0:
+                    os.remove(path)
+
         self.root.destroy() 
         pickle.dump(self.recent_links, open(self.tmp_dir + "/recent_files.p", "wb"))
 
