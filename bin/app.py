@@ -53,7 +53,6 @@ class App:
         self.tmp_dir = tmp_dir
         self.port_file = port_file   
         self.icon_file = icon_file
-
         self.recent_links = OrderedDict() 
      
 
@@ -96,14 +95,9 @@ class App:
 
         root.bind("<Control-Left>", lambda x: self.run_command('previous_tab_in_index'))  
         root.bind("<Control-KP_Left>", lambda x: self.run_command('previous_in_index')) # on keypad
-        root.bind("<Control-KP_4>", lambda x: self.run_command('previous_tab_in_index'))  # on keypad with num lock  
-
-        # TODO: <Control-Tab> blir overstyr av noe -> finn hva
-        root.bind("<Control-k>", lambda x: self.run_command('previous_tab')) # TODO: Lag def for switch til forrige tab en var på (ikke forrige i index)              
-
-
-
-
+        root.bind("<Control-KP_4>", lambda x: self.run_command('previous_tab_in_index'))  # on keypad with num lock            
+ 
+        root.bind("<Control-Tab>", self.perform_ctrl_tab, True)
 
 
         # horizontal layout for the sidebar to expand / collapse panels
@@ -119,6 +113,11 @@ class App:
         initial_status = ''
         self.statusbar = StatusBar(root, self, initial_status)
         self.statusbar.pack(fill=tk.X, side=tk.BOTTOM)   
+
+
+    def perform_ctrl_tab(self, event=None):
+        self.run_command('previous_tab')
+        return "break"
 
 
     def quit_app(self):

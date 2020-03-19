@@ -268,7 +268,9 @@ class EnhancedText(TweakableText):
         self.bind("<BackSpace>", if_not_readonly(self.perform_smart_backspace), True)
         self.bind("<Return>", if_not_readonly(self.perform_return), True)
         self.bind("<KP_Enter>", if_not_readonly(self.perform_return), True)
-        self.bind("<Tab>", if_not_readonly(self.perform_tab), True) # WAIT: Virker, men ender opp på linje under når shift-tab
+        # self.bind("<Tab>", if_not_readonly(self.perform_tab), True)
+        # TODO: Linjen over virker, men ender opp på linje under når shift-tab
+        # --> overstyrte også control-tab for å switche mellom tabs  --> Se hvordan indent/dedent gjort i andre editorer
         try:
             # Is needed on eg. Ubuntu with Estonian or Norwegian keyboard
             self.bind("<ISO_Left_Tab>", if_not_readonly(self.perform_tab), True)

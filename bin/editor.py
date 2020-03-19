@@ -28,6 +28,7 @@ from settings import COLORS
 from welcome import WelcomeTab
 from text.tktextext import EnhancedText
 from gui.scrollbar_autohide import AutoHideScrollbar
+from collections import deque
 
 # python3 -m pip download --only-binary=wheel pygments
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)) + '/vendor/pygments.whl') 
@@ -110,11 +111,7 @@ class EditorFrame(tk.ttk.Frame):
         self.id2path = {}
         self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
         self.welcome_id = None
-        self.previous_tab_path = None
-
-        # TODO: Flytte de to linjene under hvor? -> kan ikke være on tab changed -> det er for sent slik at blir alltid nåværende tab
-        # file_obj = self.id2path[tab_id]
-        # self.previous_tab_path = file_obj.path
+        self.previous_tab_path = deque(2*[None], 2)
 
 
     def focus(self):
@@ -139,61 +136,6 @@ class EditorFrame(tk.ttk.Frame):
             self.welcome_id = self.notebook.tabs()[0]
 
         self.notebook.select(self.welcome_id)
-
-
-    def next_tab_in_index(self):
-        """ Switch to next tab in tab index """
-        tab_id = self.notebook.select()
-        if tab_id:
-            pos = self.notebook.index(tab_id) + 1
-
-        if not tab_id or pos == self.notebook.index("end"):               
-            pos = 0
-
-        self.notebook.select(pos)
-
-
-    def previous_tab_in_index(self):
-        """ Switch to previous tab in tab index """
-        tab_id = self.notebook.select()
-        if tab_id:
-            pos = self.notebook.index(tab_id) - 1
-            if pos < 0:
-                pos = self.notebook.index("end") - 1 
-        else:                             
-            pos = 0
-
-        self.notebook.select(pos)      
-
-
-    # def previous_tab(self):
-    #     """ Switch to previous tab by use """
-
-    #     file_obj = self.previous_tab_path
-    #     self.on_file_open(file_obj)          
-    #     # tab_id = self.notebook.select(self.previous_tab_path)
-    #     # if tab_id:
-    #     #     pos = self.notebook.index(tab_id)
-    #     # else:                             
-    #     #     pos = 0
-
-    #     # self.notebook.select(pos) 
-
-    #     """tell the model the current file has changed"""
-    #     # tab_id = self.notebook.select()
-    #     # if tab_id in self.id2path:
-    #     #     self.app.select_file(self.id2path[tab_id], self)
-        
-    #     # if str(tab_id) == '.!panedwindow.!editorframe.!welcometab':
-    #     #     self.app.on_file_selected(None)
-    #     #     self.app.statusbar.status_line.config(text='')
-    #     # else:  
-    #     #     text_editor = self.notebook.nametowidget(tab_id) 
-    #     #     text_editor.set_line_and_column()
-
-    #     #     file_obj = self.id2path[tab_id]
-    #     #     self.previous_tab_path = file_obj.path        
-
 
 
     def on_file_open(self, file_obj):
@@ -287,9 +229,13 @@ class EditorFrame(tk.ttk.Frame):
         if str(tab_id) == '.!panedwindow.!editorframe.!welcometab':
             self.app.on_file_selected(None)
             self.app.statusbar.status_line.config(text='')
+            self.previous_tab_path.append(None)
         else:  
             text_editor = self.notebook.nametowidget(tab_id) 
             text_editor.set_line_and_column()
+
+            file_obj = self.id2path[tab_id]
+            self.previous_tab_path.append(file_obj.path)
 
 
 class TextEditorFrame(tk.ttk.Frame):
