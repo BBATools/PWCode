@@ -22,6 +22,7 @@
 # SOFTWARE.
 
 import os
+from pathlib import Path
 
 # pylint: disable=too-few-public-methods
 
@@ -185,11 +186,8 @@ class PWCodeModel:
         """open a single file"""
         file_obj = self.factory.get_file(path)
 
-        # # if file_obj.content:
         if file_obj in self.recent_files:
             self.recent_files.remove(file_obj)
-
-        # self.recent_files.insert(0, file_obj)
 
         if file_obj in self.openfiles:
             self.set_current_file(file_obj, originator)
@@ -259,8 +257,6 @@ class PWCodeModel:
                 if file_obj in self.recent_files:
                     self.recent_files.remove(file_obj)
 
-                # self.recent_files.insert(0, file_obj)
-
                 if file_obj in self.openfiles:
                     self.set_current_file(file_obj, originator)
                 else:
@@ -268,5 +264,7 @@ class PWCodeModel:
                     self.update_observers("on_file_open", file_obj, originator=originator) 
                 break  
             else:
-                i += 1  
+                i += 1              
+
+        Path(file_path).touch() # WAIT: Bør flyttes fra model
 

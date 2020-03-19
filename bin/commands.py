@@ -89,7 +89,7 @@ def previous_tab(app):
     """ Switch to previous tab by use """
     # app.editor_frame.focus_set() # TODO: Virket ikke
     # app.editor_frame.focus()  # TODO: Virket ikke
-    path = app.editor_frame.previous_tab_path[0]
+    path = app.editor_frame.previous_tab_paths[0]
     if path:
         open_file(app, path)  
     else:
@@ -125,7 +125,7 @@ def show_commands(app):
     description=_get("Open new empty file"),
     shortcut=_get("<Control-n>"),
 )
-def new_file(app):
+def new_file(app, originator=None):
     """ open new empty file """
     app.model.new_file(app.tmp_dir)        
      

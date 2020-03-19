@@ -23,7 +23,7 @@
 
 import os, pathlib, logging, threading, time, queue, datetime, sys
 import tkinter as tk
-from tkinter import font
+# from tkinter import font
 from settings import COLORS
 from welcome import WelcomeTab
 from text.tktextext import EnhancedText
@@ -111,7 +111,7 @@ class EditorFrame(tk.ttk.Frame):
         self.id2path = {}
         self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
         self.welcome_id = None
-        self.previous_tab_path = deque(2*[None], 2)
+        self.previous_tab_paths = deque(2*[None], 2)
 
 
     def focus(self):
@@ -190,7 +190,6 @@ class EditorFrame(tk.ttk.Frame):
     # TODO: Save as overskriver ikke eksisterende fil?
     def on_file_save(self, file_obj, new_path = None):
         """ save editor content to file """
-        # WAIT: Print any errors to status line?
         pathlib.Path(self.app.tmp_dir).mkdir(parents=True, exist_ok=True) # TODO: Flytte til commands?        
         original_path = file_obj.path
         path = original_path
@@ -229,13 +228,13 @@ class EditorFrame(tk.ttk.Frame):
         if str(tab_id) == '.!panedwindow.!editorframe.!welcometab':
             self.app.on_file_selected(None)
             self.app.statusbar.status_line.config(text='')
-            self.previous_tab_path.append(None)
+            self.previous_tab_paths.append(None)
         else:  
             text_editor = self.notebook.nametowidget(tab_id) 
             text_editor.set_line_and_column()
-
+            text_editor.text.focus()
             file_obj = self.id2path[tab_id]
-            self.previous_tab_path.append(file_obj.path)
+            self.previous_tab_paths.append(file_obj.path)
 
 
 class TextEditorFrame(tk.ttk.Frame):
@@ -255,9 +254,12 @@ class TextEditorFrame(tk.ttk.Frame):
 
         self.modified = False 
         self.app = app
+        self.font_style = tk.font.Font(family="Ubuntu Monospace", size=11)
+        # self.font_style = font.Font(size=11) # WAIT: Virker og -> ha som backup når ikke ønsket font finnes?
 
         self.text = EnhancedText(
             self,
+            font=self.font_style,
             background=COLORS.text_bg,
             foreground=COLORS.text_fg,
             insertbackground=COLORS.status_bg,
@@ -357,12 +359,12 @@ class TextEditorFrame(tk.ttk.Frame):
 
 
     def create_tags(self):
-        bold_font = font.Font(self.text, self.text.cget("font"))
-        bold_font.configure(weight=font.BOLD)
-        italic_font = font.Font(self.text, self.text.cget("font"))
-        italic_font.configure(slant=font.ITALIC)
-        bold_italic_font = font.Font(self.text, self.text.cget("font"))
-        bold_italic_font.configure(weight=font.BOLD, slant=font.ITALIC)
+        bold_font = tk.font.Font(self.text, self.text.cget("font"))
+        bold_font.configure(weight=tk.font.BOLD)
+        italic_font = tk.font.Font(self.text, self.text.cget("font"))
+        italic_font.configure(slant=tk.font.ITALIC)
+        bold_italic_font = tk.font.Font(self.text, self.text.cget("font"))
+        bold_italic_font.configure(weight=tk.font.BOLD, slant=tk.font.ITALIC)
         # style = get_style_by_name('murphy') # Eks på bruk av innebygget style
         style = HtmlFormatter(style=MonokaiProStyle).style # Eks på bruk av custom style
 
