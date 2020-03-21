@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 # GPL3 License
 
 # Copyright (C) 2020 Morten Eek

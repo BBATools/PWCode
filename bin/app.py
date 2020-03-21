@@ -88,6 +88,7 @@ class App:
         root.bind("<Control-w>", lambda x: self.run_command('close_file'))       
         root.bind("<Control-s>", lambda x: self.run_command('save_file'))     
         root.bind("<Control-S>", lambda x: self.run_command('save_file_as')) 
+        root.bind("<Control-Tab>", self.perform_ctrl_tab, True)
 
         root.bind("<Control-Right>", lambda x: self.run_command('next_tab_in_index'))  
         root.bind("<Control-KP_Right>", lambda x: self.run_command('next_tab_in_index')) # on keypad
@@ -97,10 +98,12 @@ class App:
         root.bind("<Control-KP_Left>", lambda x: self.run_command('previous_in_index')) # on keypad
         root.bind("<Control-KP_4>", lambda x: self.run_command('previous_tab_in_index'))  # on keypad with num lock            
  
-        root.bind("<Control-Tab>", self.perform_ctrl_tab, True)
 
         root.bind("<Control-plus>", lambda x: self.run_command('increase_text_font')) 
         root.bind("<Control-minus>", lambda x: self.run_command('decrease_text_font')) 
+
+        root.bind("<Control-Return>", self.perform_ctrl_return, True)  
+        root.bind_class("Text", "<Control-Return>", lambda e: None)       
 
 
         # horizontal layout for the sidebar to expand / collapse panels
@@ -120,7 +123,12 @@ class App:
 
     def perform_ctrl_tab(self, event=None):
         self.run_command('previous_tab')
-        return "break"      
+        return "break"    
+
+
+    def perform_ctrl_return(self, event=None):
+        self.run_command('run_file')
+        return "break"             
 
 
     def quit_app(self):

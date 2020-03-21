@@ -172,11 +172,11 @@ def open_folder(app, path=None):
 )
 def close_file(app, originator=None):
     """ Close file """
-    tab_name = app.editor_frame.notebook.select()
-    if '!welcometab' not in str(tab_name): 
+    tab_id = app.editor_frame.notebook.select()
+    if '!welcometab' not in str(tab_id): 
         cancel = False
         file_obj = app.model.current_file
-        text_editor = app.editor_frame.notebook.nametowidget(tab_name)
+        text_editor = app.editor_frame.notebook.nametowidget(tab_id)
 
         if text_editor.modified:  
             answer = tk.messagebox.askyesnocancel(
@@ -202,8 +202,8 @@ def close_file(app, originator=None):
 )
 def save_file(app, originator=None):
     """ Save file """
-    tab_name = app.editor_frame.notebook.select()
-    if '!welcometab' not in str(tab_name):     
+    tab_id = app.editor_frame.notebook.select()
+    if '!welcometab' not in str(tab_id):     
         file_obj = app.model.current_file
         app.model.save_file(file_obj, None, originator)
 
@@ -216,8 +216,8 @@ def save_file(app, originator=None):
 )
 def save_file_as(app, originator=None):
     """ Save As... """
-    tab_name = app.editor_frame.notebook.select()
-    if '!welcometab' not in str(tab_name):      
+    tab_id = app.editor_frame.notebook.select()
+    if '!welcometab' not in str(tab_id):      
         file_obj = app.model.current_file
         new_path = pwb_choose_file('save')
         app.model.save_file(file_obj, new_path, originator)  
@@ -231,9 +231,9 @@ def save_file_as(app, originator=None):
 )
 def increase_text_font(app):
     """ Increase Text Font Size """
-    tab_name = app.editor_frame.notebook.select()
-    if '!welcometab' not in str(tab_name): 
-        text_editor = app.editor_frame.notebook.nametowidget(tab_name)
+    tab_id = app.editor_frame.notebook.select()
+    if '!welcometab' not in str(tab_id): 
+        text_editor = app.editor_frame.notebook.nametowidget(tab_id)
         font_size = text_editor.font_style['size']
         text_editor.font_style.configure(size=font_size + 2)
 
@@ -246,11 +246,24 @@ def increase_text_font(app):
 )
 def decrease_text_font(app):
     """ Decrease Text Font Size """
-    tab_name = app.editor_frame.notebook.select()
-    if '!welcometab' not in str(tab_name):     
-        text_editor = app.editor_frame.notebook.nametowidget(tab_name)
+    tab_id = app.editor_frame.notebook.select()
+    if '!welcometab' not in str(tab_id):     
+        text_editor = app.editor_frame.notebook.nametowidget(tab_id)
         font_size = text_editor.font_style['size']
         text_editor.font_style.configure(size=font_size - 2)
 
 
+@command(
+    title=_get("Run File"),
+    category=_get("FILE"),
+    description=_get("Run File"),
+    shortcut=_get("<Control-Return>"),
+)
+def run_file(app):
+    """ Run File """
+    tab_id = app.editor_frame.notebook.select()
+    if '!welcometab' not in str(tab_id):      
+        file_obj = app.model.current_file 
+        text_editor = app.editor_frame.notebook.nametowidget(tab_id)
+        text_editor.run_file(file_obj)    
        

@@ -21,14 +21,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import os, pathlib, logging, threading, time, queue, datetime, sys
+import os, pathlib, sys
 import tkinter as tk
-# from tkinter import font
 from settings import COLORS
 from welcome import WelcomeTab
 from text.tktextext import EnhancedText
 from gui.scrollbar_autohide import AutoHideScrollbar
 from collections import deque
+from console import ConsoleUi, Processing
 
 # python3 -m pip download --only-binary=wheel pygments
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)) + '/vendor/pygments.whl') 
@@ -50,7 +50,6 @@ from text.monokai_pro import MonokaiProStyle
 
 # pylint: disable=too-many-ancestors
 
-logger = logging.getLogger(__name__)
 
 lexer_from_ext = { # WAIT: Denne bør hentes fra configfil heller
     'py': PythonLexer(), 
@@ -130,9 +129,9 @@ class EditorFrame(tk.ttk.Frame):
         """ show a welcome tab at the first notebook position """
         if not self.welcome_id:
             if self.notebook.index("end"):
-                self.notebook.insert(0, WelcomeTab(self, self.app), text="Welcome")
+                self.notebook.insert(0, WelcomeTab(self, self.app), text="Home")
             else:
-                self.notebook.add(WelcomeTab(self, self.app), text="Welcome")
+                self.notebook.add(WelcomeTab(self, self.app), text="Home")
             self.welcome_id = self.notebook.tabs()[0]
 
         self.notebook.select(self.welcome_id)
@@ -197,9 +196,9 @@ class EditorFrame(tk.ttk.Frame):
             path = new_path
 
         lexer = self.get_lexer(path)
-        tab_name = self.notebook.select()
-        if tab_name:
-            text_editor = self.notebook.nametowidget(tab_name)
+        tab_id = self.notebook.select()
+        if tab_id:
+            text_editor = self.notebook.nametowidget(tab_id)
             content = text_editor.get_content()
 
             try:               
@@ -287,28 +286,20 @@ class TextEditorFrame(tk.ttk.Frame):
                 self.text, 
                 command = self.v_scrollbar_scroll,
                 width = 10,               
-                # troughcolor = COLORS.sidebar_bg, 
-                # buttoncolor = COLORS.sidebar_bg,
-
                 troughcolor = COLORS.bg, 
                 buttoncolor = COLORS.bg,                
-                # troughoutline = COLORS.sidebar_bg,
-                # thumboutline = COLORS.sidebar_bg,
-                thumbcolor = COLORS.status_bg, 
-                # thumbcolor = COLORS.sidebar_fg,                 
+                thumbcolor = COLORS.status_bg,                
                 )
             self.text["yscrollcommand"] = self.text.v_scrollbar.set 
             self.text.v_scrollbar.pack(side="right", fill="y")
 
-        if console:
-            self.console = ConsoleUi(self)
-            self.processing = Processing()
-            self.processing.run()  
-            
+        if console and file_obj:
+            self.console = ConsoleUi(self, file_obj)
+            self.processing = Processing(file_obj)
+            self.processing.show_message('run_file [Ctrl+Enter]\n')             
                   
 
         self.text.pack(expand=tk.YES, fill=tk.BOTH)
-        # self.text.pack_propagate(0)
 
         self.lexer = lexer
         if self.lexer:
@@ -318,7 +309,12 @@ class TextEditorFrame(tk.ttk.Frame):
 
         self.text.bind("<<TextChange>>", self.unsaved_text, True)  
         self.text.bind("<<CursorMove>>", self.cursor_moved, True)   
-        # self.bind("<Control-Tab>", lambda x: self.app.run_command('next_tab'))                       
+
+
+    def run_file(self, file_obj):
+        # self.processing.show_message(file_obj.path)
+        self.processing.run_file(file_obj)
+        # self.processing.display_time()
 
 
     def set_line_and_column(self):
@@ -414,118 +410,3 @@ class TextEditorFrame(tk.ttk.Frame):
             start_index = end_index    
 
 
-# class Processing(threading.Thread):
-# Original her: https://github.com/beenje/tkinter-logging-text-widget/blob/master/main.py
-class Processing():
-    def __init__(self):
-        super().__init__()
-
-    def run(self):
-        threading.Thread(target=self.display_time,daemon = True).start()
-
-    def display_time(self):        
-        logger.debug('Clock started')
-        previous = -1
-        while True:
-            now = datetime.datetime.now()
-            if previous != now.second:
-                previous = now.second
-                if now.second % 5 == 0:
-                    level = logging.ERROR
-                else:
-                    level = logging.INFO
-                logger.log(level, now)
-            logger.log(logging.INFO, 'test')
-            time.sleep(0.2)
-
-
-class QueueHandler(logging.Handler):
-    def __init__(self, log_queue):
-        super().__init__()
-        self.log_queue = log_queue
-
-    def emit(self, record):
-        self.log_queue.put(record)
-
-
-class ConsoleUi:
-    def __init__(self, frame):
-        self.frame = frame
-        self.text = EnhancedText(
-            frame, 
-            state='disabled',  # TODO: Denne som gjør at ikke shortcuts for copy mm virker?
-            background=COLORS.bg, 
-            # background=COLORS.text_bg,
-            # background=COLORS.sidebar_bg,            
-            foreground="#eeeeee",
-            insertbackground=COLORS.status_bg,
-            # insertbackground="#eeeeee",
-            borderwidth=0,
-            highlightthickness=0,
-            relief=tk.FLAT,
-            takefocus=1,
-            insertofftime =0, #Disable blinking cursor
-            insertwidth = 2,
-            spacing1 = 0,
-            spacing3 = 0,
-            # selectbackground=COLORS.sidebar_bg,
-            # inactiveselectbackground = COLORS.sidebar_bg,
-            # selectforeground=COLORS.text_fg,
-            padx = 5,
-            pady = 5,            
-            height=10)
-
-        self.text.pack(side="bottom", fill="both")
-        self.text.pack_propagate(0)
-        self.text.configure(font='TkFixedFont')
-        self.text.tag_config('INFO', foreground='green')
-        self.text.tag_config('DEBUG', foreground='blue')
-        self.text.tag_config('WARNING', foreground='orange')
-        self.text.tag_config('ERROR', foreground='red')
-        self.text.tag_config('CRITICAL', foreground='red', underline=1)
-        # Create a logging handler using a queue
-        self.log_queue = queue.Queue()
-        self.queue_handler = QueueHandler(self.log_queue)
-        formatter = logging.Formatter('%(asctime)s: %(message)s')
-        # TODO: Lag formattering som håndterer annet enn tid
-        self.queue_handler.setFormatter(formatter)
-        logger.addHandler(self.queue_handler)
-        # Start polling messages from the queue
-        self.frame.after(100, self.poll_log_queue)
-
-        self.text.v_scrollbar = AutoHideScrollbar(
-            self.text, 
-            command = self.v_scrollbar_scroll,
-            width = 10,               
-            troughcolor = COLORS.bg, 
-            buttoncolor = COLORS.bg,                
-            # troughoutline = COLORS.sidebar_bg,
-            # thumboutline = COLORS.sidebar_bg,
-            thumbcolor = COLORS.status_bg, 
-            # thumbcolor = COLORS.sidebar_fg,                 
-            )
-        self.text["yscrollcommand"] = self.text.v_scrollbar.set 
-        self.text.v_scrollbar.pack(side="right", fill="y")
-
-    def v_scrollbar_scroll(self, *args):
-        self.text.yview(*args)
-        self.text.event_generate("<<VerticalScroll>>")           
-
-    def display(self, record):
-        msg = self.queue_handler.format(record)
-        self.text.configure(state='normal')
-        self.text.insert(tk.END, msg + '\n', record.levelname)
-        self.text.configure(state='disabled')
-        # Autoscroll to the bottom
-        self.text.yview(tk.END)
-
-    def poll_log_queue(self):
-        # Check every 100ms if there is a new message in the queue to display
-        while True:
-            try:
-                record = self.log_queue.get(block=False)
-            except queue.Empty:
-                break
-            else:
-                self.display(record)
-        self.frame.after(100, self.poll_log_queue)
