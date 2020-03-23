@@ -15,11 +15,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import logging, threading, time, queue, datetime, sys
+import logging, threading, time, queue, datetime, sys, os, subprocess
 from text.tktextext import EnhancedText
 from settings import COLORS
 import tkinter as tk
 from gui.scrollbar_autohide import AutoHideScrollbar
+from queue import Queue, Empty
 
 
 # class Processing(threading.Thread):
@@ -124,40 +125,57 @@ class Processing():
             self.logger.log(logging.DEBUG, message)
         
         threading.Thread(target=log_message, args=(message,),daemon = True).start() 
+                
 
+    def run_file(self, file_obj): 
+        # import io
+        import selectors
 
-    def run_file(self, file_obj):    
         def log_run(file_obj):
-            from subprocess import Popen, PIPE, CalledProcessError
+            process = subprocess.Popen(['stdbuf', '-o0', 'python3', file_obj.path],
+                                    bufsize=1, # 1 means output is line buffered
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.STDOUT,
+                                    universal_newlines=True # required for line buffering
+                                    )
 
-            self.logger.log(logging.INFO, 'Process started...')
-            with Popen(["python3", file_obj.path], stdout=PIPE, bufsize=1, universal_newlines=True) as p:
-                for line in p.stdout:
-                    # print(line)
-                    # TODO: Vil det gjøre forskjell hvis logger definert utenfor klassen?
-                    self.logger.log(logging.INFO, line)
-                    # print(line, end='') # process line here
+            # Create callback function for process output
+            # buf = io.StringIO()
+            def handle_output(stream, mask):
+                # Because the process' output is line buffered, there's only ever one
+                # line to read when this function is called
+                print(mask) # Gir 1 for stdout
+                line = stream.readline()
+                # buf.write(line)
+                self.logger.log(logging.INFO, line)
+                # sys.stdout.write(line)
 
-            if p.returncode != 0:
-                raise CalledProcessError(p.returncode, p.args)
+            # Register callbacks
+            selector = selectors.DefaultSelector()
+            selector.register(process.stdout, selectors.EVENT_READ, handle_output)
+            # selector.register(process.stderr, selectors.EVENT_READ, handle_output)
 
-            # print('test')
-            # self.logger.log(logging.INFO, 'Process started...')
-            # popen = subprocess.Popen(["python3", file_obj.path], stdout=subprocess.PIPE, universal_newlines=True)
-            # for stdout_line in iter(popen.stdout.readline, ""):
-            #     output =  yield stdout_line 
-            #     self.logger.log(logging.INFO, output)
-            # popen.stdout.close()
-            # return_code = popen.wait()
-            # if return_code:
-            #     raise subprocess.CalledProcessError(return_code, cmd)
+            # Loop until subprocess is terminated
+            while process.poll() is None:
+                # Wait for events and handle them with their registered callbacks
+                events = selector.select()
+                for key, mask in events:
+                    callback = key.data
+                    callback(key.fileobj, mask)
+
+            # Get process return code
+            return_code = process.wait()
+            selector.close()
+            success = (return_code == 0)
+            return (success)
+
 
         threading.Thread(target=log_run, args=(file_obj,),daemon = True).start()              
-    
+
     
     def run_file2(self, file_obj):
         def log_run(file_obj):
-            import multiprocessing, sys, traceback, subprocess, selectors
+            import sys, traceback, subprocess, selectors
             # from logging.handlers import RotatingFileHandler
 
 
@@ -180,7 +198,8 @@ class Processing():
                         self.logger.log(logging.INFO, data)
                         # print(data, end="")
                     else:
-                        print(data, end="", file=sys.stderr) 
+                        self.logger.log(logging.ERROR, data)
+                        # print(data, end="", file=sys.stderr) 
 
         threading.Thread(target=log_run, args=(file_obj,),daemon = True).start()                         
 
