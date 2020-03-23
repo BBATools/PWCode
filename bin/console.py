@@ -15,12 +15,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import logging, threading, time, queue, datetime, sys, os, subprocess
+import logging, threading, time, queue, datetime, sys, os, subprocess, selectors
 from text.tktextext import EnhancedText
 from settings import COLORS
 import tkinter as tk
 from gui.scrollbar_autohide import AutoHideScrollbar
-from queue import Queue, Empty
 
 
 # class Processing(threading.Thread):
@@ -128,42 +127,38 @@ class Processing():
                 
 
     def run_file(self, file_obj): 
-        # import io
-        import selectors
 
         def log_run(file_obj):
-            process = subprocess.Popen(['stdbuf', '-o0', 'python3', file_obj.path],
+            process = subprocess.Popen(['python3', file_obj.path],
                                     bufsize=1, # 1 means output is line buffered
                                     stdout=subprocess.PIPE,
-                                    stderr=subprocess.STDOUT,
+                                    stderr=subprocess.PIPE,
                                     universal_newlines=True # required for line buffering
                                     )
 
-            # Create callback function for process output
-            # buf = io.StringIO()
-            def handle_output(stream, mask):
-                # Because the process' output is line buffered, there's only ever one
-                # line to read when this function is called
-                print(mask) # Gir 1 for stdout
-                line = stream.readline()
-                # buf.write(line)
-                self.logger.log(logging.INFO, line)
-                # sys.stdout.write(line)
 
-            # Register callbacks
+            def handle_stdout(stream, mask):
+                line = stream.readline().strip() # Since line buffered
+                if line:
+                    self.logger.log(logging.INFO, line)
+
+            def handle_stderr(stream, mask):
+                line = stream.readline().strip() # Since line buffered
+                self.logger.log(logging.ERROR, line)
+
+            # Register callbacks:
             selector = selectors.DefaultSelector()
-            selector.register(process.stdout, selectors.EVENT_READ, handle_output)
-            # selector.register(process.stderr, selectors.EVENT_READ, handle_output)
+            selector.register(process.stdout, selectors.EVENT_READ, handle_stdout)
+            selector.register(process.stderr, selectors.EVENT_READ, handle_stderr)
 
             # Loop until subprocess is terminated
             while process.poll() is None:
-                # Wait for events and handle them with their registered callbacks
+                # await events and handle them with their registered callbacks:
                 events = selector.select()
                 for key, mask in events:
                     callback = key.data
                     callback(key.fileobj, mask)
 
-            # Get process return code
             return_code = process.wait()
             selector.close()
             success = (return_code == 0)
@@ -173,39 +168,7 @@ class Processing():
         threading.Thread(target=log_run, args=(file_obj,),daemon = True).start()              
 
     
-    def run_file2(self, file_obj):
-        def log_run(file_obj):
-            import sys, traceback, subprocess, selectors
-            # from logging.handlers import RotatingFileHandler
-
-
-            p = subprocess.Popen(
-                ["python3", file_obj.path], stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-
-            sel = selectors.DefaultSelector()
-            sel.register(p.stdout, selectors.EVENT_READ)
-            sel.register(p.stderr, selectors.EVENT_READ)
-
-            while True:
-                for key, _ in sel.select():
-                    # print(key.fileobj)
-                    data = key.fileobj.read().decode()
-                    if not data:
-                        exit()
-                    if key.fileobj is p.stdout:
-                        # print('test')
-                        self.logger.log(logging.INFO, data)
-                        # print(data, end="")
-                    else:
-                        self.logger.log(logging.ERROR, data)
-                        # print(data, end="", file=sys.stderr) 
-
-        threading.Thread(target=log_run, args=(file_obj,),daemon = True).start()                         
-
-
-
-    def display_time(self):    
+    def display_time(self):   # WAIT: For test - fjern senere 
         def log_run():
             # self.logger.debug('Clock started') 
             self.logger.log(logging.INFO, 'Clock started')
