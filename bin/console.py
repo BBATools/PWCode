@@ -129,6 +129,8 @@ class Processing():
     def run_file(self, file_obj): 
 
         def log_run(file_obj):
+            os.environ['PYTHONUNBUFFERED'] = "1"
+            
             process = subprocess.Popen(['python3', file_obj.path],
                                     bufsize=1, # 1 means output is line buffered
                                     stdout=subprocess.PIPE,
@@ -144,7 +146,8 @@ class Processing():
 
             def handle_stderr(stream, mask):
                 line = stream.readline().strip() # Since line buffered
-                self.logger.log(logging.ERROR, line)
+                if line:
+                    self.logger.log(logging.ERROR, line)
 
             # Register callbacks:
             selector = selectors.DefaultSelector()
