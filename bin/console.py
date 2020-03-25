@@ -130,42 +130,34 @@ class Processing():
 
         def log_run(file_obj):
             os.environ['PYTHONUNBUFFERED'] = "1"
-            
+            from functools import partial 
+            printerr = partial(print, flush=True, file=sys.stderr) 
+            # sys.stderr.write('error')
+
             process = subprocess.Popen(['python3', file_obj.path],
-                                    bufsize=1, # 1 means output is line buffered
+                                    bufsize=1, # 1 means output is line buffered, 0 unbuffered. No difference in this case? because of environ?
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE,
                                     universal_newlines=True # required for line buffering
                                     )
 
-
-            def handle_stdout(stream, mask):
-                line = stream.readline().strip() # Since line buffered
-                if line:
-                    self.logger.log(logging.INFO, line)
-
-            def handle_stderr(stream, mask):
-                line = stream.readline().strip() # Since line buffered
-                if line:
-                    self.logger.log(logging.ERROR, line)
-
-            # Register callbacks:
             selector = selectors.DefaultSelector()
-            selector.register(process.stdout, selectors.EVENT_READ, handle_stdout)
-            selector.register(process.stderr, selectors.EVENT_READ, handle_stderr)
+            selector.register(process.stdout, selectors.EVENT_READ)
+            selector.register(process.stderr, selectors.EVENT_READ)            
 
-            # Loop until subprocess is terminated
-            while process.poll() is None:
-                # await events and handle them with their registered callbacks:
-                events = selector.select()
-                for key, mask in events:
-                    callback = key.data
-                    callback(key.fileobj, mask)
+            while process.poll() is None: # poll() returns None while the program is still running
+                for key, mask in selector.select():
+                    data = key.fileobj.readline().strip()
+                    if key.fileobj is process.stdout:
+                        self.logger.log(logging.INFO, data)
+                    else:
+                        # sys.stderr.write(data + '\n')
+                        self.logger.log(logging.ERROR, data) 
 
             return_code = process.wait()
             selector.close()
             success = (return_code == 0)
-            return (success)
+            return (success) # TODO: Gjøre hva når registrert at script ferdig samt om success eller ikke?
 
 
         threading.Thread(target=log_run, args=(file_obj,),daemon = True).start()              
