@@ -259,11 +259,27 @@ def decrease_text_font(app):
     description=_get("Run File"),
     shortcut=_get("<Control-Return>"),
 )
-def run_file(app):
+def run_file(app, stop = False):
     """ Run File """
     tab_id = app.editor_frame.notebook.select()
     if '!welcometab' not in str(tab_id):      
         file_obj = app.model.current_file 
         text_editor = app.editor_frame.notebook.nametowidget(tab_id)
-        text_editor.run_file(file_obj)    
-       
+        text_editor.run_file(file_obj, stop) 
+
+
+@command(
+    title=_get("Kill Process"),
+    category=_get("FILE"),
+    description=_get("Kill Process"),
+    shortcut=_get("<Control-k>"),
+)
+def kill_process(app):
+    """ Kill Process """
+    run_file(app, True)
+
+    # tab_id = app.editor_frame.notebook.select()
+    # if '!welcometab' not in str(tab_id):      
+    #     file_obj = app.model.current_file 
+    #     text_editor = app.editor_frame.notebook.nametowidget(tab_id)
+    #     # text_editor.Kill_process

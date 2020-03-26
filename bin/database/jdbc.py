@@ -4,6 +4,7 @@ from collections import OrderedDict
 from decimal import Decimal
 
 if os.name == "posix":
+    os.environ['JAVA_HOME'] = str(Path(__file__).parents[1]) + '/vendor/jdk_lin'
     sys.path.insert(0, str(Path(__file__).parents[1]) + '/vendor/jpype_lin') 
 else:
     sys.path.insert(0, str(Path(__file__).parents[1]) + '/vendor/jpype_win') 

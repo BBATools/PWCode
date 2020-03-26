@@ -35,8 +35,11 @@ if jdbc:
         with open(extract_dir + '/' + fname, 'wb') as f:
             f.write(efile)
         cnt2 += 1
+        sys.exit()
 
     print('Done: extracted %d files (%d skipped).' % (cnt1, (cnt1 - cnt2)))
+
+
 
 
 

@@ -296,7 +296,7 @@ class TextEditorFrame(tk.ttk.Frame):
         if console and file_obj:
             self.console = ConsoleUi(self, file_obj)
             self.processing = Processing(file_obj)
-            self.processing.show_message('run_file [Ctrl+Enter]\n')             
+            self.processing.show_message('run_file [Ctrl+Enter]\nkill_process [Ctrl+k]\n')             
                   
 
         self.text.pack(expand=tk.YES, fill=tk.BOTH)
@@ -311,7 +311,7 @@ class TextEditorFrame(tk.ttk.Frame):
         self.text.bind("<<CursorMove>>", self.cursor_moved, True)   
 
 
-    def run_file(self, file_obj):
+    def run_file(self, file_obj, stop = False):
         # self.processing.show_message(file_obj.path)
         self.processing.run_file(file_obj)
         # self.processing.display_time()

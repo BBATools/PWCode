@@ -103,7 +103,8 @@ class App:
         root.bind("<Control-minus>", lambda x: self.run_command('decrease_text_font')) 
 
         root.bind("<Control-Return>", self.perform_ctrl_return, True)  
-        root.bind_class("Text", "<Control-Return>", lambda e: None)       
+        root.bind_class("Text", "<Control-Return>", lambda e: None)   
+        root.bind("<Control-k>", lambda x: self.run_command('kill_process'))    
 
 
         # horizontal layout for the sidebar to expand / collapse panels
