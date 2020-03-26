@@ -31,7 +31,7 @@ from collections import deque
 from console import ConsoleUi, Processing
 
 # python3 -m pip download --only-binary=wheel pygments
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)) + '/vendor/pygments.whl') 
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)) + '/vendor/pygments') 
 from pygments.lexers.python import PythonLexer
 from pygments.lexers.html import HtmlLexer
 from pygments.lexers.html import XmlLexer
