@@ -1,11 +1,14 @@
 # Ignore directories and files
 _DATA/*
 bin/tmp/*
-
+bin/vendor/linux/*
+bin/vendor/windows/*
 
 # exceptions to above rule
 !_DATA/.gitkeep
 !bin/tmp/.gitkeep
+!bin/vendor/linux/.gitkeep
+!bin/vendor/linux/.gitkeep
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

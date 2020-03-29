@@ -127,6 +127,8 @@ class Processing():
                 
 
     def run_file(self, file_obj, stop = False): 
+        print(stop)
+        # TODO: Få stop til å virke
 
         def log_run(file_obj, stop_event):
             while not stop_event.is_set():

@@ -8,7 +8,10 @@ if os.name == "posix":
     sys.path.insert(0, str(Path(__file__).parents[1]) + '/vendor/jpype_lin') 
 else:
     sys.path.insert(0, str(Path(__file__).parents[1]) + '/vendor/jpype_win') 
-from jpype import JPackage
+from jpype import JPackage, startJVM
+
+class_path = '/home/bba/bin/PWCode/bin/vendor/sqlwbj/sqlworkbench.jar'
+startJVM(str(Path(__file__).parents[1]) + '/vendor/jdk_lin/bin/java', "-ea", "-Djava.class.path=" + class_path)
 
 sys.path.insert(0, str(Path(__file__).parents[1]) + '/vendor/jaydebeapi') 
 from jaydebeapi import Cursor, Error, DatabaseError, connect
@@ -320,21 +323,8 @@ class Jdbc:
         self.auto_commit = verified_boolean(auto_commit)
         self.upper_case = verified_boolean(upper_case)
         self.connection = None
-
-        # self.credentials, self.type, self.schema, self.url, self.always_escape = parse_login(login)
-
-        # print(self.login)
         self.driver_jar = driver_jar
         self.driver_class = driver_class
-        # print(self.driver_class)
-        # print(self.url)
-        # print(self.credentials)
-        # print(self.driver_jar)
-        # conn = jaydebeapi.connect("org.hsqldb.jdbcDriver",
-        #                   "jdbc:hsqldb:mem:.",
-        #                   ["SA", ""],
-        #                    "/path/to/hsqldb.jar",)
-
 
         connection_error = None
         try:

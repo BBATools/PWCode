@@ -46,11 +46,12 @@ from pygments.lexers.markup import MarkdownLexer
 from pygments.styles import get_style_by_name, get_all_styles
 from pygments.formatters.html import HtmlFormatter
 from pygments.lexers import get_lexer_by_name, get_lexer_for_filename
+from pygments.util import shebang_matches
 from text.monokai_pro import MonokaiProStyle
 
 # pylint: disable=too-many-ancestors
 
-
+# TODO: Legg inn sjekk på shebang også: https://kite.com/python/docs/pygments.lexers.ruby.shebang_matches
 lexer_from_ext = { # WAIT: Denne bør hentes fra configfil heller
     'py': PythonLexer(), 
     'pyw': PythonLexer(), 
@@ -312,9 +313,7 @@ class TextEditorFrame(tk.ttk.Frame):
 
 
     def run_file(self, file_obj, stop = False):
-        # self.processing.show_message(file_obj.path)
-        self.processing.run_file(file_obj)
-        # self.processing.display_time()
+        self.processing.run_file(file_obj, stop)
 
 
     def set_line_and_column(self):

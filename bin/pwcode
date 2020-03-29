@@ -7,7 +7,7 @@ silent_background() {
 
 PYTHONPATH="$(printf "%s:" ./*/)"
 SCRIPT_PATH="$(dirname "$(readlink -f "$0")")"
-silent_background $SCRIPT_PATH/pwcode.py $@
+silent_background vendor/linux/python/bin/python3 $SCRIPT_PATH/pwcode.py $@
 
 
 
