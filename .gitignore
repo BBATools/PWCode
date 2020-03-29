@@ -8,7 +8,7 @@ bin/vendor/windows/*
 !_DATA/.gitkeep
 !bin/tmp/.gitkeep
 !bin/vendor/linux/.gitkeep
-!bin/vendor/linux/.gitkeep
+!bin/vendor/windows/.gitkeep
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
