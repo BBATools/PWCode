@@ -61,9 +61,9 @@ def start_server(tmp_dir, port_file, icon_file):
     app.run(port)
 
 
-def fix_desktop_file(bin_dir, icon_file):
-    desktop_file = os.path.abspath(os.path.join(bin_dir, '..', 'PWCode.desktop'))        
-    for line in fileinput.input(desktop_file, inplace = 1): 
+def fix_desktop_file(bin_dir, icon_file, desktop_file):
+    desktop_file_path = os.path.abspath(os.path.join(bin_dir, '..', desktop_file))        
+    for line in fileinput.input(desktop_file_path, inplace = 1): 
         if line.startswith('Icon='):
             line = 'Icon=' + icon_file
         print(line.strip())
@@ -71,17 +71,21 @@ def fix_desktop_file(bin_dir, icon_file):
 
 if __name__ == "__main__":
     bin_dir = os.path.abspath(os.path.dirname(__file__))
-    icon_file = os.path.join(bin_dir, 'img/arkimint_fin_32px.png')  # WAIT: Replace icon
+    pwcode_icon_file = os.path.join(bin_dir, 'img/arkimint_fin_32px.png')  # WAIT: Replace icon
+    sqlwb_icon_file = os.path.join(bin_dir, 'img/sqlwb.png') 
     tmp_dir = os.path.join(bin_dir, 'tmp')
     port_file = tmp_dir + '/port' 
+
+    if os.name == "posix":
+        fix_desktop_file(bin_dir, pwcode_icon_file, 'PWCode.desktop')  
+        fix_desktop_file(bin_dir, sqlwb_icon_file, 'SQLWB.desktop')       
 
     try:
         start_client(port_file)
     except:        
-        start_server(tmp_dir, port_file, icon_file)  
+        start_server(tmp_dir, port_file, pwcode_icon_file)  
 
-    if os.name == "posix":
-        fix_desktop_file(bin_dir, icon_file)                  
+                
  
 
 
