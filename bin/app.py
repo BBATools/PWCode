@@ -109,6 +109,7 @@ class App:
 
         root.bind("<Control-Return>", self.perform_ctrl_return, True)  
         root.bind_class("Text", "<Control-Return>", lambda e: None)   
+        root.bind_class("Text", "<Control-k>", lambda e: None)  
         root.bind("<Control-k>", lambda x: self.run_command('kill_process'))    
 
 
