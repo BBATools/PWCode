@@ -22,7 +22,7 @@
 # SOFTWARE.  
 
 
-import os, model, settings, theme, commands, threading, pickle
+import os, model, settings, theme, commands, threading, pickle, sys
 import tkinter as tk
 from commander import Commander
 from sidebar import SideBar
@@ -73,6 +73,11 @@ class App:
         y = (hs/2) - (h/2)
 
         root.geometry('%dx%d+%d+%d' % (w, h, x, y))
+        # root.option_add( "*font", "gothic" )
+        # root.option_add("*Font", "Times 20 bold")
+
+        # def_font = tk.font.nametofont("TkDefaultFont")
+        # def_font.config(size=16)
 
         style = theme.build_style(self.settings.colors)
         style.theme_use("pwcode")

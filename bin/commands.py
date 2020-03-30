@@ -23,7 +23,6 @@
 
 import gettext, os
 from gettext import gettext as _get
-from gui.gtk import pwb_choose_file
 from palette import PaletteFrame
 from commander import command
 import tkinter as tk
@@ -31,6 +30,9 @@ from tkinter import messagebox
 from common.file import xdg_open_file
 from vendor import filetype
 from collections import deque
+from gui.gtk import pwb_choose_file  
+# WAIT: Lgg inn at tkinter filedialog er backup hvis ikke gtk kan importeres i gui.gtk
+# -> Lag file/folder chooser i left_menu -> endre dagens kode så har en knapp øverst bare og eget ikon -> trenger ikke gtk dialog da
 
 def focus_app(app):
     app.editor_frame.focus()
@@ -138,7 +140,8 @@ def new_file(app, originator=None):
 )
 def open_file(app, path=None):
     """ Open file from filesystem  """
-    if not path:
+
+    if not path:       
         path = pwb_choose_file()
 
     if path:

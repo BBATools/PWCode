@@ -10,8 +10,9 @@ else:
     sys.path.insert(0, str(Path(__file__).parents[1]) + '/vendor/jpype_win') 
 from jpype import JPackage, startJVM
 
-class_path = '/home/bba/bin/PWCode/bin/vendor/sqlwbj/sqlworkbench.jar'
-startJVM(str(Path(__file__).parents[1]) + '/vendor/jdk_lin/bin/java', "-ea", "-Djava.class.path=" + class_path)
+# For test:
+# class_path = '/home/bba/bin/PWCode/bin/vendor/sqlwbj/sqlworkbench.jar'
+# startJVM(str(Path(__file__).parents[1]) + '/vendor/jdk_lin/bin/java', "-ea", "-Djava.class.path=" + class_path)
 
 sys.path.insert(0, str(Path(__file__).parents[1]) + '/vendor/jaydebeapi') 
 from jaydebeapi import Cursor, Error, DatabaseError, connect
@@ -33,6 +34,7 @@ COLUMN_TYPE_BINARY = "byte"
 DEC_ZERO = Decimal(0.0)
 
 JAVA_STRING = None
+
 
 def default_cursor(default_result):
     """

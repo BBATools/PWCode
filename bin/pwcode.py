@@ -19,16 +19,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import os, sys, psutil, xmlrpc.client, socket, fileinput
+import os, sys, xmlrpc.client, socket, fileinput 
 from app import App
-
-
-def is_running(script): # WAIT: Bare sjekke om får kontakt med serverproxy heller?
-    for p in psutil.process_iter():
-        if p.name() == script: 
-            if len(p.cmdline())>1 and script in p.cmdline()[1] and p.pid !=os.getpid():
-                return str(p.pid)
-
 
 def find_free_port():
     s = socket.socket()
@@ -77,18 +69,15 @@ def fix_desktop_file(bin_dir, icon_file):
         print(line.strip())
 
 
-# TODO: Se for hvordan endre prosessnavn fra python i windows (ie rename bundlet python.exe til pwcode.exe)
-# https://superuser.com/questions/427642/is-it-possible-to-set-the-process-name-with-pythonw
 if __name__ == "__main__":
     bin_dir = os.path.abspath(os.path.dirname(__file__))
     icon_file = os.path.join(bin_dir, 'img/arkimint_fin_32px.png')  # WAIT: Replace icon
     tmp_dir = os.path.join(bin_dir, 'tmp')
     port_file = tmp_dir + '/port' 
 
-    server = is_running(os.path.basename(__file__))
-    if server:
+    try:
         start_client(port_file)
-    else:
+    except:        
         start_server(tmp_dir, port_file, icon_file)  
 
     if os.name == "posix":

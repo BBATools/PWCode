@@ -3,12 +3,23 @@ _DATA/*
 bin/tmp/*
 bin/vendor/linux/*
 bin/vendor/windows/*
+bin/vendor/jdbc/*
 
 # exceptions to above rule
 !_DATA/.gitkeep
 !bin/tmp/.gitkeep
 !bin/vendor/linux/.gitkeep
 !bin/vendor/windows/.gitkeep
+!bin/vendor/jdbc/WbDrivers.xml
+!bin/vendor/jdbc/WbMacros.xml
+!bin/vendor/jdbc/h2-*.jar
+!bin/vendor/jdbc/mssql-jdbc-*.jar
+!bin/vendor/jdbc/postgresql-*.jar
+!bin/vendor/jdbc/mysql-connector-java-*.jar
+!bin/vendor/jdbc/sqlite-jdbc-*.jar
+!bin/vendor/jdbc/sqlworkbench.jar
+!bin/vendor/jdbc/*-LICENSE
+!
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
