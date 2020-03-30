@@ -281,8 +281,6 @@ def kill_process(app):
     """ Kill Process """
     run_file(app, True)
 
-    # tab_id = app.editor_frame.notebook.select()
-    # if '!welcometab' not in str(tab_id):      
-    #     file_obj = app.model.current_file 
-    #     text_editor = app.editor_frame.notebook.nametowidget(tab_id)
-    #     # text_editor.Kill_process
+    
+
+

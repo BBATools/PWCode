@@ -127,75 +127,46 @@ class Processing():
                 
 
     def run_file(self, file_obj, stop = False): 
-        print(stop)
-        # TODO: Få stop til å virke
 
-        def log_run(file_obj, stop_event):
-            while not stop_event.is_set():
-                os.environ['PYTHONUNBUFFERED'] = "1"
-                from functools import partial 
-                printerr = partial(print, flush=True, file=sys.stderr) 
-                # sys.stderr.write('error')
+        def log_run(file_obj):
+            os.environ['PYTHONUNBUFFERED'] = "1"
+            from functools import partial 
+            printerr = partial(print, flush=True, file=sys.stderr) 
 
-                self.process = subprocess.Popen(['python3', file_obj.path],
-                                        bufsize=1, # 1 means output is line buffered, 0 unbuffered. No difference in this case? because of environ?
-                                        stdout=subprocess.PIPE,
-                                        stderr=subprocess.PIPE,
-                                        universal_newlines=True # required for line buffering
-                                        )
+            self.process = subprocess.Popen(['python3', file_obj.path],
+                                    bufsize=1, # 1 means output is line buffered, 0 unbuffered. No difference in this case? because of environ?
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                    universal_newlines=True # required for line buffering
+                                    )
 
-                selector = selectors.DefaultSelector()
-                selector.register(self.process.stdout, selectors.EVENT_READ)
-                selector.register(self.process.stderr, selectors.EVENT_READ)  
+            selector = selectors.DefaultSelector()
+            selector.register(self.process.stdout, selectors.EVENT_READ)
+            selector.register(self.process.stderr, selectors.EVENT_READ)  
 
-                while self.process.poll() is None: # poll() returns None while the program is still running
-                    for key, mask in selector.select():
-                        data = key.fileobj.readline().strip()
-                        if key.fileobj is self.process.stdout:
-                            self.logger.log(logging.INFO, data)
-                        else:
-                            # sys.stderr.write(data + '\n')
-                            self.logger.log(logging.ERROR, data) 
-
-                return_code = self.process.wait()
-                selector.close()
-                success = (return_code == 0)
-                return (success) # TODO: Gjøre hva når registrert at script ferdig samt om success eller ikke?
-
-        # threading.Thread(target=log_run, args=(file_obj,),daemon = True).start()              
-
-        stop_event= threading.Event()
-        if stop:
-            stop_event.set()
-        t = threading.Thread(target=log_run, args=(file_obj, stop_event),daemon = True)
-        t.start()
-
-
-        # if stop_thread:
-        #     t.join()
-        # else:
-        #     t.start()
-
-    
-    def display_time(self):   # WAIT: For test - fjern senere 
-        def log_run():
-            # self.logger.debug('Clock started') 
-            self.logger.log(logging.INFO, 'Clock started')
-            previous = -1
-            while True:
-                now = datetime.datetime.now()
-                if previous != now.second:
-                    previous = now.second
-                    if now.second % 5 == 0:
-                        level = logging.INFO
+            while self.process.poll() is None: # poll() returns None while the program is still running
+                for key, mask in selector.select():
+                    data = key.fileobj.readline().strip()
+                    if key.fileobj is self.process.stdout:
+                        self.logger.log(logging.INFO, data)
                     else:
-                        level = logging.INFO
-                    self.logger.log(level, now)
-                self.logger.log(logging.INFO, 'test')
-                time.sleep(0.2)
+                        # sys.stderr.write(data + '\n')
+                        self.logger.log(logging.ERROR, data) 
 
-        
-        threading.Thread(target=log_run,daemon = True).start()                  
+            return_code = self.process.wait()
+            selector.close()
+            success = (return_code == 0)
+            return (success) # TODO: Gjøre hva når registrert at script ferdig samt om success eller ikke?  
+
+
+        if stop:   
+            for thread in threading.enumerate():
+                if thread.name == file_obj.path:
+                    self.process.terminate()  # WAIT: Legg inn test med delay og så kjøre process.kill hvis terminate ikke virket? 
+        else:
+            t = threading.Thread(name=file_obj.path, target=log_run, args=(file_obj,), daemon = True)
+            t.start()
+            
 
 
 class QueueHandler(logging.Handler):

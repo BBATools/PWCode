@@ -4,9 +4,8 @@ import sys
 from time import sleep
             
 
-
 if __name__ == "__main__":
-    for i in range(20):
+    for i in range(90):
         print(f" x{i}")
         # print(f" x{i} ", file=sys.stderr, end="")
         #print('test')
@@ -16,6 +15,8 @@ if __name__ == "__main__":
         sleep(0.1)
         sys.stderr.write('error')
         #sys.stderr.flush()
+
+
 
 
 
