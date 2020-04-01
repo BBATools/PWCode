@@ -33,7 +33,7 @@ class Explorer(SidePanel):
 
     TITLE = "EXPLORER"
 
-    ICON_PATH = "explorer_inactive.png"
+    ICON_PATH = "explorer_inactive.gif"
 
     def __init__(self, parent, app):
         super().__init__(parent)

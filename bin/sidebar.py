@@ -38,7 +38,9 @@ class ActivityButton(ttk.Button):
 
     def __init__(self, parent, panel_class, **kw):
         self.panel_class = panel_class
-        self.icon_img = tk.PhotoImage(file=os.path.join(IMG_DIR, panel_class.ICON_PATH))
+        # img = tk.PhotoImage(self.icon_file)
+        self.icon_img = tk.PhotoImage(file=os.path.join(IMG_DIR, panel_class.ICON_PATH)) # TODO: Denne virker med tk8.6 men ikke tk8.5
+        # self.icon_img = tk.PhotoImage(os.path.join(IMG_DIR, panel_class.ICON_PATH))
         super().__init__(parent, image=self.icon_img, style="SideBar.TButton", **kw)
 
 

@@ -280,6 +280,7 @@ class TextEditorFrame(tk.ttk.Frame):
             wrap=tk.NONE,
             padx = 5,
             pady = 5,
+            # tag_current_line=True
         )
 
         if vertical_scrollbar:
@@ -316,6 +317,53 @@ class TextEditorFrame(tk.ttk.Frame):
         self.processing.run_file(file_obj, stop)
 
 
+    def toggle_comment(self, file_obj):
+        print(self.text.index("current linestart"))
+        def text_get_selected(text): 
+            if text.tag_ranges("sel"):
+                return text.get(tk.SEL_FIRST, tk.SEL_LAST)
+            else:
+                return ""
+
+        text = self.text
+        # file = self.master.current_file
+        selection = text_get_selected(text)
+        if selection:
+            self.insert_comment(text.index(tk.SEL_FIRST), text.index(tk.SEL_LAST), file_obj)
+        else: # TODO: Linje under virker ikke -> fiks
+            self.insert_comment(text.index("current linestart"), text.index("current lineend"), file_obj) 
+
+
+    def get_comment_token(self, file_obj):
+        extension = os.path.splitext(file_obj.path)[1][1:].lower()
+        if extension in ("py", "yml", "yaml"): # TODO: Legg inn støtte for flere extensions
+            return ("#", "")
+        elif extension == "xml":
+            return ("<--", "-->")
+        else:
+            return ("", "")
+
+
+    def insert_comment(self, start, end, file_obj):      
+        token_start, token_end = self.get_comment_token(file_obj)
+        while int(start.split(".")[0]) <= int(end.split(".")[0]):
+            line = self.text.get(start + " linestart", start + " lineend")
+            if line.lstrip().startswith(token_start):
+                # remove comment token
+                if token_start:
+                    self.text.delete(start + " linestart", start + f" linestart +{len(token_start)}c")
+                if token_end:
+                    self.text.delete(start + f" lineend -{len(token_start)}c", start + " lineend")
+            else:
+                # insert comment token
+                if token_start:
+                    self.text.insert(start + ' linestart', token_start)
+                if token_end:
+                    self.text.insert(start + ' lineend', token_end)
+            start = str(int(start.split(".")[0]) + 1) + ".0"
+        pass       
+
+
     def set_line_and_column(self):
         # text_line_count = int(self.text.index("end").split(".")[0])
         line, column = self.text.index("insert").split('.')
@@ -325,6 +373,8 @@ class TextEditorFrame(tk.ttk.Frame):
 
     def cursor_moved(self, event):
         self.set_line_and_column()
+        # lineno = int(self.text.index("insert").split(".")[0])
+        # self.text.tag_add("current_line", str(lineno) + ".0", str(lineno + 1) + ".0")
 
 
     def unsaved_text(self, event):
@@ -406,6 +456,9 @@ class TextEditorFrame(tk.ttk.Frame):
                 self.text.tag_add(str(ttype), index1, index2)
  
             start_line = end_line
-            start_index = end_index    
+            start_index = end_index   
+
+
+           
 
 

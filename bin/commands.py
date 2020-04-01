@@ -30,7 +30,7 @@ from tkinter import messagebox
 from common.file import xdg_open_file
 from vendor import filetype
 from collections import deque
-from gui.gtk import pwb_choose_file  
+# from gui.gtk import pwb_choose_file  
 # WAIT: Lgg inn at tkinter filedialog er backup hvis ikke gtk kan importeres i gui.gtk
 # -> Lag file/folder chooser i left_menu -> endre dagens kode så har en knapp øverst bare og eget ikon -> trenger ikke gtk dialog da
 
@@ -245,7 +245,7 @@ def increase_text_font(app):
     title=_get("Decrease Font Size"),
     category=_get("FILE"),
     description=_get("Decrease Font Size"),
-    shortcut=_get("<Control-->"),
+    shortcut=_get("<Control-->"), # TODO: Vises ikke riktig i M-x -> pluss, eller minustegn som std i visning mellom keys?
 )
 def decrease_text_font(app):
     """ Decrease Text Font Size """
@@ -280,6 +280,21 @@ def run_file(app, stop = False):
 def kill_process(app):
     """ Kill Process """
     run_file(app, True)
+
+
+@command(
+    title=_get("Toggle Comment"),
+    category=_get("FILE"),
+    description=_get("Toggle Comment"),
+    shortcut=_get("<Alt-c"),
+)
+def toggle_comment(app):
+    """ Toggle Comment """
+    tab_id = app.editor_frame.notebook.select()
+    if '!welcometab' not in str(tab_id):      
+        file_obj = app.model.current_file 
+        text_editor = app.editor_frame.notebook.nametowidget(tab_id)
+        text_editor.toggle_comment(file_obj)    
 
     
 

@@ -38,7 +38,7 @@ class Search(SidePanel):
 
     TITLE = "SEARCH"
 
-    ICON_PATH = "search_inactive.png"
+    ICON_PATH = "search_inactive.gif"
 
     def __init__(self, parent, app):
         super().__init__(parent)

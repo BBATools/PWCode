@@ -42,11 +42,14 @@ def open_files_from_tmp(app):
                 app.run_command('open_file', app.tmp_dir + '/' + file)    
 
 
-def start_client(port_file):
-    port=open(port_file, 'r').read()
-    app = xmlrpc.client.ServerProxy('http://localhost:' + port)
-    open_files_from_arg(sys.argv, app)
-    app.focus()
+def start_client(tmp_dir, port_file, icon_file):
+    try:
+        port=open(port_file, 'r').read()
+        app = xmlrpc.client.ServerProxy('http://localhost:' + port)
+        open_files_from_arg(sys.argv, app)
+        app.focus()
+    except:  
+        start_server(tmp_dir, port_file, icon_file)
 
 
 def start_server(tmp_dir, port_file, icon_file):  
@@ -71,7 +74,7 @@ def fix_desktop_file(bin_dir, icon_file, desktop_file):
 
 if __name__ == "__main__":
     bin_dir = os.path.abspath(os.path.dirname(__file__))
-    pwcode_icon_file = os.path.join(bin_dir, 'img/arkimint_fin_32px.png')  # WAIT: Replace icon
+    pwcode_icon_file = os.path.join(bin_dir, 'img/arkimint_fin_32px.gif')  # WAIT: Replace icon
     sqlwb_icon_file = os.path.join(bin_dir, 'img/sqlwb.png') 
     tmp_dir = os.path.join(bin_dir, 'tmp')
     port_file = tmp_dir + '/port' 
@@ -80,10 +83,7 @@ if __name__ == "__main__":
         fix_desktop_file(bin_dir, pwcode_icon_file, 'PWCode.desktop')  
         fix_desktop_file(bin_dir, sqlwb_icon_file, 'SQLWB.desktop')       
 
-    try:
-        start_client(port_file)
-    except:        
-        start_server(tmp_dir, port_file, pwcode_icon_file)  
+    start_client(tmp_dir, port_file, pwcode_icon_file) 
 
                 
  

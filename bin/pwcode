@@ -10,15 +10,15 @@ PYTHONPATH="$(printf "%s:" ./*/)"
 
 # TODO: Test videre med bundlet python når skaffet tk med støtte for truetype
 # Denne er for stor og mangler truetype font støtte: https://github.com/indygreg/python-build-standalone
-if python3 -c 'import tkinter;'; then
-    silent_background $SCRIPTPATH/pwcode.py $@
-else
-    export TCL_LIBRARY=$SCRIPTPATH/vendor/linux/python/lib/tcl/tcl8.6:$TCL_LIBRARY:$TK_LIBRARY
-    silent_background $SCRIPTPATH/pwcode.py $@
-    #silent_background $SCRIPTPATH/vendor/linux/python/bin/python3 $SCRIPTPATH/pwcode.py $@
-fi
+# if python3 -c 'import tkinter;'; then
+#     silent_background $SCRIPTPATH/pwcode.py $@
+# else
+#     #export TCL_LIBRARY=$SCRIPTPATH/vendor/linux/python/lib/tcl/tcl8.6:$TCL_LIBRARY:$TK_LIBRARY
+#     silent_background $SCRIPTPATH/pwcode.py $@
+#     #silent_background $SCRIPTPATH/vendor/linux/python/bin/python3 $SCRIPTPATH/pwcode.py $@
+# fi
 
-
+$SCRIPTPATH/vendor/linux/python/AppRun $SCRIPTPATH/pwcode.py $@
 
 
 

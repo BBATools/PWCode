@@ -41,8 +41,8 @@ class FSEntryFactory:
             file_obj = self.__cache[path]
         else:
             file_obj = class_obj(path)
-            if len(self.__cache) > self.cache_size:
-                self.clear_cache()
+            # if len(self.__cache) > self.cache_size:
+            #     self.clear_cache()
             self.__cache[file_obj.path] = file_obj       
 
         file_obj.factory = self
@@ -56,12 +56,12 @@ class FSEntryFactory:
         """build a FileEntry instance using cache """
         return self.get_entry(path, FileEntry)
 
-    def clear_cache(self):
-        for index, (path, _) in enumerate(self.__cache.keys()).items():
-            if index < self.cache_size:
-                del self.__cache[path]
-            else:
-                break
+    # def clear_cache(self): # TODO: For mye bugs med denne. Trengs den?
+    #     for index, (path, _) in enumerate(self.__cache.keys()).items():
+    #         if index < self.cache_size:
+    #             del self.__cache[path]
+    #         else:
+    #             break
 
 
 class FSEntry:

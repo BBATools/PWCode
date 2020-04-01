@@ -61,8 +61,13 @@ class App:
         self.root = root = tk.Tk(className=self.settings.name.lower()) # --> StartupWMClass = pwcode
         root.protocol("WM_DELETE_WINDOW", self.quit_app)
 
-        img = tk.Image('photo', file=self.icon_file)
-        root.tk.call('wm','iconphoto',root._w,img)
+        # img = tk.Image('photo', file=self.icon_file) # TODO: Denne virker med tk8.6 men ikke tk8.5
+        # img = tk.PhotoImage(self.icon_file)
+
+        root.tk.call('wm', 'iconphoto', root._w, tk.PhotoImage(file=self.icon_file))
+
+        # root.tk.call('wm','iconphoto',root._w,img)
+        # root.iconphoto(False, img) 
 
         w = 1400 # width for the Tk root
         h = 900 # height for the Tk root
@@ -110,7 +115,9 @@ class App:
         root.bind("<Control-Return>", self.perform_ctrl_return, True)  
         root.bind_class("Text", "<Control-Return>", lambda e: None)   
         root.bind_class("Text", "<Control-k>", lambda e: None)  
-        root.bind("<Control-k>", lambda x: self.run_command('kill_process'))    
+        root.bind("<Control-k>", lambda x: self.run_command('kill_process'))  
+
+        root.bind("<Alt-c>", lambda x: self.run_command('toggle_comment'))     
 
 
         # horizontal layout for the sidebar to expand / collapse panels
