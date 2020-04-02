@@ -113,8 +113,9 @@ class ConsoleUi:
 
 
 class Processing():
-    def __init__(self, file_obj):
+    def __init__(self, file_obj, app):
         self.file_obj = file_obj
+        self.app = app
         super().__init__()
         self.logger = logging.getLogger(self.file_obj.path)
 
@@ -133,7 +134,7 @@ class Processing():
             from functools import partial 
             printerr = partial(print, flush=True, file=sys.stderr) 
 
-            self.process = subprocess.Popen(['python3', file_obj.path],
+            self.process = subprocess.Popen([self.app.python_path, file_obj.path],
                                     bufsize=1, # 1 means output is line buffered, 0 unbuffered. No difference in this case? because of environ?
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE,

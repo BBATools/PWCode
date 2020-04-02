@@ -253,6 +253,7 @@ class TextEditorFrame(tk.ttk.Frame):
         super().__init__(parent)
 
         self.modified = False 
+        self.current_line = None
         self.app = app
         self.font_style = tk.font.Font(family="Ubuntu Monospace", size=11)
         # self.font_style = tk.font.Font(size=11) # WAIT: Virker og -> ha som backup når ikke ønsket font finnes?
@@ -297,7 +298,7 @@ class TextEditorFrame(tk.ttk.Frame):
 
         if console and file_obj:
             self.console = ConsoleUi(self, file_obj)
-            self.processing = Processing(file_obj)
+            self.processing = Processing(file_obj, self.app)
             self.processing.show_message('run_file [Ctrl+Enter]\nkill_process [Ctrl+k]\n')             
                   
 
@@ -318,20 +319,17 @@ class TextEditorFrame(tk.ttk.Frame):
 
 
     def toggle_comment(self, file_obj):
-        print(self.text.index("current linestart"))
         def text_get_selected(text): 
             if text.tag_ranges("sel"):
                 return text.get(tk.SEL_FIRST, tk.SEL_LAST)
             else:
                 return ""
 
-        text = self.text
-        # file = self.master.current_file
-        selection = text_get_selected(text)
+        selection = text_get_selected(self.text)
         if selection:
-            self.insert_comment(text.index(tk.SEL_FIRST), text.index(tk.SEL_LAST), file_obj)
-        else: # TODO: Linje under virker ikke -> fiks
-            self.insert_comment(text.index("current linestart"), text.index("current lineend"), file_obj) 
+            self.insert_comment(self.text.index(tk.SEL_FIRST), self.text.index(tk.SEL_LAST), file_obj)
+        else: 
+            self.insert_comment(self.text.index(self.current_line + '.0'), self.text.index(self.current_line + '.end'), file_obj) 
 
 
     def get_comment_token(self, file_obj):
@@ -367,6 +365,7 @@ class TextEditorFrame(tk.ttk.Frame):
     def set_line_and_column(self):
         # text_line_count = int(self.text.index("end").split(".")[0])
         line, column = self.text.index("insert").split('.')
+        self.current_line = line
         lc_text = str(line) + ' : ' + str(column)   
         self.app.statusbar.status_line.config(text=lc_text)
 

@@ -42,18 +42,18 @@ def open_files_from_tmp(app):
                 app.run_command('open_file', app.tmp_dir + '/' + file)    
 
 
-def start_client(tmp_dir, port_file, icon_file):
+def start_client(tmp_dir, port_file, icon_file, python_path):
     try:
         port=open(port_file, 'r').read()
         app = xmlrpc.client.ServerProxy('http://localhost:' + port)
         open_files_from_arg(sys.argv, app)
         app.focus()
     except:  
-        start_server(tmp_dir, port_file, icon_file)
+        start_server(tmp_dir, port_file, icon_file, python_path)
 
 
-def start_server(tmp_dir, port_file, icon_file):  
-    app = App(tmp_dir, port_file, icon_file)
+def start_server(tmp_dir, port_file, icon_file, python_path):  
+    app = App(tmp_dir, port_file, icon_file, python_path)
     app.build_ui()
     open_files_from_tmp(app)
     app.run_command('show_welcome')
@@ -74,16 +74,19 @@ def fix_desktop_file(bin_dir, icon_file, desktop_file):
 
 if __name__ == "__main__":
     bin_dir = os.path.abspath(os.path.dirname(__file__))
+    python_path = 'python3'
     pwcode_icon_file = os.path.join(bin_dir, 'img/arkimint_fin_32px.gif')  # WAIT: Replace icon
     sqlwb_icon_file = os.path.join(bin_dir, 'img/sqlwb.png') 
     tmp_dir = os.path.join(bin_dir, 'tmp')
     port_file = tmp_dir + '/port' 
 
     if os.name == "posix":
+        # python_path = os.path.join(bin_dir, 'vendor/linux/python/opt/python3.8/bin/python3.8')
+        python_path = os.path.join(bin_dir, 'vendor/linux/python/AppRun')
         fix_desktop_file(bin_dir, pwcode_icon_file, 'PWCode.desktop')  
         fix_desktop_file(bin_dir, sqlwb_icon_file, 'SQLWB.desktop')       
 
-    start_client(tmp_dir, port_file, pwcode_icon_file) 
+    start_client(tmp_dir, port_file, pwcode_icon_file, python_path) 
 
                 
  

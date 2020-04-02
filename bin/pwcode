@@ -6,7 +6,10 @@ silent_background() {
 }
 
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
-PYTHONPATH="$(printf "%s:" ./*/)"
+#PYTHONPATH="$(printf "%s:" ./*/)"
+
+#export APPDIR=$SCRIPTPATH/vendor/linux/python
+
 
 # TODO: Test videre med bundlet python når skaffet tk med støtte for truetype
 # Denne er for stor og mangler truetype font støtte: https://github.com/indygreg/python-build-standalone
@@ -18,7 +21,7 @@ PYTHONPATH="$(printf "%s:" ./*/)"
 #     #silent_background $SCRIPTPATH/vendor/linux/python/bin/python3 $SCRIPTPATH/pwcode.py $@
 # fi
 
-$SCRIPTPATH/vendor/linux/python/AppRun $SCRIPTPATH/pwcode.py $@
+silent_background  $SCRIPTPATH/vendor/linux/python/AppRun $SCRIPTPATH/pwcode.py $@
 
 
 
