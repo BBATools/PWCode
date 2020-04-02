@@ -43,13 +43,20 @@ def open_files_from_tmp(app):
 
 
 def start_client(tmp_dir, port_file, icon_file, python_path):
-    try:
+    server = True
+    if os.path.isfile(port_file):
         port=open(port_file, 'r').read()
-        app = xmlrpc.client.ServerProxy('http://localhost:' + port)
-        open_files_from_arg(sys.argv, app)
-        app.focus()
-    except:  
-        start_server(tmp_dir, port_file, icon_file, python_path)
+        if port:
+            try:
+                app = xmlrpc.client.ServerProxy('http://localhost:' + port)
+                open_files_from_arg(sys.argv, app)
+                app.focus()
+                server = False
+            except ConnectionRefusedError: 
+                pass
+    
+    if server:
+        start_server(tmp_dir, port_file, icon_file, python_path)            
 
 
 def start_server(tmp_dir, port_file, icon_file, python_path):  
@@ -76,12 +83,14 @@ if __name__ == "__main__":
     bin_dir = os.path.abspath(os.path.dirname(__file__))
     python_path = 'python3'
     pwcode_icon_file = os.path.join(bin_dir, 'img/arkimint_fin_32px.gif')  # WAIT: Replace icon
+    # pwcode_icon_file = os.path.join(bin_dir, 'img/Pw.gif')
     sqlwb_icon_file = os.path.join(bin_dir, 'img/sqlwb.png') 
     tmp_dir = os.path.join(bin_dir, 'tmp')
     port_file = tmp_dir + '/port' 
 
     if os.name == "posix":
         # python_path = os.path.join(bin_dir, 'vendor/linux/python/opt/python3.8/bin/python3.8')
+        # python_path = os.path.join(bin_dir, 'vendor/linux/python/usr/bin/python3.8')        
         python_path = os.path.join(bin_dir, 'vendor/linux/python/AppRun')
         fix_desktop_file(bin_dir, pwcode_icon_file, 'PWCode.desktop')  
         fix_desktop_file(bin_dir, sqlwb_icon_file, 'SQLWB.desktop')       

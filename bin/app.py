@@ -118,7 +118,7 @@ class App:
         root.bind_class("Text", "<Control-k>", lambda e: None)  
         root.bind("<Control-k>", lambda x: self.run_command('kill_process'))  
 
-        root.bind("<Alt-c>", lambda x: self.run_command('toggle_comment'))     
+        root.bind("<Alt-c>", lambda x: self.run_command('toggle_comment'))   # TODO: Fiks så ikke skriver c  
 
 
         # horizontal layout for the sidebar to expand / collapse panels
