@@ -10,6 +10,7 @@ else:
     sys.path.insert(0, str(Path(__file__).parents[1]) + '/vendor/windows/jpype') 
 from jpype import JPackage, startJVM
 
+sys.exit()
 # For test:
 # class_path = '/home/bba/bin/PWCode/bin/vendor/sqlwbj/sqlworkbench.jar'
 # startJVM(str(Path(__file__).parents[1]) + '/vendor/jdk_lin/bin/java', "-ea", "-Djava.class.path=" + class_path)

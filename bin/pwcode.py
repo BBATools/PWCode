@@ -85,6 +85,7 @@ if __name__ == "__main__":
     pwcode_icon_file = os.path.join(bin_dir, 'img/arkimint_fin_32px.gif')  # WAIT: Replace icon
     # pwcode_icon_file = os.path.join(bin_dir, 'img/Pw.gif')
     sqlwb_icon_file = os.path.join(bin_dir, 'img/sqlwb.png') 
+    python_icon_file = os.path.join(bin_dir, 'img/python.png') 
     tmp_dir = os.path.join(bin_dir, 'tmp')
     port_file = tmp_dir + '/port' 
 
@@ -93,7 +94,8 @@ if __name__ == "__main__":
         # python_path = os.path.join(bin_dir, 'vendor/linux/python/usr/bin/python3.8')        
         python_path = os.path.join(bin_dir, 'vendor/linux/python/AppRun')
         fix_desktop_file(bin_dir, pwcode_icon_file, 'PWCode.desktop')  
-        fix_desktop_file(bin_dir, sqlwb_icon_file, 'SQLWB.desktop')       
+        fix_desktop_file(bin_dir, sqlwb_icon_file, 'SQLWB.desktop') 
+        fix_desktop_file(bin_dir, python_icon_file, 'Python.desktop')      
 
     start_client(tmp_dir, port_file, pwcode_icon_file, python_path) 
 

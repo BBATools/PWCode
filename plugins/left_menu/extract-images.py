@@ -5,6 +5,7 @@ sys.path.insert(0, bin_dir)
 from database.jdbc import Jdbc
 
 
+
 # Postgresql example:
 #url = 'jdbc:postgresql://localhost:5432/'
 #driver_jar = '/home/bba/bin/PWCode/bin/vendor/jdbc/postgresql-42.2.6.jar'
@@ -39,6 +40,7 @@ if jdbc:
         #sys.exit()
 
     print('Done: extracted %d files (%d skipped).' % (cnt1, (cnt1 - cnt2)))
+
 
 
 
