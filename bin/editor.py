@@ -377,7 +377,7 @@ class TextEditorFrame(tk.ttk.Frame):
         self.set_line_and_column()
         self.modified = True
         if self.lexer:
-            self.colorize2(self.current_line) # TODO: Ser ut til å oppdatere hele filen heller enn kun endret linje -> fiks
+            self.colorize(self.current_line) # TODO: Ser ut til å oppdatere hele filen heller enn kun endret linje -> fiks
 
 
     def get_content(self):
@@ -427,71 +427,24 @@ class TextEditorFrame(tk.ttk.Frame):
             self.text.tag_configure(str(ttype), foreground=foreground, font=tag_font) 
 
 
-    # TODO: Denne virker -> slå sammen med kode under
-    # --> se også mer her: https://github.com/jinlow/sedator/blob/master/sedator/editor/highlighter.py
-    # TODO: Fiks også slik at ikke kan gjøre undo slik at all tekst fjernes -> får ikke tilbake highlighting etter redo da
-    def colorize2(self, current_line = None):
-        self.text.mark_set("range_start", tk.INSERT + " linestart")
-        data = self.text.get("range_start", "range_start lineend")
-        for tag in self.text.tag_names():            
-            self.text.tag_remove(tag, "range_start", "range_start lineend")
-            # self.text.tag_remove(tag, "range_start", "range_start lineend")
-
-        tokensource = self.lexer.get_tokens(data)            
-        for fmt, token in tokensource:
-            self.text.mark_set("range_end", f"range_start+{len(token)}c")
-            self.text.tag_add(str(fmt), "range_start", "range_end")
-            self.text.mark_set("range_start", "range_end")
-
-
     def colorize(self, current_line = None):
-        # self.insert_comment(self.text.index(self.current_line + '.0'), self.text.index(self.current_line + '.end'), file_obj) 
-        code = self.text.get("1.0", "end-1c")
-        start_line=1
-        start_index = 0
-        end_line=1
-        end_index = 0
-
         if current_line:
             code = self.text.get(self.current_line + '.0', self.current_line + '.end')
-            # start_line=self.current_line
-            start_index = self.text.index(self.current_line + '.0')
-            # end_line=self.current_line
-            end_index = self.text.index(self.current_line + '.end')
+            self.text.mark_set("range_start", tk.INSERT + " linestart")
+        else:            
+            code = self.text.get("1.0", "end-1c")
+            self.text.mark_set("range_start", "1.0")
+        
+        for tag in self.text.tag_names():
+            if current_line:            
+                self.text.tag_remove(tag, "range_start", "range_start lineend")
 
         tokensource = self.lexer.get_tokens(code)
-        
         for ttype, value in tokensource:
-            if current_line: 
-                print('test')
-                # end_index += len(value)
+            self.text.mark_set("range_end", f"range_start+{len(value)}c")
+            self.text.tag_add(str(ttype), "range_start", "range_end")
+            self.text.mark_set("range_start", "range_end")
 
-                # if value not in (" ", "\n"):
-                #     index1 = start_index
-                #     index2 = "%s.%s" % (end_line, end_index)
-
-                #     for tagname in self.text.tag_names(index1):
-                #         self.text.tag_remove(tagname, index1, index2)
-                        
-                #     self.text.tag_add(str(ttype), index1, index2)
-            else:                
-                if "\n" in value:
-                    end_line += value.count("\n")
-                    end_index = len(value.rsplit("\n",1)[1])
-                else:
-                    end_index += len(value)
-    
-                if value not in (" ", "\n"):
-                    index1 = "%s.%s" % (start_line, start_index)
-                    index2 = "%s.%s" % (end_line, end_index)
-    
-                    for tagname in self.text.tag_names(index1): # FIXME
-                        self.text.tag_remove(tagname, index1, index2)
-    
-                    self.text.tag_add(str(ttype), index1, index2)
-    
-                start_line = end_line
-                start_index = end_index   
 
 
            
