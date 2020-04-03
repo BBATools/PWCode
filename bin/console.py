@@ -163,7 +163,9 @@ class Processing():
         if stop:   
             for thread in threading.enumerate():
                 if thread.name == file_obj.path:
-                    self.process.terminate()  # WAIT: Legg inn test med delay og så kjøre process.kill hvis terminate ikke virket? 
+                    self.process.terminate()                     
+                    # self.process.kill()
+                    # self.process.terminate()  # WAIT: Legg inn test med delay og så kjøre process.kill hvis terminate ikke virket? 
         else:
             t = threading.Thread(name=file_obj.path, target=log_run, args=(file_obj,), daemon = True)
             t.start()

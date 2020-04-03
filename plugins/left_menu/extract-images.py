@@ -1,10 +1,11 @@
 import os, sys
 from pathlib import Path
-bin_dir = str(Path(__file__).parents[2]) + '/bin'
+self_path = Path(__file__).resolve()
+bin_dir = str(self_path.parents[2]) + '/bin'
 sys.path.insert(0, bin_dir) 
 from database.jdbc import Jdbc
 
-
+data_dir = str(self_path.parents[2]) + '/_DATA'
 
 # Postgresql example:
 #url = 'jdbc:postgresql://localhost:5432/'
@@ -13,6 +14,7 @@ from database.jdbc import Jdbc
 #user = 'postgres'
 #pwd = 'P@ssw0rd'
 
+
 # H2 example
 url = 'jdbc:h2:/home/bba/Desktop/DoculiveHist_dbo;LAZY_QUERY_EXECUTION=1'
 driver_jar = bin_dir + '/vendor/jdbc/h2-1.4.196.jar'
@@ -20,9 +22,8 @@ driver_class = 'org.h2.Driver'
 user = ''
 pwd = ''
 
+#print('test')
 jdbc = Jdbc(url, user, pwd, driver_jar, driver_class, True, True)
-extract_dir = '/home/bba/extract_dir'
-
 
 if jdbc:
     column_position = 3
@@ -34,12 +35,16 @@ if jdbc:
         cnt1 += 1
         fname = table_name + '_' + str(column_position) + '_' + str(cnt1)
         print('%6d. Parsing %s' % (cnt1, fname))
-        with open(extract_dir + '/' + fname, 'wb') as f:
+        with open(data_dir + '/' + fname, 'wb') as f:
             f.write(efile)
         cnt2 += 1
         #sys.exit()
 
     print('Done: extracted %d files (%d skipped).' % (cnt1, (cnt1 - cnt2)))
+
+
+
+
 
 
 

@@ -78,7 +78,7 @@ def fix_desktop_file(bin_dir, icon_file, desktop_file):
             line = 'Icon=' + icon_file
         print(line.strip())
 
-
+# WAIT: Kan legge tilbake psutil-kode da den trengs av jdbc
 if __name__ == "__main__":
     bin_dir = os.path.abspath(os.path.dirname(__file__))
     python_path = 'python3'
@@ -90,9 +90,7 @@ if __name__ == "__main__":
     port_file = tmp_dir + '/port' 
 
     if os.name == "posix":
-        # python_path = os.path.join(bin_dir, 'vendor/linux/python/opt/python3.8/bin/python3.8')
-        # python_path = os.path.join(bin_dir, 'vendor/linux/python/usr/bin/python3.8')        
-        python_path = os.path.join(bin_dir, 'vendor/linux/python/AppRun')
+        python_path = os.path.join(bin_dir, 'vendor/linux/python/opt/python3.8/bin/python3.8')
         fix_desktop_file(bin_dir, pwcode_icon_file, 'PWCode.desktop')  
         fix_desktop_file(bin_dir, sqlwb_icon_file, 'SQLWB.desktop') 
         fix_desktop_file(bin_dir, python_icon_file, 'Python.desktop')      

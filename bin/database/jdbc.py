@@ -5,21 +5,24 @@ from decimal import Decimal
 
 if os.name == "posix":
     os.environ['JAVA_HOME'] = str(Path(__file__).parents[1]) + '/vendor/linux/jre'
-    sys.path.insert(0, str(Path(__file__).parents[1]) + '/vendor/linux/jpype') 
+    # sys.path.insert(0, str(Path(__file__).parents[1]) + '/vendor/linux/jpype') 
 else:
     sys.path.insert(0, str(Path(__file__).parents[1]) + '/vendor/windows/jpype') 
 from jpype import JPackage, startJVM
 
-sys.exit()
+# sys.exit()
 # For test:
 # class_path = '/home/bba/bin/PWCode/bin/vendor/sqlwbj/sqlworkbench.jar'
-# startJVM(str(Path(__file__).parents[1]) + '/vendor/jdk_lin/bin/java', "-ea", "-Djava.class.path=" + class_path)
+# startJVM(str(Path(__file__).parents[1]) + '/vendor/linux/jre/bin/java', "-ea", "-Djava.class.path=" + class_path)
 
 sys.path.insert(0, str(Path(__file__).parents[1]) + '/vendor/jaydebeapi') 
 from jaydebeapi import Cursor, Error, DatabaseError, connect
 
+
+# print('test')
+
 #from .config_parser import JDBC_DRIVERS, JAR_FILES, parse_login, parse_dummy_login
-from .exceptions import DriverNotFoundException, SQLExcecuteException, CommitException
+# from .exceptions import DriverNotFoundException, SQLExcecuteException, CommitException
 from .runtime_statistics import RuntimeStatistics
 from .utils import *
 
