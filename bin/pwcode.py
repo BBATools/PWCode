@@ -20,6 +20,7 @@
 
 
 import os, sys, xmlrpc.client, socket, fileinput 
+from pathlib import Path
 from app import App
 
 def find_free_port():
@@ -42,7 +43,7 @@ def open_files_from_tmp(app):
                 app.run_command('open_file', app.tmp_dir + '/' + file)    
 
 
-def start_client(tmp_dir, port_file, icon_file, python_path):
+def start_client(tmp_dir, port_file, icon_file, python_path, data_dir):
     server = True
     if os.path.isfile(port_file):
         port=open(port_file, 'r').read()
@@ -56,11 +57,11 @@ def start_client(tmp_dir, port_file, icon_file, python_path):
                 pass
     
     if server:
-        start_server(tmp_dir, port_file, icon_file, python_path)            
+        start_server(tmp_dir, port_file, icon_file, python_path, data_dir)            
 
 
-def start_server(tmp_dir, port_file, icon_file, python_path):  
-    app = App(tmp_dir, port_file, icon_file, python_path)
+def start_server(tmp_dir, port_file, icon_file, python_path, data_dir):  
+    app = App(tmp_dir, port_file, icon_file, python_path, data_dir)
     app.build_ui()
     open_files_from_tmp(app)
     app.run_command('show_welcome')
@@ -78,9 +79,12 @@ def fix_desktop_file(bin_dir, icon_file, desktop_file):
             line = 'Icon=' + icon_file
         print(line.strip())
 
+
 # WAIT: Kan legge tilbake psutil-kode da den trengs av jdbc
 if __name__ == "__main__":
-    bin_dir = os.path.abspath(os.path.dirname(__file__))
+    self_path = Path(__file__).resolve()
+    bin_dir = str(self_path.parents[1]) + '/bin'
+    data_dir = str(self_path.parents[1]) + '/_DATA/'
     python_path = 'python3'
     pwcode_icon_file = os.path.join(bin_dir, 'img/arkimint_fin_32px.gif')  # WAIT: Replace icon
     # pwcode_icon_file = os.path.join(bin_dir, 'img/Pw.gif')
@@ -93,9 +97,9 @@ if __name__ == "__main__":
         python_path = os.path.join(bin_dir, 'vendor/linux/python/opt/python3.8/bin/python3.8')
         fix_desktop_file(bin_dir, pwcode_icon_file, 'PWCode.desktop')  
         fix_desktop_file(bin_dir, sqlwb_icon_file, 'SQLWB.desktop') 
-        fix_desktop_file(bin_dir, python_icon_file, 'Python.desktop')      
+        fix_desktop_file(bin_dir, python_icon_file, 'Python.desktop')   
 
-    start_client(tmp_dir, port_file, pwcode_icon_file, python_path) 
+    start_client(tmp_dir, port_file, pwcode_icon_file, python_path, data_dir) 
 
                 
  

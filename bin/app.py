@@ -39,7 +39,7 @@ class App:
     like a controller
     """
     
-    def __init__(self, tmp_dir, port_file, icon_file, python_path):      
+    def __init__(self, tmp_dir, port_file, icon_file, python_path, data_dir):      
         self.model = model.PWCodeModel()  # observable data model
         self.model.add_observer(self)
         self.settings = settings.Settings(self.model)
@@ -51,6 +51,7 @@ class App:
         self.commander = None
 
         self.tmp_dir = tmp_dir
+        self.data_dir = data_dir
         self.port_file = port_file   
         self.icon_file = icon_file
         self.python_path = python_path

@@ -132,6 +132,19 @@ def new_file(app, originator=None):
     app.model.new_file(app.tmp_dir)        
      
 
+import subprocess
+def zenity_open_file(data_dir):
+    path = None
+    title = "Choose File"
+    if os.name == "posix": # WAIT: Legg også inn sjekk på at zenity finnes i path - ha tkinter filechooser som backup
+        try:
+            path = subprocess.check_output(
+                "zenity --file-selection  --title='" + title + "' --filename=" + data_dir + "/ 2> >(grep -v 'GtkDialog' >&2)", 
+                shell=True, executable='/bin/bash').decode("utf-8").strip()
+        except subprocess.CalledProcessError:
+            pass
+    return path        
+
 @command(
     title=_get("Open File"),
     category=_get("FILE"),
@@ -140,9 +153,8 @@ def new_file(app, originator=None):
 )
 def open_file(app, path=None):
     """ Open file from filesystem  """
-
-    if not path:       
-        path = pwb_choose_file()
+    if not path:
+        path = zenity_open_file(app.data_dir)
 
     if path:
         if os.path.isfile(path):      
