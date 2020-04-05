@@ -132,18 +132,42 @@ def new_file(app, originator=None):
     app.model.new_file(app.tmp_dir)        
      
 
+from tkinter import filedialog   
+# WAIT: Flytte denne til egen fil under gui? Fjerne tilsvarende gtk-kode?
 import subprocess
-def zenity_open_file(data_dir):
+def multi_open(data_dir, directory = False):
     path = None
-    title = "Choose File"
-    if os.name == "posix": # WAIT: Legg også inn sjekk på at zenity finnes i path - ha tkinter filechooser som backup
-        try:
-            path = subprocess.check_output(
-                "zenity --file-selection  --title='" + title + "' --filename=" + data_dir + "/ 2> >(grep -v 'GtkDialog' >&2)", 
-                shell=True, executable='/bin/bash').decode("utf-8").strip()
-        except subprocess.CalledProcessError:
-            pass
+    title = "Open File"
+    dir_arg = ''
+    use_tk = True
+
+    if directory:
+        title = "Open Folder"
+        dir_arg = " --directory "
+
+    if os.name == "posix":
+        if cmd_exists('zenity'):
+            use_tk = False
+            try:
+                path = subprocess.check_output(
+                    "zenity --file-selection  --title='" + title + "' --filename=" + data_dir + dir_arg + "/ 2> >(grep -v 'GtkDialog' >&2)", 
+                    shell=True, executable='/bin/bash').decode("utf-8").strip()
+            except subprocess.CalledProcessError:
+                pass
+                       
+    if use_tk:
+        if directory:
+            path = filedialog.askdirectory(title = title, initialdir=data_dir)            
+        else:
+            path = filedialog.askopenfilename(title = title, initialdir=data_dir)
+
     return path        
+
+
+import shutil
+def cmd_exists(cmd): # TODO: Flytt til annen fil
+    return shutil.which(cmd) is not None
+
 
 @command(
     title=_get("Open File"),
@@ -154,7 +178,7 @@ def zenity_open_file(data_dir):
 def open_file(app, path=None):
     """ Open file from filesystem  """
     if not path:
-        path = zenity_open_file(app.data_dir)
+        path = multi_open(app.data_dir)
 
     if path:
         if os.path.isfile(path):      
@@ -174,7 +198,7 @@ def open_file(app, path=None):
 def open_folder(app, path=None):
     """" Open folder from filesystem  """
     if not path:
-        path = pwb_choose_file('folder')
+        path = multi_open(app.data_dir, True)
     if path:        
         app.model.open_folder(path)
 
@@ -193,7 +217,7 @@ def close_file(app, originator=None):
         file_obj = app.model.current_file
         text_editor = app.editor_frame.notebook.nametowidget(tab_id)
 
-        if text_editor.modified:  
+        if text_editor.modified:  # WAIT: Test med zenity yes no heller
             answer = tk.messagebox.askyesnocancel(
                 title="Unsaved changes",
                 message="Do you want to save changes you made to " + file_obj.basename + "?",

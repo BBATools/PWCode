@@ -84,7 +84,7 @@ def fix_desktop_file(bin_dir, icon_file, desktop_file):
 if __name__ == "__main__":
     self_path = Path(__file__).resolve()
     bin_dir = str(self_path.parents[1]) + '/bin'
-    data_dir = str(self_path.parents[1]) + '/_DATA/'
+    data_dir = str(self_path.parents[1]) + '/projects/'
     python_path = 'python3'
     pwcode_icon_file = os.path.join(bin_dir, 'img/arkimint_fin_32px.gif')  # WAIT: Replace icon
     # pwcode_icon_file = os.path.join(bin_dir, 'img/Pw.gif')
