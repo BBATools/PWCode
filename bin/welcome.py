@@ -146,8 +146,9 @@ class RecentLinksFrame(LinksFrame):
 
         for path, file_obj in reversed(self.app.recent_links.items()):
             if os.path.isfile(file_obj.path): 
-                if self.app.tmp_dir + '/Untitled-' in file_obj.path and os.path.getsize(file_obj.path) == 0:
-                    os.remove(file_obj.path)
+                if 'PWCode/bin/tmp/Untitled-' in file_obj.path:
+                    if os.path.getsize(file_obj.path) == 0:
+                        os.remove(file_obj.path)
                     continue
                     
                 if file_obj in self.app.model.openfiles: 

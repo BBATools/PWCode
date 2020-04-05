@@ -1,16 +1,14 @@
 import os, sys
 from pathlib import Path
-self_path = Path(__file__).resolve()
-bin_dir = str(self_path.parents[2]) + '/bin'
-#sys.path.insert(0, bin_dir) 
 from database.jdbc import Jdbc
 
-data_dir = str(self_path.parents[2]) + '/projects/test_lob_extract'
+bin_dir = os.environ["pwcode_bin_dir"]
+data_dir = os.environ["pwcode_data_dir"] + '/test_lob_extract'
 Path(data_dir).mkdir(parents=True, exist_ok=True)
 
 # Postgresql example:
 #url = 'jdbc:postgresql://localhost:5432/'
-#driver_jar = '/home/bba/bin/PWCode/bin/vendor/jdbc/postgresql-42.2.6.jar'
+#driver_jar = bin_dir + '/vendor/jdbc/postgresql-42.2.6.jar'
 #driver_class = 'org.postgresql.Driver'
 #user = 'postgres'
 #pwd = 'P@ssw0rd'
@@ -42,6 +40,10 @@ if jdbc:
         #sys.exit()
 
     print('Done: extracted %d files (%d skipped).' % (cnt1, (cnt1 - cnt2)))
+
+
+
+
 
 
 
