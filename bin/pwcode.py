@@ -85,20 +85,34 @@ if __name__ == "__main__":
     self_path = Path(__file__).resolve()
     bin_dir = str(self_path.parents[1]) + '/bin'
     data_dir = str(self_path.parents[1]) + '/projects/'
-    python_path = 'python3'
-    pwcode_icon_file = os.path.join(bin_dir, 'img/arkimint_fin_32px.gif')  # WAIT: Replace icon
-    # pwcode_icon_file = os.path.join(bin_dir, 'img/Pw.gif')
-    sqlwb_icon_file = os.path.join(bin_dir, 'img/sqlwb.png') 
-    python_icon_file = os.path.join(bin_dir, 'img/python.png') 
     tmp_dir = os.path.join(bin_dir, 'tmp')
     port_file = tmp_dir + '/port' 
 
+    # Ensure directories exist:
+    Path(data_dir).mkdir(parents=True, exist_ok=True)
+    Path(tmp_dir).mkdir(parents=True, exist_ok=True)
+
+    # Add to path for plugins:
+    p = os.environ.get('PYTHONPATH', bin_dir).split(os.pathsep)
+    if bin_dir not in p:
+        p.append(bin_dir)
+    os.environ['PYTHONPATH'] = os.pathsep.join(p)
+
+    # Make paths available to plugins without hard coding:
+    os.environ["pwcode_data_dir"] = data_dir
+    os.environ["pwcode_bin_dir"] = bin_dir
+
+    pwcode_icon_file = os.path.join(bin_dir, 'img/arkimint_fin_32px.gif')  # WAIT: Replace icon
+    sqlwb_icon_file = os.path.join(bin_dir, 'img/sqlwb.png') 
+    python_icon_file = os.path.join(bin_dir, 'img/python.png') 
+
+    python_path = 'python3'
     if os.name == "posix":
         python_path = os.path.join(bin_dir, 'vendor/linux/python/opt/python3.8/bin/python3.8')
         fix_desktop_file(bin_dir, pwcode_icon_file, 'PWCode.desktop')  
         fix_desktop_file(bin_dir, sqlwb_icon_file, 'SQLWB.desktop') 
-        fix_desktop_file(bin_dir, python_icon_file, 'Python.desktop')   
-
+        fix_desktop_file(bin_dir, python_icon_file, 'Python.desktop')  
+         
     start_client(tmp_dir, port_file, pwcode_icon_file, python_path, data_dir) 
 
                 

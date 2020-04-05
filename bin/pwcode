@@ -6,7 +6,7 @@ silent_background() {
 }
 
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
-PYTHONPATH="$(printf "%s:" ./*/)"
+#PYTHONPATH="$(printf "%s:" ./*/)"
 
 #export APPDIR=$SCRIPTPATH/vendor/linux/python
 

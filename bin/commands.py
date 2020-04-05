@@ -134,6 +134,7 @@ def new_file(app, originator=None):
 
 from tkinter import filedialog   
 # WAIT: Flytte denne til egen fil under gui? Fjerne tilsvarende gtk-kode?
+# WAIT: Remember last used directory?
 import subprocess
 def multi_open(data_dir, directory = False):
     path = None

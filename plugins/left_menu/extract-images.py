@@ -2,10 +2,11 @@ import os, sys
 from pathlib import Path
 self_path = Path(__file__).resolve()
 bin_dir = str(self_path.parents[2]) + '/bin'
-sys.path.insert(0, bin_dir) 
+#sys.path.insert(0, bin_dir) 
 from database.jdbc import Jdbc
 
-data_dir = str(self_path.parents[2]) + '/_DATA'
+data_dir = str(self_path.parents[2]) + '/projects/test_lob_extract'
+Path(data_dir).mkdir(parents=True, exist_ok=True)
 
 # Postgresql example:
 #url = 'jdbc:postgresql://localhost:5432/'
@@ -41,6 +42,8 @@ if jdbc:
         #sys.exit()
 
     print('Done: extracted %d files (%d skipped).' % (cnt1, (cnt1 - cnt2)))
+
+
 
 
 

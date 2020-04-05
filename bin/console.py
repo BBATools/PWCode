@@ -151,7 +151,6 @@ class Processing():
                     if key.fileobj is self.process.stdout:
                         self.logger.log(logging.INFO, data)
                     else:
-                        # sys.stderr.write(data + '\n')
                         self.logger.log(logging.ERROR, data) 
 
             return_code = self.process.wait()
