@@ -25,8 +25,6 @@
 # THE SOFTWARE.
 
 import platform, time, sys, traceback
-sys.path.append('..')
-
 import tkinter as tk
 from logging import exception
 from tkinter import TclError, messagebox

@@ -1,3 +1,26 @@
+# GPL3 License
+
+# Original work Copyright (c) 2019 Rene Bakker
+# Modified work Copyright 2020 Morten Eek
+
+# Based on an idea by Fredrik Lundh (effbot.org/zone/tkinter-autoscrollbar.htm)
+# adapted to support all layouts
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+
 import sys, os
 from pathlib import Path
 from collections import OrderedDict
@@ -6,20 +29,12 @@ from decimal import Decimal
 self_path = Path(__file__).resolve()
 bin_dir = str(self_path.parents[1]) + '/bin'
 
-if os.name == "posix":
-    os.environ['JAVA_HOME'] = bin_dir + '/vendor/linux/jre'
-    # sys.path.insert(0, bin_dir + '/vendor/jaydebeapi/jaydebeapi') 
-else:
-    os.environ['JAVA_HOME'] = bin_dir + '/vendor/windows/jre'
-    # sys.path.insert(0, str(Path(__file__).parents[1]) + '/vendor/windows/jpype') 
 from jpype import JPackage, startJVM
 
-# sys.exit()
-# For test:
+
 # class_path = '/home/bba/bin/PWCode/bin/vendor/sqlwbj/sqlworkbench.jar'
 # startJVM(str(Path(__file__).parents[1]) + '/vendor/linux/jre/bin/java', "-ea", "-Djava.class.path=" + class_path)
 
-sys.path.insert(0, bin_dir + '/vendor/jaydebeapi') 
 from jaydebeapi import Cursor, Error, DatabaseError, connect
 
 
