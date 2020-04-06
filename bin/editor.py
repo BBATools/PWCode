@@ -257,6 +257,11 @@ class TextEditorFrame(tk.ttk.Frame):
         self.app = app
         self.font_style = tk.font.Font(family="Ubuntu Monospace", size=11)
         # self.font_style = tk.font.Font(size=11) # WAIT: Virker og -> ha som backup når ikke ønsket font finnes?
+        self.lexer = lexer
+
+        tab_to_spaces = False
+        if self.lexer: # WAIT: Trengs flere varianter her?
+            tab_to_spaces = True   
 
         self.text = EnhancedText(
             self,
@@ -281,7 +286,21 @@ class TextEditorFrame(tk.ttk.Frame):
             wrap=tk.NONE,
             padx = 5,
             pady = 5,
+            indent_with_tabs=False,
+            replace_tabs = tab_to_spaces
         )
+
+        if self.lexer:
+            self.create_tags()   
+
+            def tab(arg): # WAIT: Flytt denne og anent i app og tktextext slik at samlet alle bindings ett sted
+                self.text.insert(tk.INSERT, " " * 4) # WAIT: SJekk at ikke blir spaces for tsv-filer
+                return 'break'
+            self.text.bind("<Tab>", tab)  
+
+        font = tk.font.Font(font=self.text['font'])
+        tab_width = font.measure(' ' * 4)  # compute desired width of tabs
+        self.text.config(tabs=(tab_width,))  # configure Text widget tab stops            
 
         if vertical_scrollbar:
             self.text.v_scrollbar = AutoHideScrollbar(
@@ -303,14 +322,14 @@ class TextEditorFrame(tk.ttk.Frame):
 
         self.text.pack(expand=tk.YES, fill=tk.BOTH)
 
-        self.lexer = lexer
-        if self.lexer:
-            self.create_tags()
-
         self.set_file_obj(file_obj)    
 
         self.text.bind("<<TextChange>>", self.unsaved_text, True)  
         self.text.bind("<<CursorMove>>", self.cursor_moved, True)   
+
+
+        
+
 
 
     def run_file(self, file_obj, stop = False):

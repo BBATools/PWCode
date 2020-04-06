@@ -832,11 +832,9 @@ class EnhancedText(TweakableText):
 
             if messagebox.askyesno(
                 "Convert tabs to spaces?",
-                "Thonny (according to Python recommendation) uses spaces for indentation, "
-                + "but the text you are about to insert/open contains %d tab characters. "
+                "The text you are about to insert/open contains %d tab characters. "
                 % tab_count
-                + "To avoid confusion, it's better to convert them into spaces (unless you know they should be kept as tabs).\n\n"
-                + "Do you want me to replace each tab with %d spaces?\n\n" % self.indent_width,
+                + "Do you want to replace each tab with %d spaces?\n\n" % self.indent_width,
             ):
                 return chars.expandtabs(self.indent_width)
             else:
