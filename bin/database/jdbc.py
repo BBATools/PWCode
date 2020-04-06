@@ -20,32 +20,23 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-
 import sys, os
 from pathlib import Path
 from collections import OrderedDict
 from decimal import Decimal
-
-self_path = Path(__file__).resolve()
-bin_dir = str(self_path.parents[1]) + '/bin'
-
 from jpype import JPackage, startJVM
+from jaydebeapi import Cursor, Error, DatabaseError, connect
 
 
 # class_path = '/home/bba/bin/PWCode/bin/vendor/sqlwbj/sqlworkbench.jar'
 # startJVM(str(Path(__file__).parents[1]) + '/vendor/linux/jre/bin/java', "-ea", "-Djava.class.path=" + class_path)
-
-from jaydebeapi import Cursor, Error, DatabaseError, connect
-
-
-# print('test')
 
 #from .config_parser import JDBC_DRIVERS, JAR_FILES, parse_login, parse_dummy_login
 # from .exceptions import DriverNotFoundException, SQLExcecuteException, CommitException
 from .runtime_statistics import RuntimeStatistics
 from .utils import *
 
-PARENT_CONNECTION = '_lwetl_jdbc'
+PARENT_CONNECTION = '_pwcode_jdbc'
 
 # Handled column types
 COLUMN_TYPE_NUMBER = 'number'

@@ -27,12 +27,12 @@ from palette import PaletteFrame
 from commander import command
 import tkinter as tk
 from tkinter import messagebox
+from collections import deque
 from common.file import xdg_open_file
 from vendor import filetype
-from collections import deque
-# from gui.gtk import pwb_choose_file  
-# WAIT: Lgg inn at tkinter filedialog er backup hvis ikke gtk kan importeres i gui.gtk
-# -> Lag file/folder chooser i left_menu -> endre dagens kode så har en knapp øverst bare og eget ikon -> trenger ikke gtk dialog da
+from gui.dialog import multi_open
+
+# WAIT: Lag file/folder chooser i left_menu -> endre dagens kode så har en knapp øverst bare og eget ikon?
 
 def focus_app(app):
     app.editor_frame.focus()
@@ -129,45 +129,7 @@ def show_commands(app):
 )
 def new_file(app, originator=None):
     """ open new empty file """
-    app.model.new_file(app.tmp_dir)        
-     
-
-from tkinter import filedialog   
-# WAIT: Flytte denne til egen fil under gui? Fjerne tilsvarende gtk-kode?
-# WAIT: Remember last used directory?
-import subprocess
-def multi_open(data_dir, directory = False):
-    path = None
-    title = "Open File"
-    dir_arg = ''
-    use_tk = True
-
-    if directory:
-        title = "Open Folder"
-        dir_arg = " --directory "
-
-    if os.name == "posix":
-        if cmd_exists('zenity'):
-            use_tk = False
-            try:
-                path = subprocess.check_output(
-                    "zenity --file-selection  --title='" + title + "' --filename=" + data_dir + dir_arg + "/ 2> >(grep -v 'GtkDialog' >&2)", 
-                    shell=True, executable='/bin/bash').decode("utf-8").strip()
-            except subprocess.CalledProcessError:
-                pass
-                       
-    if use_tk:
-        if directory:
-            path = filedialog.askdirectory(title = title, initialdir=data_dir)            
-        else:
-            path = filedialog.askopenfilename(title = title, initialdir=data_dir)
-
-    return path        
-
-
-import shutil
-def cmd_exists(cmd): # TODO: Flytt til annen fil
-    return shutil.which(cmd) is not None
+    app.model.new_file(app.tmp_dir)             
 
 
 @command(
@@ -199,7 +161,7 @@ def open_file(app, path=None):
 def open_folder(app, path=None):
     """" Open folder from filesystem  """
     if not path:
-        path = multi_open(app.data_dir, True)
+        path = multi_open(app.data_dir, mode = 'dir')
     if path:        
         app.model.open_folder(path)
 
@@ -259,7 +221,7 @@ def save_file_as(app, originator=None):
     tab_id = app.editor_frame.notebook.select()
     if '!welcometab' not in str(tab_id):      
         file_obj = app.model.current_file
-        new_path = pwb_choose_file('save')
+        new_path = multi_open(app.data_dir, mode = 'save')
         app.model.save_file(file_obj, new_path, originator)  
 
 
