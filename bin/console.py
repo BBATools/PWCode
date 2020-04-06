@@ -135,7 +135,7 @@ class Processing():
             printerr = partial(print, flush=True, file=sys.stderr) 
 
             self.process = subprocess.Popen([self.app.python_path, file_obj.path],
-                                    bufsize=1, # 1 means output is line buffered, 0 unbuffered. No difference in this case? because of environ?
+                                    bufsize=1,
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE,
                                     universal_newlines=True # required for line buffering
@@ -163,8 +163,7 @@ class Processing():
             for thread in threading.enumerate():
                 if thread.name == file_obj.path:
                     self.process.terminate()                     
-                    # self.process.kill()
-                    # self.process.terminate()  # WAIT: Legg inn test med delay og så kjøre process.kill hvis terminate ikke virket? 
+                    # self.process.kill()  # WAIT: Legg inn test med delay og så kjøre process.kill hvis terminate ikke virket? 
         else:
             t = threading.Thread(name=file_obj.path, target=log_run, args=(file_obj,), daemon = True)
             t.start()
