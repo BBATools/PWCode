@@ -264,7 +264,8 @@ def decrease_text_font(app):
 def run_file(app, stop = False):
     """ Run File """
     tab_id = app.editor_frame.notebook.select()
-    if '!welcometab' not in str(tab_id):      
+    if '!welcometab' not in str(tab_id):  
+        save_file(app)     
         file_obj = app.model.current_file 
         text_editor = app.editor_frame.notebook.nametowidget(tab_id)
         text_editor.run_file(file_obj, stop) 
@@ -290,7 +291,7 @@ def kill_process(app):
 def toggle_comment(app):
     """ Toggle Comment """
     tab_id = app.editor_frame.notebook.select()
-    if '!welcometab' not in str(tab_id):      
+    if '!welcometab' not in str(tab_id):     
         file_obj = app.model.current_file 
         text_editor = app.editor_frame.notebook.nametowidget(tab_id)
         text_editor.toggle_comment(file_obj)    
