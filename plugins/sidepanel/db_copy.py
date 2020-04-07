@@ -117,32 +117,32 @@ class TooMayErrorsException(Exception):
 
 
 def main():
-    if (len(sys.argv) > 1) and (sys.argv[1].lower() == '--version'):
-        print('%s, version: %s' % (os.path.basename(sys.argv[0]), __version__))
-        sys.exit(0)
+    # if (len(sys.argv) > 1) and (sys.argv[1].lower() == '--version'):
+    #     print('%s, version: %s' % (os.path.basename(sys.argv[0]), __version__))
+    #     sys.exit(0)
 
-    args = parser.parse_args()
+    # args = parser.parse_args()
 
-    if args.version:
-        print('%s, version: %s' % (os.path.basename(sys.argv[0]), __version__))
-        sys.exit(0)
+    # if args.version:
+    #     print('%s, version: %s' % (os.path.basename(sys.argv[0]), __version__))
+    #     sys.exit(0)
 
     included_tables = []
-    if args.tables is not None:
-        for t in args.tables.split(','):
-            t = t.strip().upper()
-            if (len(t) > 0) and (t not in included_tables):
-                included_tables.append(t)
-    excluded_tables = []
-    n_excluded = 0
-    if args.exclude is not None:
-        try:
-            n_excluded = int(args.exclude)
-        except ValueError:
-            for t in args.exclude.split(','):
-                t = t.strip().upper()
-                if (len(t) > 0) and (t not in excluded_tables):
-                    excluded_tables.append(t)
+    # if args.tables is not None:
+    #     for t in args.tables.split(','):
+    #         t = t.strip().upper()
+    #         if (len(t) > 0) and (t not in included_tables):
+    #             included_tables.append(t)
+    # excluded_tables = []
+    # n_excluded = 0
+    # if args.exclude is not None:
+    #     try:
+    #         n_excluded = int(args.exclude)
+    #     except ValueError:
+    #         for t in args.exclude.split(','):
+    #             t = t.strip().upper()
+    #             if (len(t) > 0) and (t not in excluded_tables):
+    #                 excluded_tables.append(t)
 
     jdbc = {
         SRC: args.login_source,
