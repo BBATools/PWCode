@@ -158,13 +158,16 @@ class Processing():
             success = (return_code == 0)
             return (success) # TODO: Gjøre hva når registrert at script ferdig samt om success eller ikke?  
 
+        delay = False # WAIT: Find better method when time  
+        for thread in threading.enumerate():
+            if thread.name == file_obj.path:
+                delay = True
+                self.process.terminate()                     
+                # self.process.kill()  # WAIT: Legg inn test med delay og så kjøre process.kill hvis terminate ikke virket? 
 
-        if stop:   
-            for thread in threading.enumerate():
-                if thread.name == file_obj.path:
-                    self.process.terminate()                     
-                    # self.process.kill()  # WAIT: Legg inn test med delay og så kjøre process.kill hvis terminate ikke virket? 
-        else:
+        if not stop:  
+            if delay:
+                time.sleep(2)  # Give terminated process time to cleanup            
             t = threading.Thread(name=file_obj.path, target=log_run, args=(file_obj,), daemon = True)
             t.start()
             

@@ -12,8 +12,7 @@ Path(data_dir).mkdir(parents=True, exist_ok=True)
 #driver_class = 'org.postgresql.Driver'
 #user = 'postgres'
 #pwd = 'P@ssw0rd'
-
-            
+   
 # H2 example
 url = 'jdbc:h2:/home/bba/Desktop/DoculiveHist_dbo;LAZY_QUERY_EXECUTION=1'
 driver_jar = bin_dir + '/vendor/jdbc/h2-1.4.196.jar'
@@ -21,7 +20,7 @@ driver_class = 'org.h2.Driver'
 user = ''
 pwd = ''
 
-#print('test')
+
 jdbc = Jdbc(url, user, pwd, driver_jar, driver_class, True, True)
 
 if jdbc:
@@ -40,6 +39,8 @@ if jdbc:
         #sys.exit()
 
     print('Done: extracted %d files (%d skipped).' % (cnt1, (cnt1 - cnt2)))
+
+
 
 
 
