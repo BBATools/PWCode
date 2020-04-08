@@ -92,11 +92,15 @@ if __name__ == "__main__":
     Path(data_dir).mkdir(parents=True, exist_ok=True)
     Path(tmp_dir).mkdir(parents=True, exist_ok=True)
 
-    # Add to path for plugins:
+    # Add to pythonpath for plugins:
     p = os.environ.get('PYTHONPATH', bin_dir).split(os.pathsep)
     if bin_dir not in p:
         p.append(bin_dir)
     os.environ['PYTHONPATH'] = os.pathsep.join(p)
+
+    # Add to classpath for plugins:
+    class_path = bin_dir + '/vendor/jdbc/sqlworkbench.jar'
+    os.environ['CLASSPATH'] = class_path
 
     # Make paths available to plugins without hard coding:
     os.environ["pwcode_data_dir"] = data_dir

@@ -5,22 +5,33 @@ import jpype.imports
 import jaydebeapi
 from database.jdbc import Jdbc
 
+
+def get_all_tables(conn, schema):
+    results = conn.jconn.getMetaData().getTables(None, schema, "%", None)
+    table_reader_cursor = conn.cursor()
+    table_reader_cursor._rs = results
+    table_reader_cursor._meta = results.getMetaData()
+    read_results = table_reader_cursor.fetchall()
+    return [row[2] for row in read_results if row[3] == 'TABLE']
+
+
 def init_jvm(class_path, max_heap_size):
     if jpype.isJVMStarted():
         return
     jpype.startJVM(jpype.getDefaultJVMPath(), 
-#                            '-Djava.class.path=%s' % class_path,
+                            '-Djava.class.path=%s' % class_path,
                             '-Dfile.encoding=UTF8',
                             '-ea', '-Xmx{}m'.format(max_heap_size),
 #                            convertStrings=True # TODO: Bare for nyere versjon av jpype?
                             )
 
+
 if __name__ == '__main__':
     bin_dir = os.environ["pwcode_bin_dir"]
     data_dir = os.environ["pwcode_data_dir"]
-
-    class_path = bin_dir + '/vendor/jdbc/sqlworkbench.jar'
+    class_path = os.environ['CLASSPATH']
     max_heap_size = 1024
+    schema = 'PUBLIC'
 
     url = 'jdbc:h2:/home/bba/Desktop/DoculiveHist_dbo;LAZY_QUERY_EXECUTION=1'
     driver_jar = bin_dir + '/vendor/jdbc/h2-1.4.196.jar'
@@ -28,17 +39,15 @@ if __name__ == '__main__':
     user = ''
     pwd = ''    
 
-    #conn = jaydebeapi.connect(url, user, pwd, driver_jar, driver_class)
-    os.environ['CLASSPATH'] = class_path
-    conn = Jdbc(url, user, pwd, driver_jar, driver_class, True, True)
-    #
-    #
-    if conn:
-        print('test')
+    jdbc = Jdbc(url, user, pwd, driver_jar, driver_class, True, True)
+    if jdbc:
+        conn= jdbc.connection
+        tables = get_all_tables(conn, schema)
+
+        for table in tables:
+            print(table)
+
         conn.close()
-    #    jpype.shutdownJVM()
-
-
 
     try:
         init_jvm(class_path, max_heap_size)
@@ -46,29 +55,24 @@ if __name__ == '__main__':
 
         WbManager = jp.JPackage('workbench').WbManager
         WbManager.prepareForEmbedded()
-    #    WbManager.runEmbedded('displayResult=True', False)
 
         batch = jp.JPackage('workbench.sql').BatchRunner()
-
         batch.setBaseDir(data_dir + '/jpype_test/')
     #    batch.setStoreErrors(True)
     #    batch.setErrorScript('error.log')
     #    batch.setShowStatementWithResult(True)
-
-
     #    batch.setScriptToRun('wbexport.sql')
     #    batch.execute()
-
         batch.runScript("WbConnect -url='" + url + "' -password=" + pwd + ";")
-        gen_report_str = '''WbSchemaReport -file=metadata.xml -schemas=PUBLIC -types=SYNONYM,TABLE,VIEW -includeProcedures=true -includeTriggers=true -writeFullSource=true;'''
+        gen_report_str = "WbSchemaReport -file=metadata.xml -schemas=" + schema + " -types=SYNONYM,TABLE,VIEW -includeProcedures=true -includeTriggers=true -writeFullSource=true;"
         batch.runScript(gen_report_str) 
 
-        batch.showResultSets(True) # TODO: Viser resultat da -> Fikse bedre visning i console hvordan?
+#        batch.showResultSets(True) # TODO: Viser resultat da -> Fikse bedre visning i console hvordan?
     #    batch.setVerboseLogging(True)
 
         batch.setAbortOnError(True)
         batch.setMaxRows(20)
-    #    result = batch.runScript('select * from ca_eldok;')
+        result = batch.runScript('select * from ca_eldok;')
     #    print(str(result)) # TODO: Gir success hvis kjørt uten feil, Error hvis ikke
 
     #    result = batch.runScript('WbList;')
@@ -154,6 +158,12 @@ if __name__ == '__main__':
 
 #    JClass("workbench.sql.BatchRunner").BatchRunner()
 #    JClass("workbench.sql.BatchRunner").BatchRunner(data_dir + 'test.sql')
+
+
+
+
+
+
 
 
 
