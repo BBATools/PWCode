@@ -4,15 +4,51 @@ import jpype as jp
 import jpype.imports
 import jaydebeapi
 from database.jdbc import Jdbc
+from database.queries import content_queries
+#from collections import namedtuple
+from collections import OrderedDict
+    
+
+#def create_column_metadata_set(meta):
+#    return [
+#        ColumnMetadata(
+#            arrayBaseColumnType=0,
+#            isAutoIncrement=meta.isAutoIncrement(i),
+#            isCaseSensitive=meta.isCaseSensitive(i),
+#            isCurrency=meta.isCurrency(i),
+#            isSigned=meta.isSigned(i),
+#            label=meta.getColumnLabel(i),
+#            name=meta.getColumnName(i),
+#            nullable=meta.isNullable(i),
+#            precision=meta.getPrecision(i),
+#            scale=meta.getScale(i),
+#            schema=meta.getSchemaName(i),
+#            tableName=meta.getTableName(i),
+#            type=meta.getColumnType(i),
+#            typeName=meta.getColumnTypeName(i),
+#        )
+#        for i in range(1, meta.getColumnCount() + 1)
+#    ]
 
 
-def get_all_tables(conn, schema):
+def get_columns(cursor, table_name):
+    cursor.execute("SELECT * FROM " + table_name) # TODO: Hente ut antall rows samtidig?
+
+#    meta = getattr(cursor, '_meta')
+#    columnMetadata = create_column_metadata_set(meta)
+
+    columns = [desc[0] for desc in cursor.description] # column names
+    return columns;
+
+
+def get_tables(conn, schema):
     results = conn.jconn.getMetaData().getTables(None, schema, "%", None)
     table_reader_cursor = conn.cursor()
     table_reader_cursor._rs = results
     table_reader_cursor._meta = results.getMetaData()
     read_results = table_reader_cursor.fetchall()
-    return [row[2] for row in read_results if row[3] == 'TABLE']
+    tables = [row[2] for row in read_results if row[3] == 'TABLE']
+    return tables
 
 
 def init_jvm(class_path, max_heap_size):
@@ -42,10 +78,24 @@ if __name__ == '__main__':
     jdbc = Jdbc(url, user, pwd, driver_jar, driver_class, True, True)
     if jdbc:
         conn= jdbc.connection
-        tables = get_all_tables(conn, schema)
+
+#        test = get_catalogs(conn)
+
+
+        cursor = conn.cursor()
+
+
+
+        tables = get_tables(conn, schema)
+
+    
 
         for table in tables:
             print(table)
+            columns = get_columns(cursor, table)
+            for column in columns:
+                print(column)
+            
 
         conn.close()
 
@@ -158,29 +208,6 @@ if __name__ == '__main__':
 
 #    JClass("workbench.sql.BatchRunner").BatchRunner()
 #    JClass("workbench.sql.BatchRunner").BatchRunner(data_dir + 'test.sql')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

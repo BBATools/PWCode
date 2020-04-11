@@ -85,6 +85,7 @@ if __name__ == "__main__":
     self_path = Path(__file__).resolve()
     bin_dir = str(self_path.parents[1]) + '/bin'
     data_dir = str(self_path.parents[1]) + '/projects/'
+    config_dir = str(self_path.parents[1]) + '/config/'
     tmp_dir = os.path.join(bin_dir, 'tmp')
     port_file = tmp_dir + '/port' 
 
@@ -104,6 +105,7 @@ if __name__ == "__main__":
 
     # Make paths available to plugins without hard coding:
     os.environ["pwcode_data_dir"] = data_dir
+    os.environ["pwcode_config_dir"] = data_dir    
     os.environ["pwcode_bin_dir"] = bin_dir
 
     pwcode_icon_file = os.path.join(bin_dir, 'img/arkimint_fin_32px.gif')  # WAIT: Replace icon
