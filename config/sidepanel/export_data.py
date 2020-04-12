@@ -1,7 +1,7 @@
 ############### USER INPUT ###############
 
 SYSTEM_NAME = 'test'
-DB_NAME = 'db1'
+DB_NAME = 'DOCULIVEHIST_DBO'
 DB_SCHEMA = 'PUBLIC'
 JDBC_URL = 'jdbc:h2:/home/bba/Desktop/DoculiveHist_dbo'
 DB_USER = ''
@@ -12,7 +12,7 @@ FILE_PATHS = [
 #                        "c:\path\on\windows"
                      ]
 OVERWRITE = True # Overwrite extracted data if previous extraction detected
-MAX_JAVA_HEAP = 1024
+MAX_JAVA_HEAP = '-Xmx6g'
 
 ################# CODE #################
 
@@ -27,12 +27,15 @@ from export_data_defs import *
 
 # Start execution:
 if __name__ == '__main__':
+    db_tables = {}
+    non_empty_tables = {}
+    table_columns = {}
     bin_dir = os.environ["pwcode_bin_dir"] # Get PWCode executable path
     class_path = os.environ['CLASSPATH'] # Get Java jar path
     config_dir = os.environ["pwcode_config_dir"] # Get PWCode config path
 
     if SYSTEM_NAME:
-        data_dir = os.environ["pwcode_data_dir"] + '/' + SYSTEM_NAME # --> projects/[system]
+        data_dir = os.environ["pwcode_data_dir"] + SYSTEM_NAME # --> projects/[system]
 
         if DB_NAME and DB_SCHEMA:
             url, driver_jar, driver_class = get_db_details(JDBC_URL, bin_dir)
@@ -40,17 +43,30 @@ if __name__ == '__main__':
                 try:
                     jdbc = Jdbc(url, DB_USER, DB_PASSWORD, driver_jar, driver_class, True, True)
                     if jdbc:
-                        conn= jdbc.connection
-                        cursor = conn.cursor()
+                        conn= jdbc.connection                        
+                        cursor = conn.cursor()                        
                         tables = get_tables(conn, DB_SCHEMA)
 
-                        # TODO: Hent ut linjer pr tabell her
+                        # Get row count per table:
                         for table in tables:
-                            print(table)
+                            cursor.execute("SELECT COUNT(*) from " + table)
+                            (row_count,)=cursor.fetchone()
+                            db_tables[table] = row_count
 
-            
+                            # Get column names per table:
+                            cursor.execute("SELECT * from " + table + ' limit 1') # WAIT: TOP eller rownum når mssql, oracle
+                            columns = [desc[0] for desc in cursor.description]
+                            table_columns[table] = columns              
+
+                        cursor.close()
                         conn.close()
-                    subsystem_dir = data_dir + '/content/sub_systems/' + DB_NAME + '_' + DB_SCHEMA
+                
+                    non_empty_tables = {k:v for (k,v) in db_tables.items() if v > 0}
+                    if non_empty_tables:
+                        subsystem_dir = data_dir + '/content/sub_systems/' + DB_NAME + '_' + DB_SCHEMA
+                    else:
+                        print('Database is empty. Exiting.')
+                        sys.exit()
                 except Exception as e:
                     print(e)
                     sys.exit()
@@ -87,30 +103,85 @@ if __name__ == '__main__':
 
     # Connect to java database code:
     if DB_NAME and DB_SCHEMA:
-        init_jvm(class_path, MAX_JAVA_HEAP) # Start Java virtual machine
-        import java.lang
+        # Export database schema as xml:
+        export_schema(class_path, MAX_JAVA_HEAP, subsystem_dir + '/documentation/', url,  DB_PASSWORD, DB_SCHEMA)
+
+#        header_xml_file = subsystem_dir + '/documentation/metadata.xml'
+        # TODO: Skriv row count til header_xml_fil her
+
+        # Copy schema data:
+        init_jvm(class_path, MAX_JAVA_HEAP) # Start Java virtual machine if not started already
         WbManager = jp.JPackage('workbench').WbManager
         WbManager.prepareForEmbedded()
         batch = jp.JPackage('workbench.sql').BatchRunner()
         batch.setAbortOnError(True) 
+        target_url = 'jdbc:h2:' + subsystem_dir + '/documentation/' + DB_NAME + '_' +  DB_SCHEMA
+        target_path = subsystem_dir + '/documentation/' + DB_NAME + '_' +  DB_SCHEMA + '.mv.db'
+        
+        if os.path.isfile(target_path) and OVERWRITE == False:
+            print(target_path + ' already exists. Exiting')
+            sys.exit()
+        else:
+            if os.path.isfile(target_path):
+                os.remove(target_path)
+            if os.path.isfile(target_url + '.trace.db'):
+                os.remove(target_url + '.trace.db')                
+        
+            # TODO: Detekterer per tabell om finnes blober. Hvis ja sett commit til 500 eller mindre, ca 10000 ellers
+            for table, row_count in non_empty_tables.items():
+                batch.runScript("WbConnect -url='" + url + "' -password=" + DB_PASSWORD + ";")
+                std_params =  '-mode=INSERT -commitEvery=500 -ignoreIdentityColumns=false -removeDefaults=true -showProgress=500 -createTarget=true'
+                target_conn = '"username=,password=,url=' + target_url + ';LOG=0;CACHE_SIZE=65536;LOCK_MODE=0;UNDO_LOG=0" ' + std_params 
+                copy_data_str = 'WbCopy -targetConnection=' + target_conn + ' -sourceSchema=' + DB_SCHEMA + ' -targetSchema=PUBLIC  -sourceTable=' + table + ' -targetTable=' + table + ';' 
+                batch.runScript(copy_data_str) 
+                batch.runScript("WbDisconnect;")
+                jp.java.lang.System.gc()
+        
+        
+            print('\nDatabase copy finished. Verifying data...')
 
-        # Export database schema as xml:
-        batch.setBaseDir(subsystem_dir + '/documentation/')    
-        batch.runScript("WbConnect -url='" + url + "' -password=" + DB_PASSWORD + ";")
-        gen_report_str = "WbSchemaReport -file=metadata.xml -schemas=" + DB_SCHEMA + " -types=SYNONYM,TABLE,VIEW -includeProcedures=true \
-                                -includeTriggers=true -writeFullSource=true;"
-        batch.runScript(gen_report_str) 
+            # Check if row count matches source database:
+            init_jvm(class_path, MAX_JAVA_HEAP) # Start Java virtual machine if not started already
+            url, driver_jar, driver_class = get_db_details(target_url, bin_dir)
+            jdbc = Jdbc(url, '', '', driver_jar, driver_class, True, True)
+            target_tables = {}
+            if jdbc:
+                conn= jdbc.connection                        
+                cursor = conn.cursor()                        
+                tables = get_tables(conn, 'PUBLIC')
+
+                # Get row count per table:
+                for table in tables:
+                    cursor.execute("SELECT COUNT(*) from " + table)
+                    (row_count,)=cursor.fetchone()
+                    target_tables[table] = row_count          
+
+                cursor.close()
+                conn.close()
+
+                row_errors = 0
+                for table, row_count in non_empty_tables.items():
+                    if table in target_table:
+                        if not target_tables[table] == row_count:
+                            print("Row count mismatch for table '" + table + "'")
+                            row_errors += 1
+                    else:
+                        print("'" + table + "' missing from database copy.")
+
+                if row_errors == 0:
+                    print('\nCopied data rows matches source database. \nCreate system data package now if finished extracting all system data.')
+
+
+
 
         # Generate db copy code:
-        header_xml_file = subsystem_dir + '/documentation/metadata.xml'
-#        stylesheet = 
+        # TODO: Trengs denne?
+#        
 
-#        WbXslt
-#        -inputfile= header_xml_file
-#        -stylesheet=$[pwb_path]/xslt/metadata2wbcopy.xslt
-#        -xsltOutput=$[wb_dir]/bin/tmp/wbcopy.sql;
+#-showProgress=10000 -targetSchema=PUBLIC -createTarget=true -targetTable="CA_ELDOK" -sourceQuery='SELECT "ELDOKID", "KATEGORI", "BESKRIVELSE", "PAPIR", "LOKPAPIR", "ELDOKSTATUS", "UTARBAV", "BEGRENSNING", "GRADVEKT", "AVSKJERMING", "UOFF", "AVGRADERING", "NEDGRADDATO", "GRUPPE", "ANTVERS", "AVLEVER" FROM "CA_ELDOK"'; COMMIT;
 
-        # Copy schema data:
+
+
 
 #        batch.setStoreErrors(True)
 #        batch.setErrorScript('error.log')
@@ -123,6 +194,14 @@ if __name__ == '__main__':
 #        result = batch.runScript('select * from ca_eldok;')
 #        print(str(result)) # TODO: Gir success hvis kjørt uten feil, Error hvis ikke
 #        result = batch.runScript('WbList;')
+
+
+
+
+
+
+
+
 
 
 

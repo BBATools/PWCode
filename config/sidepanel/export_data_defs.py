@@ -60,9 +60,36 @@ def get_tables(conn, schema):
     table_reader_cursor._meta = results.getMetaData()
     read_results = table_reader_cursor.fetchall()
     tables = [row[2] for row in read_results if row[3] == 'TABLE']
-    return tables     
+    return tables   
 
 
+def export_schema(class_path, MAX_JAVA_HEAP, base_dir, url,  DB_PASSWORD, DB_SCHEMA):
+    init_jvm(class_path, MAX_JAVA_HEAP) # Start Java virtual machine
+    WbManager = jp.JPackage('workbench').WbManager
+    WbManager.prepareForEmbedded()
+    batch = jp.JPackage('workbench.sql').BatchRunner()
+    batch.setAbortOnError(True) 
+
+    batch.setBaseDir(base_dir)    
+    batch.runScript("WbConnect -url='" + url + "' -password=" + DB_PASSWORD + ";")
+    gen_report_str = "WbSchemaReport -file=metadata.xml -schemas=" + DB_SCHEMA + " -types=SYNONYM,TABLE,VIEW -includeProcedures=true \
+                            -includeTriggers=true -writeFullSource=true;"
+    batch.runScript(gen_report_str) 
+
+
+# TODO: Gjør ferdig og test denne:
+# def copy_table(class_path, MAX_JAVA_HEAP, base_dir, url,  DB_PASSWORD, DB_SCHEMA, DB_NAME, table):
+#     init_jvm(class_path, MAX_JAVA_HEAP) # Start Java virtual machine
+#     WbManager = jp.JPackage('workbench').WbManager
+#     WbManager.prepareForEmbedded()
+#     batch = jp.JPackage('workbench.sql').BatchRunner()
+#     batch.setAbortOnError(True) 
+
+#     target_url = 'jdbc:h2:' + base_dir + DB_NAME + '_' +  DB_SCHEMA
+#     std_params =  '-mode=INSERT -commitEvery=10000 -ignoreIdentityColumns=false -removeDefaults=true -showProgress=10000 -createTarget=true'
+#     target_conn = '"username=,password=,url=' + target_url + ';LOG=0;CACHE_SIZE=65536;LOCK_MODE=0;UNDO_LOG=0" ' + std_params 
+#     copy_data_str = 'WbCopy -targetConnection=' + target_conn + ' -sourceSchema=' + DB_SCHEMA + ' -targetSchema=PUBLIC  -sourceTable=' + table + ' -targetTable=' + table + ';' 
+#     batch.runScript(copy_data_str) 
 
 
 
