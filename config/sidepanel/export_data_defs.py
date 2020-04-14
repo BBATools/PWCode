@@ -41,16 +41,17 @@ def ensure_dirs(data_dir, subsystem_dir):
 
 def get_db_details(jdbc_url, bin_dir):
     if 'jdbc:h2:' in jdbc_url: # H2 database
-        url = jdbc_url + ';LAZY_QUERY_EXECUTION=1;LOB_TIMEOUT=500' # Modify url for less memory use
+        if not 'LAZY_QUERY_EXECUTION' in jdbc_url:
+            jdbc_url = jdbc_url + ';LAZY_QUERY_EXECUTION=1' # Modify url for less memory use
         driver_jar = bin_dir + '/vendor/jdbc/h2-1.4.196.jar'
         driver_class = 'org.h2.Driver'
 
-    return url, driver_jar, driver_class
+    return jdbc_url, driver_jar, driver_class
 
 
-def capture_dirs(subsystem_dir, config_dir, file_paths, overwrite):
+def capture_dirs(subsystem_dir, config_dir, dir_paths, overwrite):
     i = 0
-    for source_path in file_paths:
+    for source_path in dir_paths:
         if os.path.isdir(source_path):
             i += 1
             target_path = subsystem_dir + '/content/documents/' + "dir" + str(i) + ".wim"
@@ -107,12 +108,12 @@ def get_db_meta(jdbc, db_schema):
 
     # Get row count per table:
     for table in tables:
-        cursor.execute("SELECT COUNT(*) from " + table)
+        cursor.execute('SELECT COUNT(*) from "' + table + '";')
         (row_count,)=cursor.fetchone()
         db_tables[table] = row_count
 
         # Get column names per table:
-        cursor.execute("SELECT * from " + table + ' limit 1') # WAIT: TOP eller rownum når mssql, oracle
+        cursor.execute('SELECT * from "' + table + '" limit 1') # WAIT: TOP eller rownum når mssql, oracle
         columns = [desc[0] for desc in cursor.description]
         table_columns[table] = columns              
 
@@ -163,43 +164,65 @@ def add_row_count_to_schema_file(subsystem_dir, db_tables):
 
     root = tree.getroot()
     indent(root)
-    tree.write(schema_file)   
+    tree.write(schema_file)  
 
 
-def overwrite_db_copy_maybe(subsystem_dir, db_name, db_schema, overwrite):
-    target_path = subsystem_dir + '/documentation/' + db_name + '_' +  db_schema
-    if os.path.isfile(target_path + '.mv.db') and overwrite == False:
-        print_and_exit("'" + target_path + ".mv.db' already exists. Exiting")
+def get_blob_tables(subsystem_dir, non_empty_tables):  
+    blob_tables = []
+    schema_file = subsystem_dir + '/documentation/metadata.xml'
+    tree = ET.parse(schema_file)
+
+    table_defs = tree.findall("table-def")
+    for table_def in table_defs:
+        table_name = table_def.find("table-name") 
+        blobs = False
+        if table_name.text not in non_empty_tables:
+            continue
+
+        column_defs = table_def.findall("column-def")
+        for column_def in column_defs:
+            java_sql_type = column_def.find('java-sql-type') 
+            if int(java_sql_type.text) in (-4,-3,-2,2004,2005,2011):
+                blob_tables.append(table_name.text)
+                blobs = True
+                continue
+
+    return blob_tables 
+
+
+def copy_db_schema(subsystem_dir, db_name, db_schema, overwrite, class_path, max_java_heap, non_empty_tables, url, db_password, bin_dir, table_columns):     
+    std_params =  '-mode=INSERT -ignoreIdentityColumns=false -removeDefaults=true -createTarget=true -commitEvery=1000'
+    if overwrite:
+        std_params = std_params + ' -dropTarget=true'    
     else:
-        if os.path.isfile(target_path + '.mv.db'):
-            os.remove(target_path + '.mv.db')
-        if os.path.isfile(target_path + '.trace.db'):
-            os.remove(target_path + '.trace.db')               
+        target_path = subsystem_dir + '/documentation/' + db_name + '_' +  db_schema + '.mv.db'
+        if os.path.isfile(target_path):
+            print_and_exit("'" + target_path + "' already exists. Exiting")
+    
+    # Start Java virtual machine if not started already:
+    init_jvm(class_path, max_java_heap) 
 
-
-def copy_db_schema(subsystem_dir, db_name, db_schema, overwrite, class_path, max_java_heap, non_empty_tables, url, db_password, bin_dir):     
-    init_jvm(class_path, max_java_heap) # Start Java virtual machine if not started already
+    # Create instance of sqlwb Batchrunner:
     WbManager = jp.JPackage('workbench').WbManager
     WbManager.prepareForEmbedded()
     batch = jp.JPackage('workbench.sql').BatchRunner()
-    batch.setAbortOnError(True) 
-    target_url = 'jdbc:h2:' + subsystem_dir + '/documentation/' + db_name + '_' +  db_schema + ';autocommit=off'
-
-    overwrite_db_copy_maybe(subsystem_dir, db_name, db_schema, overwrite)            
+    batch.setAbortOnError(True)         
     
     # TODO: Detekterer per tabell om finnes blober. Hvis ja sett commit til 500... -> Eller batch size? -> Avvent test med annet enn H2(leser hele tabell til minne?)
     # TODO: Hverken batchsize eller commitevery ser ut til å bety noe for minnebruk
+    target_url = 'jdbc:h2:' + subsystem_dir + '/documentation/' + db_name + '_' +  db_schema + ';autocommit=off'
 
+    # WAIT: Legg inn tilpasset kopiering av tabeller i blob_tables. Ta disse først i uttrekket -> flytt til først i dict non_empty_tables
+    blob_tables = get_blob_tables(subsystem_dir, non_empty_tables)
+    
     for table, row_count in non_empty_tables.items():
         print("Copying table '" + table + "':")
         batch.runScript("WbConnect -url='" + url + "' -password=" + db_password + ";")
-
-        std_params =  '-mode=INSERT -ignoreIdentityColumns=false -removeDefaults=true -createTarget=true -commitEvery=1000'
         target_conn = '"username=,password=,url=' + target_url + ';LOG=0;CACHE_SIZE=65536;LOCK_MODE=0;UNDO_LOG=0" ' + std_params 
-        copy_data_str = 'WbCopy -targetConnection=' + target_conn + ' -targetSchema=PUBLIC  -sourceTable=' + table + ' -targetTable=' + table + ';' 
-        # TODO: Virker bare uten sourceschema siden det er default schema det hentes fra? Spesifiser sechema i connection? Del av tabellnavn?
-#                copy_data_str = 'WbCopy -targetConnection=' + target_conn + ' -sourceSchema=' + DB_SCHEMA + ' -targetSchema=PUBLIC  -sourceTable=' + table + ' -targetTable=' + table + ';' 
-#                batch.runScript('WbFeedback traceOff;') 
+        source_query = 'SELECT "' + '","'.join(table_columns[table]) + '" FROM "' + db_schema + '"."' + table + '"' 
+        quote_table = '"' + table + '"'
+        copy_data_str = "WbCopy -targetConnection=" + target_conn + " -targetSchema=PUBLIC -targetTable=" + quote_table + " -sourceQuery='" + source_query + "';" 
+        # batch.runScript('WbFeedback traceOff;') 
         result = batch.runScript(copy_data_str) 
         batch.runScript("WbDisconnect;")
         jp.java.lang.System.gc()
@@ -208,13 +231,6 @@ def copy_db_schema(subsystem_dir, db_name, db_schema, overwrite, class_path, max
         
     print('\nDatabase copy finished. Verifying data...')  
     verify_db_copy(class_path, max_java_heap, target_url, bin_dir, non_empty_tables)   
-
-
-#        
-
-#-showProgress=10000 -targetSchema=PUBLIC -createTarget=true -targetTable="CA_ELDOK" -sourceQuery='SELECT "ELDOKID", "KATEGORI", "BESKRIVELSE", "PAPIR", "LOKPAPIR", "ELDOKSTATUS", "UTARBAV", "BEGRENSNING", "GRADVEKT", "AVSKJERMING", "UOFF", "AVGRADERING", "NEDGRADDATO", "GRUPPE", "ANTVERS", "AVLEVER" FROM "CA_ELDOK"'; COMMIT;
-
-
 
 
 #        batch.setStoreErrors(True)
@@ -260,7 +276,8 @@ def verify_db_copy(class_path, max_java_heap, target_url, bin_dir, non_empty_tab
                 print("'" + table + "' missing from database copy.")
 
         if row_errors == 0:
-            print('Copied data rows matches source database. Create system data package now if finished extracting all system data.') 
+            print_and_exit('Copied data rows matches source database. Create system data package now if finished extracting all system data.') 
+
 
 
 
