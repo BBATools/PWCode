@@ -325,7 +325,7 @@ class Jdbc:
 
     """
 
-    def __init__(self, url, usr, pwd, driver_jar, driver_class, auto_commit=False, upper_case=False):
+    def __init__(self, url, usr, pwd, db_name, db_schema, driver_jar, driver_class, auto_commit=False, upper_case=False):
         """
         Init the jdbc connection.
         @param auto_commit: bool - auto-commit each sql statement. Defaults to False
@@ -336,6 +336,8 @@ class Jdbc:
         self.url = url
         self.usr = usr
         self.pwd = pwd
+        self.db_name = db_name
+        self.db_schema = db_schema
         self.auto_commit = verified_boolean(auto_commit)
         self.upper_case = verified_boolean(upper_case)
         self.connection = None

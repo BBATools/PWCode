@@ -8,7 +8,7 @@ silent_background() {
 SCRIPTPATH="$(dirname "$(readlink -f "$0")")"
 VENDORPATH="$SCRIPTPATH/vendor"
 JDBCPATH="$VENDORPATH/jdbc"
-SQLWBJAR="$JDBCPATH/sqlworkbench.jar"
+#SQLWBJAR="$JDBCPATH/sqlworkbench.jar"
 JAVACMD="silent_background $VENDORPATH/linux/jre/bin/java -Xmx6g -jar"
 
 echo "[ENV]
@@ -25,5 +25,6 @@ if [ ! -f $JDBCPATH/WbProfiles.xml ]; then
     cp $VENDORPATH/config/WbProfiles.xml $JDBCPATH;
 fi
 
-$JAVACMD $SQLWBJAR -Dvisualvm.display.name=SQLWorkbench -Dawt.useSystemAAFontSettings=on -configDir=$JDBCPATH -url=jdbc:h2:mem:PWB -password="";
+cd $JDBCPATH
+$JAVACMD sqlworkbench.jar -Dvisualvm.display.name=SQLWorkbench -Dawt.useSystemAAFontSettings=on -configDir=$JDBCPATH -url=jdbc:h2:mem:PWB -password="";
 

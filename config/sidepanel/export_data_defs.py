@@ -11,6 +11,7 @@ def init_jvm(class_path, max_heap_size):
         return
     jpype.startJVM(jpype.getDefaultJVMPath(), 
                             '-Djava.class.path=%s' % class_path,
+                            # '-Dworkbench.db.h2.create.table.temp="CREATE LOCAL TEMPORARY TABLE %fq_table_name% ( %columnlist% %pk_definition%)"'
                             '-Dfile.encoding=UTF8',
                             '-ea', max_heap_size,
                             )
@@ -49,15 +50,17 @@ def get_db_details(jdbc_url, bin_dir):
     return jdbc_url, driver_jar, driver_class
 
 
-def capture_dirs(subsystem_dir, config_dir, dir_paths):
+def capture_dirs(subsystem_dir, config_dir, dir_paths, overwrite):
     i = 0
     for source_path in dir_paths:
         if os.path.isdir(source_path):
             i += 1
             target_path = subsystem_dir + '/content/documents/' + "dir" + str(i) + ".wim"
             print(target_path)
-            if not os.path.isfile(target_path):
+            if not os.path.isfile(target_path) or overwrite == True:
                 capture_files(config_dir, source_path, target_path)
+            else:
+                print_and_exit(target_path + ' already exists. Exiting.')
         else:
             print_and_exit(source_path + ' is not a valid path. Exiting.')    
 
@@ -79,7 +82,8 @@ def get_tables(conn, schema):
     return tables   
 
 
-def export_schema(class_path, max_java_heap, base_dir, url, db_password, db_schema):
+def export_schema(class_path, max_java_heap, subsystem_dir, jdbc):
+    base_dir = subsystem_dir + '/documentation/'
     init_jvm(class_path, max_java_heap) # Start Java virtual machine
     WbManager = jp.JPackage('workbench').WbManager
     WbManager.prepareForEmbedded()
@@ -87,8 +91,8 @@ def export_schema(class_path, max_java_heap, base_dir, url, db_password, db_sche
     batch.setAbortOnError(True) 
 
     batch.setBaseDir(base_dir)    
-    batch.runScript("WbConnect -url='" + url + "' -password=" + db_password + ";")
-    gen_report_str = "WbSchemaReport -file=metadata.xml -schemas=" + db_schema + " -types=SYNONYM,TABLE,VIEW -includeProcedures=true \
+    batch.runScript("WbConnect -url='" + jdbc.url + "' -password=" + jdbc.pwd + ";")
+    gen_report_str = "WbSchemaReport -file=metadata.xml -schemas=" + jdbc.db_schema + " -types=SYNONYM,TABLE,VIEW -includeProcedures=true \
                             -includeTriggers=true -writeFullSource=true;"
     batch.runScript(gen_report_str) 
 
@@ -98,12 +102,12 @@ def print_and_exit(msg):
     sys.exit()
 
 
-def get_db_meta(jdbc, db_schema):
+def get_db_meta(jdbc):
     db_tables = {}
     table_columns = {}
     conn= jdbc.connection                        
     cursor = conn.cursor()                        
-    tables = get_tables(conn, db_schema)
+    tables = get_tables(conn, jdbc.db_schema)
 
     # Get row count per table:
     for table in tables:
@@ -189,6 +193,54 @@ def get_blob_tables(subsystem_dir, export_tables):
     return blob_tables 
 
 
+def table_check(incl_tables, skip_tables, sync_tables, db_tables, subsystem_dir):
+    non_empty_tables = {k:v for (k,v) in db_tables.items() if v > 0}
+    if incl_tables:
+        for tbl in incl_tables:
+            if tbl not in non_empty_tables:
+                print_and_exit("Table '" + tbl + "' is empty or not in schema. Exiting.")
+        for tbl in list(non_empty_tables):
+            if tbl not in incl_tables:
+                del non_empty_tables[tbl]
+    elif skip_tables:
+        for tbl in skip_tables:
+            if tbl in non_empty_tables:
+                del non_empty_tables[tbl]
+            else:
+                print_and_exit("Table '" + tbl + "' is empty or not in schema. Exiting.") 
+    
+    if sync_tables:
+        for tbl in sync_tables:
+            if tbl not in non_empty_tables:
+                print_and_exit("Table '" + tbl + "' is empty or not in source schema. Exiting.")
+
+    return non_empty_tables, sync_tables    
+ 
+
+
+def wb_batch(class_path, max_java_heap):  
+    # Start Java virtual machine if not started already:
+    init_jvm(class_path, max_java_heap) 
+
+    # Create instance of sqlwb Batchrunner:
+    WbManager = jp.JPackage('workbench').WbManager
+    WbManager.prepareForEmbedded()
+    batch = jp.JPackage('workbench.sql').BatchRunner()
+    batch.setAbortOnError(True)    
+    return batch   
+
+
+def get_target_tables(jdbc):
+    tables = {}
+    conn= jdbc.connection                        
+    cursor = conn.cursor()                        
+    tables = get_tables(conn, jdbc.db_schema)            
+
+    cursor.close()
+    conn.close()
+    return tables
+
+
 def get_primary_keys(subsystem_dir, sync_tables):  
     pk_dict = {}
     schema_file = subsystem_dir + '/documentation/metadata.xml'
@@ -214,70 +266,44 @@ def get_primary_keys(subsystem_dir, sync_tables):
             print_and_exit("Table '" + table_name.text + "' has no primary key and cannot be synced. Exiting.")
         pk_dict[table_name.text] = ', '.join(sorted(pk_list)) 
 
-    print(pk_dict)
+    return pk_dict
 
 
-def table_check(incl_tables, skip_tables, sync_tables, db_tables, subsystem_dir):
-    non_empty_tables = {k:v for (k,v) in db_tables.items() if v > 0}
-    if incl_tables:
-        for tbl in incl_tables:
-            if tbl not in non_empty_tables:
-                print_and_exit("Table '" + tbl + "' is empty or not in schema. Exiting.")
-        for tbl in list(non_empty_tables):
-            if tbl not in incl_tables:
-                del non_empty_tables[tbl]
-    elif skip_tables:
-        for tbl in skip_tables:
-            if tbl in non_empty_tables:
-                del non_empty_tables[tbl]
-            else:
-                print_and_exit("Table '" + tbl + "' is empty or not in schema. Exiting.") 
-    
-    if sync_tables:
-        for tbl in sync_tables:
-            if tbl not in non_empty_tables:
-                print_and_exit("Table '" + tbl + "' is empty or not in source schema. Exiting.")
-
-        get_primary_keys(subsystem_dir, sync_tables)
-
-    return non_empty_tables, sync_tables        
-
-
-def copy_db_schema(subsystem_dir, db_name, db_schema, overwrite, class_path, max_java_heap, export_tables, url, db_password, bin_dir, table_columns, sync_tables):     
-    std_params =  '-mode=INSERT -ignoreIdentityColumns=false -removeDefaults=true -createTarget=true -commitEvery=1000'
-    if overwrite:
-        std_params = std_params + ' -dropTarget=true'    
-    else:
-        target_path = subsystem_dir + '/documentation/' + db_name + '_' +  db_schema + '.mv.db'
+def copy_db_schema(subsystem_dir, s_jdbc, overwrite, class_path, max_java_heap, export_tables, bin_dir, table_columns, sync_tables): 
+    if not overwrite:
+        target_path = subsystem_dir + '/documentation/' + s_jdbc.db_name + '_' +  s_jdbc.db_schema + '.mv.db'
         if os.path.isfile(target_path):
-            print_and_exit("'" + target_path + "' already exists. Exiting")
-    
-    # Start Java virtual machine if not started already:
-    init_jvm(class_path, max_java_heap) 
+            print_and_exit("'" + target_path + "' already exists. Exiting")        
 
-    # Create instance of sqlwb Batchrunner:
-    WbManager = jp.JPackage('workbench').WbManager
-    WbManager.prepareForEmbedded()
-    batch = jp.JPackage('workbench.sql').BatchRunner()
-    batch.setAbortOnError(True)         
-    
-    # TODO: Detekterer per tabell om finnes blober. Hvis ja sett commit til 500... -> Eller batch size? -> Avvent test med annet enn H2(leser hele tabell til minne?)
-    # TODO: Hverken batchsize eller commitevery ser ut til å bety noe for minnebruk
-    target_url = 'jdbc:h2:' + subsystem_dir + '/documentation/' + db_name + '_' +  db_schema + ';autocommit=off'
+    blob_tables = get_blob_tables(subsystem_dir, export_tables)     
+    batch = wb_batch(class_path, max_java_heap)
+    target_url = 'jdbc:h2:' + subsystem_dir + '/documentation/' + s_jdbc.db_name + '_' +  s_jdbc.db_schema + ';autocommit=off'
 
-    # WAIT: Legg inn tilpasset kopiering av tabeller i blob_tables. Ta disse først i uttrekket -> flytt til først i dict export_tables
-    blob_tables = get_blob_tables(subsystem_dir, export_tables)
-
-    # TODO: Lag sjekk på sync_tables her
+    target_url, driver_jar, driver_class = get_db_details(target_url, bin_dir)
+    t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
+    target_tables = get_target_tables(t_jdbc)
+    pk_dict = get_primary_keys(subsystem_dir, sync_tables)
     
+    mode = '-mode=INSERT'
+    std_params = ' -ignoreIdentityColumns=false -removeDefaults=true -commitEvery=1000 ' 
+    p_key = '' 
     for table, row_count in export_tables.items():
+        params = mode + std_params
+        if overwrite:
+            if table in sync_tables and table in target_tables:
+                params = '-mode=UPDATE,INSERT' + std_params
+                p_key = ' -keyColumns="' + pk_dict[table] + '"'
+            else:                 
+                params = mode + std_params + ' -createTarget=true -dropTarget=true' 
+
         print("Copying table '" + table + "':")
-        batch.runScript("WbConnect -url='" + url + "' -password=" + db_password + ";")
-        target_conn = '"username=,password=,url=' + target_url + ';LOG=0;CACHE_SIZE=65536;LOCK_MODE=0;UNDO_LOG=0" ' + std_params 
-        source_query = 'SELECT "' + '","'.join(table_columns[table]) + '" FROM "' + db_schema + '"."' + table + '"' 
-        quote_table = '"' + table + '"'
-        copy_data_str = "WbCopy -targetConnection=" + target_conn + " -targetSchema=PUBLIC -targetTable=" + quote_table + " -sourceQuery='" + source_query + "';" 
-        # batch.runScript('WbFeedback traceOff;') 
+        batch.runScript("WbConnect -url='" + s_jdbc.url + "' -password=" + s_jdbc.pwd + ";")
+        target_conn = '"username=,password=,url=' + target_url + ';LOG=0;CACHE_SIZE=65536;LOCK_MODE=0;UNDO_LOG=0" ' + params 
+        source_query = 'SELECT "' + '","'.join(table_columns[table]) + '" FROM "' + s_jdbc.db_schema + '"."' + table + '"' 
+        # columns = '"' + '","'.join(table_columns[table]) + '"'
+        # source_table = '"' + jdbc.db_schema + '"."' + table + '"' 
+        target_table = '"' + table + '"'
+        copy_data_str = "WbCopy -targetConnection=" + target_conn + " -targetSchema=PUBLIC -targetTable=" + target_table + " -sourceQuery='" + source_query + "'" + p_key + ";" 
         result = batch.runScript(copy_data_str) 
         batch.runScript("WbDisconnect;")
         jp.java.lang.System.gc()
@@ -305,12 +331,12 @@ def verify_db_copy(class_path, max_java_heap, target_url, bin_dir, export_tables
     # Check if row count matches source database:
     init_jvm(class_path, max_java_heap) # Start Java virtual machine if not started already
     url, driver_jar, driver_class = get_db_details(target_url, bin_dir)
-    jdbc = Jdbc(url, '', '', driver_jar, driver_class, True, True)
+    jdbc = Jdbc(url, '', '', None, 'PUBLIC', driver_jar, driver_class, True, True)
     target_tables = {}
     if jdbc:
         conn= jdbc.connection                        
         cursor = conn.cursor()                        
-        tables = get_tables(conn, 'PUBLIC')
+        tables = get_tables(conn, jdbc.db_schema)
 
         # Get row count per table:
         for table in tables:
