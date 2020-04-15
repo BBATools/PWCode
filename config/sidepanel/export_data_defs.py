@@ -49,16 +49,15 @@ def get_db_details(jdbc_url, bin_dir):
     return jdbc_url, driver_jar, driver_class
 
 
-def capture_dirs(subsystem_dir, config_dir, dir_paths, overwrite):
+def capture_dirs(subsystem_dir, config_dir, dir_paths):
     i = 0
     for source_path in dir_paths:
         if os.path.isdir(source_path):
             i += 1
             target_path = subsystem_dir + '/content/documents/' + "dir" + str(i) + ".wim"
-            if not os.path.isfile(target_path) or overwrite == True:
+            print(target_path)
+            if not os.path.isfile(target_path):
                 capture_files(config_dir, source_path, target_path)
-            else:
-                print_and_exit(target_path + ' already exsists. Exiting.')
         else:
             print_and_exit(source_path + ' is not a valid path. Exiting.')    
 
@@ -119,7 +118,7 @@ def get_db_meta(jdbc, db_schema):
 
     cursor.close()
     conn.close()
-    return db_tables, table_columns
+    return db_tables, table_columns  
 
 
 def indent(elem, level=0):
@@ -167,7 +166,7 @@ def add_row_count_to_schema_file(subsystem_dir, db_tables):
     tree.write(schema_file)  
 
 
-def get_blob_tables(subsystem_dir, non_empty_tables):  
+def get_blob_tables(subsystem_dir, export_tables):  
     blob_tables = []
     schema_file = subsystem_dir + '/documentation/metadata.xml'
     tree = ET.parse(schema_file)
@@ -176,7 +175,7 @@ def get_blob_tables(subsystem_dir, non_empty_tables):
     for table_def in table_defs:
         table_name = table_def.find("table-name") 
         blobs = False
-        if table_name.text not in non_empty_tables:
+        if table_name.text not in export_tables:
             continue
 
         column_defs = table_def.findall("column-def")
@@ -190,7 +189,61 @@ def get_blob_tables(subsystem_dir, non_empty_tables):
     return blob_tables 
 
 
-def copy_db_schema(subsystem_dir, db_name, db_schema, overwrite, class_path, max_java_heap, non_empty_tables, url, db_password, bin_dir, table_columns):     
+def get_primary_keys(subsystem_dir, sync_tables):  
+    pk_dict = {}
+    schema_file = subsystem_dir + '/documentation/metadata.xml'
+    tree = ET.parse(schema_file)
+
+    table_defs = tree.findall("table-def")
+    for table_def in table_defs:
+        table_name = table_def.find("table-name") 
+        pk = False
+        if table_name.text not in sync_tables:
+            continue
+
+        pk_list = []
+        column_defs = table_def.findall("column-def")
+        for column_def in column_defs:
+            column_name = column_def.find('column-name')
+            primary_key = column_def.find('primary-key')            
+
+            if primary_key.text == 'true':
+                pk_list.append(column_name.text)
+
+        if not pk_list:
+            print_and_exit("Table '" + table_name.text + "' has no primary key and cannot be synced. Exiting.")
+        pk_dict[table_name.text] = ', '.join(sorted(pk_list)) 
+
+    print(pk_dict)
+
+
+def table_check(incl_tables, skip_tables, sync_tables, db_tables, subsystem_dir):
+    non_empty_tables = {k:v for (k,v) in db_tables.items() if v > 0}
+    if incl_tables:
+        for tbl in incl_tables:
+            if tbl not in non_empty_tables:
+                print_and_exit("Table '" + tbl + "' is empty or not in schema. Exiting.")
+        for tbl in list(non_empty_tables):
+            if tbl not in incl_tables:
+                del non_empty_tables[tbl]
+    elif skip_tables:
+        for tbl in skip_tables:
+            if tbl in non_empty_tables:
+                del non_empty_tables[tbl]
+            else:
+                print_and_exit("Table '" + tbl + "' is empty or not in schema. Exiting.") 
+    
+    if sync_tables:
+        for tbl in sync_tables:
+            if tbl not in non_empty_tables:
+                print_and_exit("Table '" + tbl + "' is empty or not in source schema. Exiting.")
+
+        get_primary_keys(subsystem_dir, sync_tables)
+
+    return non_empty_tables, sync_tables        
+
+
+def copy_db_schema(subsystem_dir, db_name, db_schema, overwrite, class_path, max_java_heap, export_tables, url, db_password, bin_dir, table_columns, sync_tables):     
     std_params =  '-mode=INSERT -ignoreIdentityColumns=false -removeDefaults=true -createTarget=true -commitEvery=1000'
     if overwrite:
         std_params = std_params + ' -dropTarget=true'    
@@ -212,10 +265,12 @@ def copy_db_schema(subsystem_dir, db_name, db_schema, overwrite, class_path, max
     # TODO: Hverken batchsize eller commitevery ser ut til å bety noe for minnebruk
     target_url = 'jdbc:h2:' + subsystem_dir + '/documentation/' + db_name + '_' +  db_schema + ';autocommit=off'
 
-    # WAIT: Legg inn tilpasset kopiering av tabeller i blob_tables. Ta disse først i uttrekket -> flytt til først i dict non_empty_tables
-    blob_tables = get_blob_tables(subsystem_dir, non_empty_tables)
+    # WAIT: Legg inn tilpasset kopiering av tabeller i blob_tables. Ta disse først i uttrekket -> flytt til først i dict export_tables
+    blob_tables = get_blob_tables(subsystem_dir, export_tables)
+
+    # TODO: Lag sjekk på sync_tables her
     
-    for table, row_count in non_empty_tables.items():
+    for table, row_count in export_tables.items():
         print("Copying table '" + table + "':")
         batch.runScript("WbConnect -url='" + url + "' -password=" + db_password + ";")
         target_conn = '"username=,password=,url=' + target_url + ';LOG=0;CACHE_SIZE=65536;LOCK_MODE=0;UNDO_LOG=0" ' + std_params 
@@ -230,7 +285,7 @@ def copy_db_schema(subsystem_dir, db_name, db_schema, overwrite, class_path, max
             print_and_exit("Error on copying table '" + table + "'\nScroll up for details.")
         
     print('\nDatabase copy finished. Verifying data...')  
-    verify_db_copy(class_path, max_java_heap, target_url, bin_dir, non_empty_tables)   
+    verify_db_copy(class_path, max_java_heap, target_url, bin_dir, export_tables)   
 
 
 #        batch.setStoreErrors(True)
@@ -246,7 +301,7 @@ def copy_db_schema(subsystem_dir, db_name, db_schema, overwrite, class_path, max
 #        result = batch.runScript('WbList;')    
 
 
-def verify_db_copy(class_path, max_java_heap, target_url, bin_dir, non_empty_tables):
+def verify_db_copy(class_path, max_java_heap, target_url, bin_dir, export_tables):
     # Check if row count matches source database:
     init_jvm(class_path, max_java_heap) # Start Java virtual machine if not started already
     url, driver_jar, driver_class = get_db_details(target_url, bin_dir)
@@ -267,7 +322,7 @@ def verify_db_copy(class_path, max_java_heap, target_url, bin_dir, non_empty_tab
         conn.close()
 
         row_errors = 0
-        for table, row_count in non_empty_tables.items():
+        for table, row_count in export_tables.items():
             if table in target_tables:
                 if not target_tables[table] == row_count:
                     print("Row count mismatch for table '" + table + "'")
@@ -279,7 +334,7 @@ def verify_db_copy(class_path, max_java_heap, target_url, bin_dir, non_empty_tab
             print_and_exit('Copied data rows matches source database. Create system data package now if finished extracting all system data.') 
 
 
-
+     
 
 
 
