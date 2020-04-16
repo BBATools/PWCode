@@ -376,17 +376,17 @@ def verify_db_copy(class_path, max_java_heap, target_url, bin_dir, export_tables
 # WAIT: Mangler disse for å ha alle i JDBC 4.0: ROWID=-8 og SQLXML=2009
 #                        jdbc-id  iso-name               jdbc-name
 jdbc_to_iso_data_type = {
-                         '-16'  : 'text',               # LONGNVARCHAR
-                         '-15'  : 'varchar()',          # NCHAR                       
-                         '-9'   : 'varchar()',          # NVARCHAR                                                                                                                                                                                                                                                                                                                                                  
-                         '-7'   : 'varchar(5)',         # BIT                          
+                         '-16'  : 'clob',               # LONGNVARCHAR
+                         '-15'  : 'varchar',            # NCHAR                       
+                         '-9'   : 'varchar',            # NVARCHAR                                                                                                                                                                                                                                                                                                                                                  
+                         '-7'   : 'boolean',            # BIT                          
                          '-6'   : 'integer',            # TINYINT                                                                          
                          '-5'   : 'integer',            # BIGINT
-                         '-4'   : 'text',               # LONGVARBINARY
-                         '-3'   : 'text',               # VARBINARY
-                         '-2'   : 'text',               # BINARY                      
-                         '-1'   : 'text',               # LONGVARCHAR
-                         '1'    : 'varchar()',          # CHAR
+                         '-4'   : 'blob',               # LONGVARBINARY
+                         '-3'   : 'blob',               # VARBINARY
+                         '-2'   : 'blob',               # BINARY                      
+                         '-1'   : 'clob',               # LONGVARCHAR
+                         '1'    : 'varchar',            # CHAR
                          '2'    : 'numeric',            # NUMERIC  # TODO: Se xslt for ekstra nyanser på denne  
                          '3'    : 'decimal',            # DECIMAL  # TODO: Se xslt for ekstra nyanser på denne    
                          '4'    : 'integer',            # INTEGER 
@@ -394,16 +394,15 @@ jdbc_to_iso_data_type = {
                          '6'    : 'float',              # FLOAT   
                          '7'    : 'real',               # REAL
                          '8'    : 'double precision',   # DOUBLE 
-                         '12'   : 'varchar()',          # VARCHAR 
-                         '16'   : 'varchar(5)',         # BOOLEAN
+                         '12'   : 'varchar',            # VARCHAR 
+                         '16'   : 'boolean',            # BOOLEAN
                          '91'   : 'date',               # DATE                        
                          '92'   : 'time',               # TIME
                          '93'   : 'timestamp',          # TIMESTAMP                                                                                                
-                         '2004' : 'text',               # BLOB 
-                         '2005' : 'text',               # CLOB
-                         '2011' : 'text',               # NCLOB
+                         '2004' : 'blob',               # BLOB 
+                         '2005' : 'clob',               # CLOB
+                         '2011' : 'clob',               # NCLOB
 }            
-
 
 
 def get_ddl_columns(subsystem_dir):

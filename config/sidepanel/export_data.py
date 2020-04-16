@@ -14,10 +14,9 @@ DB_USER = ''
 DB_PASSWORD = ''
 MAX_JAVA_HEAP = '-Xmx4g' # g=GB. Increase available memory as needed
 DDL_GEN = 'PWCode'  # PWCode | SQLWB -> Choose between generators for 'create table'
-# TODO: Legg i sjekker mot DDL_GEN
 # Copy all tables in schema except this:
 SKIP_TABLES =      [         
-                            'EDOKFILES',
+#                            'EDOKFILES',
 #                            'tabnavn',
                             ]
 # Copy only these tables (overrides 'SKIP_TABLES') :
