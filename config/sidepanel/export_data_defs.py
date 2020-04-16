@@ -4,6 +4,7 @@ import jpype.imports
 from pathlib import Path
 import xml.etree.ElementTree as ET
 from database.jdbc import Jdbc
+from toposort import toposort, toposort_flatten
 
 # Start java virtual machine:
 def init_jvm(class_path, max_heap_size):
@@ -43,8 +44,8 @@ def ensure_dirs(data_dir, subsystem_dir):
 def get_db_details(jdbc_url, bin_dir):
     if 'jdbc:h2:' in jdbc_url: # H2 database
         if not 'LAZY_QUERY_EXECUTION' in jdbc_url:
-            jdbc_url = jdbc_url + ';LAZY_QUERY_EXECUTION=1' # Modify url for less memory use
-        driver_jar = bin_dir + '/vendor/jdbc/h2-1.4.196.jar'
+            jdbc_url = jdbc_url + ';LAZY_QUERY_EXECUTION=1;' # Modify url for less memory use
+        driver_jar = bin_dir + '/vendor/jdbc/h2-1.4.199.jar'            
         driver_class = 'org.h2.Driver'
 
     return jdbc_url, driver_jar, driver_class
@@ -269,12 +270,29 @@ def get_primary_keys(subsystem_dir, sync_tables):
     return pk_dict
 
 
-def copy_db_schema(subsystem_dir, s_jdbc, overwrite, class_path, max_java_heap, export_tables, bin_dir, table_columns, sync_tables): 
+def run_sql(jdbc, sql):
+    result = 'Success'
+    try:
+        conn = jdbc.connection                        
+        cursor = conn.cursor()  
+        cursor.execute(sql)                              
+        cursor.close()
+        conn.commit()
+        conn.close()  
+    except Exception as e:
+        result = e
+
+    if result != 'Success':
+        print_and_exit(result)             
+
+
+def copy_db_schema(subsystem_dir, s_jdbc, overwrite, class_path, max_java_heap, export_tables, bin_dir, table_columns, sync_tables, DDL_GEN): 
     if not overwrite:
         target_path = subsystem_dir + '/documentation/' + s_jdbc.db_name + '_' +  s_jdbc.db_schema + '.mv.db'
         if os.path.isfile(target_path):
             print_and_exit("'" + target_path + "' already exists. Exiting")        
 
+    # TODO: Avvent hva som skal gjøres når blob (sync virket ikke bra nok)
     blob_tables = get_blob_tables(subsystem_dir, export_tables)     
     batch = wb_batch(class_path, max_java_heap)
     target_url = 'jdbc:h2:' + subsystem_dir + '/documentation/' + s_jdbc.db_name + '_' +  s_jdbc.db_schema + ';autocommit=off'
@@ -283,25 +301,33 @@ def copy_db_schema(subsystem_dir, s_jdbc, overwrite, class_path, max_java_heap, 
     t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
     target_tables = get_target_tables(t_jdbc)
     pk_dict = get_primary_keys(subsystem_dir, sync_tables)
+
+    if DDL_GEN == 'PWCode':
+        ddl_columns = get_ddl_columns(subsystem_dir)
     
     mode = '-mode=INSERT'
     std_params = ' -ignoreIdentityColumns=false -removeDefaults=true -commitEvery=1000 ' 
     p_key = '' 
     for table, row_count in export_tables.items():
         params = mode + std_params
-        if overwrite:
-            if table in sync_tables and table in target_tables:
-                params = '-mode=UPDATE,INSERT' + std_params
-                p_key = ' -keyColumns="' + pk_dict[table] + '"'
-            else:                 
+        if overwrite and table in sync_tables and table in target_tables:
+            params = '-mode=UPDATE,INSERT' + std_params
+            p_key = ' -keyColumns="' + pk_dict[table] + '"'
+        elif overwrite and DDL_GEN == 'SQLWB':                 
                 params = mode + std_params + ' -createTarget=true -dropTarget=true' 
 
+        if DDL_GEN == 'PWCode' and (overwrite or table not in target_tables):
+            t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)               
+            ddl = '\nCREATE TABLE "' + table + '"\n(\n' + ddl_columns[table][:-1] + '\n);'
+            print(ddl)
+            sql = 'DROP TABLE IF EXISTS "' + table + '"; ' + ddl
+            run_sql(t_jdbc, sql)
+           
         print("Copying table '" + table + "':")
         batch.runScript("WbConnect -url='" + s_jdbc.url + "' -password=" + s_jdbc.pwd + ";")
-        target_conn = '"username=,password=,url=' + target_url + ';LOG=0;CACHE_SIZE=65536;LOCK_MODE=0;UNDO_LOG=0" ' + params 
+        target_conn = '"username=,password=,url=' + target_url + ';" ' + params 
         source_query = 'SELECT "' + '","'.join(table_columns[table]) + '" FROM "' + s_jdbc.db_schema + '"."' + table + '"' 
-        # columns = '"' + '","'.join(table_columns[table]) + '"'
-        # source_table = '"' + jdbc.db_schema + '"."' + table + '"' 
+
         target_table = '"' + table + '"'
         copy_data_str = "WbCopy -targetConnection=" + target_conn + " -targetSchema=PUBLIC -targetTable=" + target_table + " -sourceQuery='" + source_query + "'" + p_key + ";" 
         result = batch.runScript(copy_data_str) 
@@ -312,19 +338,6 @@ def copy_db_schema(subsystem_dir, s_jdbc, overwrite, class_path, max_java_heap, 
         
     print('\nDatabase copy finished. Verifying data...')  
     verify_db_copy(class_path, max_java_heap, target_url, bin_dir, export_tables)   
-
-
-#        batch.setStoreErrors(True)
-#        batch.setErrorScript('error.log')
-#        batch.setShowStatementWithResult(True)
-#        batch.setScriptToRun('wbexport.sql')
-#        batch.execute()
-#        batch.showResultSets(True) # TODO: Viser resultat da -> Fikse bedre visning i console hvordan?
-#        batch.setVerboseLogging(True)
-#        batch.setMaxRows(20)
-#        result = batch.runScript('select * from ca_eldok;')
-#        print(str(result)) # TODO: Gir success hvis kjørt uten feil, Error hvis ikke
-#        result = batch.runScript('WbList;')    
 
 
 def verify_db_copy(class_path, max_java_heap, target_url, bin_dir, export_tables):
@@ -360,10 +373,67 @@ def verify_db_copy(class_path, max_java_heap, target_url, bin_dir, export_tables
             print_and_exit('Copied data rows matches source database. Create system data package now if finished extracting all system data.') 
 
 
-     
+# WAIT: Mangler disse for å ha alle i JDBC 4.0: ROWID=-8 og SQLXML=2009
+#                        jdbc-id  iso-name               jdbc-name
+jdbc_to_iso_data_type = {
+                         '-16'  : 'text',               # LONGNVARCHAR
+                         '-15'  : 'varchar()',          # NCHAR                       
+                         '-9'   : 'varchar()',          # NVARCHAR                                                                                                                                                                                                                                                                                                                                                  
+                         '-7'   : 'varchar(5)',         # BIT                          
+                         '-6'   : 'integer',            # TINYINT                                                                          
+                         '-5'   : 'integer',            # BIGINT
+                         '-4'   : 'text',               # LONGVARBINARY
+                         '-3'   : 'text',               # VARBINARY
+                         '-2'   : 'text',               # BINARY                      
+                         '-1'   : 'text',               # LONGVARCHAR
+                         '1'    : 'varchar()',          # CHAR
+                         '2'    : 'numeric',            # NUMERIC  # TODO: Se xslt for ekstra nyanser på denne  
+                         '3'    : 'decimal',            # DECIMAL  # TODO: Se xslt for ekstra nyanser på denne    
+                         '4'    : 'integer',            # INTEGER 
+                         '5'    : 'integer',            # SMALLINT
+                         '6'    : 'float',              # FLOAT   
+                         '7'    : 'real',               # REAL
+                         '8'    : 'double precision',   # DOUBLE 
+                         '12'   : 'varchar()',          # VARCHAR 
+                         '16'   : 'varchar(5)',         # BOOLEAN
+                         '91'   : 'date',               # DATE                        
+                         '92'   : 'time',               # TIME
+                         '93'   : 'timestamp',          # TIMESTAMP                                                                                                
+                         '2004' : 'text',               # BLOB 
+                         '2005' : 'text',               # CLOB
+                         '2011' : 'text',               # NCLOB
+}            
 
 
 
+def get_ddl_columns(subsystem_dir):
+    ddl_columns = {}
+    schema_file = subsystem_dir + '/documentation/metadata.xml'
+    tree = ET.parse(schema_file)
+
+    table_defs = tree.findall("table-def")
+    for table_def in table_defs:
+        table_name = table_def.find("table-name")
+        disposed = table_def.find("disposed")    
+
+        ddl_columns_list = []
+        column_defs = table_def.findall("column-def")
+        for column_def in column_defs:
+            column_name = column_def.find('column-name')
+            java_sql_type = column_def.find('java-sql-type')
+            dbms_data_size = column_def.find('dbms-data-size')
+                
+            if disposed.text != "true":
+                iso_data_type = jdbc_to_iso_data_type[java_sql_type.text]
+                if '()' in iso_data_type:
+                    iso_data_type = iso_data_type.replace('()', '(' + dbms_data_size.text + ')')
+                
+                ddl_columns_list.append('"' + column_name.text + '" ' + iso_data_type + ',')                            
+
+
+        ddl_columns[table_name.text] =  '\n'.join(ddl_columns_list)  
+
+    return ddl_columns              
 
 
 

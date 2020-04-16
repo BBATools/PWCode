@@ -3,6 +3,8 @@
 SYSTEM_NAME = 'test2' # Will also be the name of the generated data package
 EXPORT_TYPE = 'DATABASE' # DATABASE | FILES | BOTH
 OVERWRITE = True # Overwrite extracted data if previous export detected
+PACKAGE = False # Set to true when all export runs are done to package as a wim or tar file with checksum
+# TODO: Lag kode for package valg
 
 ### DATABASE ###
 DB_NAME = 'DOCULIVEHIST_DBO'
@@ -11,20 +13,22 @@ JDBC_URL = 'jdbc:h2:/home/bba/Desktop/DOCULIVEHIST_DBO_PUBLIC'
 DB_USER = ''
 DB_PASSWORD = ''
 MAX_JAVA_HEAP = '-Xmx4g' # g=GB. Increase available memory as needed
+DDL_GEN = 'PWCode'  # PWCode | SQLWB -> Choose between generators for 'create table'
+# TODO: Legg i sjekker mot DDL_GEN
 # Copy all tables in schema except this:
 SKIP_TABLES =      [         
-#                            'EDOKFILES',
+                            'EDOKFILES',
 #                            'tabnavn',
                             ]
 # Copy only these tables (overrides 'SKIP_TABLES') :
 INCL_TABLES =      [
 #                            'EDOKFILES',
-                            'ALL',
+#                            'ALL',
                             ]
 # Sync these tables rather than drop and insert:
 SYNC_TABLES =     [
 #                            'EDOKFILES',
-                            'ALL',
+#                            'ALL',
                             ]
 
 ### FILES ###
@@ -96,7 +100,7 @@ if __name__ == '__main__':
 
                     if export_tables:
                          # Copy schema data:
-                        copy_db_schema(subsystem_dir, jdbc, OVERWRITE, class_path, MAX_JAVA_HEAP, export_tables, bin_dir, table_columns, sync_tables)
+                        copy_db_schema(subsystem_dir, jdbc, OVERWRITE, class_path, MAX_JAVA_HEAP, export_tables, bin_dir, table_columns, sync_tables, DDL_GEN)
                     else:
                         print_and_exit('No table data to export. Exiting.')  
                     
@@ -110,6 +114,11 @@ if __name__ == '__main__':
 
 
     print_and_exit('Data copied. Create system data package now if finished extracting all system data.') 
+
+
+
+
+
 
 
 
