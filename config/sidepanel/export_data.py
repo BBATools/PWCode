@@ -1,7 +1,7 @@
 ############### USER INPUT ###############
 ### SYSTEM ###
 SYSTEM_NAME = 'test2' # Will also be the name of the generated data package
-EXPORT_TYPE = 'DATABASE' # DATABASE | FILES | BOTH
+EXPORT_TYPE = 'BOTH' # DATABASE | FILES | BOTH
 PACKAGE = False # Set to true when all export runs are done to package as a wim or tar file with checksum
 # TODO: Lag kode for package valg
 
@@ -14,20 +14,20 @@ DB_PASSWORD = ''
 MAX_JAVA_HEAP = '-Xmx4g' # g=GB. Increase available memory as needed
 DDL_GEN = 'PWCode'  # PWCode | SQLWB -> Choose between generators for 'create table'
 # Copy all tables in schema except this:
-SKIP_TABLES =      [         
+SKIP_TABLES =       [         
 #                            'EDOKFILES',
 #                            'tabnavn',
-                            ]
+                    ]
 # Copy only these tables (overrides 'SKIP_TABLES') :
-INCL_TABLES =      [
+INCL_TABLES =       [
 #                            'EDOKFILES',
 #                            'ALL',
-                            ]
+                    ]
 # Sync these tables rather than drop and insert:
-SYNC_TABLES =     [
+OVERWRITE_TABLES =  [
 #                            'EDOKFILES',
 #                            'ALL',
-                            ]
+                    ]
 
 ### FILES ###
 SUB_NAME = 'dir1' # Name of subsystem. Not needed or used if a combined database/files export
@@ -37,7 +37,7 @@ DIR_PATHS =         [
 #                            "path/to/extract/on/linux", 
                             "/home/bba/Downloads/python/",        
 #                            "c:\path\on\windows"
-                            ]
+                    ]
 
 
 ################# CODE #################
@@ -55,7 +55,7 @@ if __name__ == '__main__':
     db_tables = {} # All database tables
     export_tables = {} # All tables to be exported
     table_columns = {} # Columns per table
-    sync_tables = {} # Sync these instead of drop and insert
+    overwrite_tables = {} # Overwrite these instead of sync (if exists)
     bin_dir = os.environ["pwcode_bin_dir"] # Get PWCode executable path
     class_path = os.environ['CLASSPATH'] # Get Java jar path
     config_dir = os.environ["pwcode_config_dir"] # Get PWCode config path
@@ -95,11 +95,11 @@ if __name__ == '__main__':
                         db_tables, table_columns = get_db_meta(jdbc)   
                         export_schema(class_path, MAX_JAVA_HEAP, subsystem_dir, jdbc)   
                         add_row_count_to_schema_file(subsystem_dir, db_tables)          
-                        export_tables, sync_tables = table_check(INCL_TABLES, SKIP_TABLES, SYNC_TABLES, db_tables, subsystem_dir)   
+                        export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables, subsystem_dir)   
 
                     if export_tables:
                          # Copy schema data:
-                        copy_db_schema(subsystem_dir, jdbc, class_path, MAX_JAVA_HEAP, export_tables, bin_dir, table_columns, sync_tables, DDL_GEN)
+                        copy_db_schema(subsystem_dir, jdbc, class_path, MAX_JAVA_HEAP, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN)
                     else:
                         print_and_exit('No table data to export. Exiting.')  
                     
@@ -113,6 +113,8 @@ if __name__ == '__main__':
 
 
     print_and_exit('All data copied. Create system data package now if finished extracting system data.') 
+
+
 
 
 

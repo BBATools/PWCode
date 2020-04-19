@@ -57,9 +57,10 @@ def capture_dirs(subsystem_dir, config_dir, dir_paths):
         if os.path.isdir(source_path):
             i += 1
             target_path = subsystem_dir + '/content/documents/' + "dir" + str(i) + ".wim"
-            print(target_path)
             if not os.path.isfile(target_path):
                 capture_files(config_dir, source_path, target_path)
+            else:
+                print("'" + source_path + "' is already exported.")                
         else:
             print_and_exit(source_path + ' is not a valid path. Exiting.')    
 
@@ -195,7 +196,7 @@ def get_blob_tables(subsystem_dir, export_tables):
     return blob_tables 
 
 
-def table_check(incl_tables, skip_tables, sync_tables, db_tables, subsystem_dir):
+def table_check(incl_tables, skip_tables, overwrite_tables, db_tables, subsystem_dir):
     non_empty_tables = {k:v for (k,v) in db_tables.items() if v > 0}
     if incl_tables:
         for tbl in incl_tables:
@@ -211,12 +212,12 @@ def table_check(incl_tables, skip_tables, sync_tables, db_tables, subsystem_dir)
             else:
                 print_and_exit("Table '" + tbl + "' is empty or not in schema. Exiting.") 
     
-    if sync_tables:
-        for tbl in sync_tables:
+    if overwrite_tables:
+        for tbl in overwrite_tables:
             if tbl not in non_empty_tables:
                 print_and_exit("Table '" + tbl + "' is empty or not in source schema. Exiting.")
 
-    return non_empty_tables, sync_tables    
+    return non_empty_tables, overwrite_tables    
  
 
 
@@ -249,7 +250,7 @@ def get_target_tables(jdbc):
     return target_tables
 
 
-def get_primary_keys(subsystem_dir, export_tables,sync_tables):  
+def get_primary_keys(subsystem_dir, export_tables):  
     pk_dict = {}
     schema_file = subsystem_dir + '/documentation/metadata.xml'
     tree = ET.parse(schema_file)
@@ -270,10 +271,7 @@ def get_primary_keys(subsystem_dir, export_tables,sync_tables):
             if primary_key.text == 'true':
                 pk_list.append(column_name.text)
 
-        if not pk_list:
-            if table_name.text in sync_tables:
-                print_and_exit("Table '" + table_name.text + "' has no primary key and cannot be synced. Exiting.")
-        else:                
+        if pk_list:              
             pk_dict[table_name.text] = pk_list
 
     return pk_dict
@@ -305,14 +303,14 @@ def run_select(jdbc, sql):
     return result
 
 
-def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tables, bin_dir, table_columns, sync_tables, DDL_GEN): 
+def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN): 
     blob_tables = get_blob_tables(subsystem_dir, export_tables)     
     batch = wb_batch(class_path, max_java_heap)
     target_url = 'jdbc:h2:' + subsystem_dir + '/documentation/' + s_jdbc.db_name + '_' +  s_jdbc.db_schema + ';autocommit=off'
     target_url, driver_jar, driver_class = get_db_details(target_url, bin_dir)
     t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
     target_tables = get_target_tables(t_jdbc)
-    pk_dict = get_primary_keys(subsystem_dir, export_tables, sync_tables)
+    pk_dict = get_primary_keys(subsystem_dir, export_tables)
 
     if DDL_GEN == 'PWCode':
         ddl_columns = get_ddl_columns(subsystem_dir)
@@ -321,33 +319,22 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
     std_params = ' -ignoreIdentityColumns=false -removeDefaults=true -commitEvery=1000 ' 
     p_key = '' 
     for table, row_count in export_tables.items():
+        insert = True
         params = mode + std_params
-        source_query = 'SELECT "' + '","'.join(table_columns[table]) + '" FROM "' + s_jdbc.db_schema + '"."' + table + '"' 
+        source_query = 'SELECT ' + ','.join(table_columns[table]) + ' FROM ' + s_jdbc.db_schema + '.' + table
 
-        if table in sync_tables and table in target_tables: # TODO: Test denne med compound key
-            params = '-mode=UPDATE,INSERT' + std_params
-            p_key = ' -keyColumns=' + ', '.join(pk_dict[table]) # WAIT: Trengs det quotes for kolonnenavn her hvis ulovlig navn?
-        elif DDL_GEN == 'SQLWB':                 
-            params = mode + std_params + ' -createTarget=true -dropTarget=true' 
-        elif DDL_GEN == 'PWCode' and table not in target_tables:
-            t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)               
-            ddl = '\nCREATE TABLE "' + table + '"\n(\n' + ddl_columns[table][:-1] + '\n);'
-            if table in pk_dict:
-                for col in pk_dict[table]:
-                    ddl = ddl + '\nCREATE INDEX c_' +  col + ' ON "' + table + '" ("' + col + '");'
-            print(ddl)
-            sql = 'DROP TABLE IF EXISTS "' + table + '"; ' + ddl
-            run_ddl(t_jdbc, sql)
-        else:
+        if table in target_tables and table not in overwrite_tables: 
             t_row_count = target_tables[table]
             if t_row_count == row_count:
                 print("Table '" + table + "' is already exported.")
                 continue
-            elif table in pk_dict: # TODO: Test denne med compound key          
+            elif table in pk_dict:
+                insert = False 
+                print("Syncing table '" + table + "'...")        
                 source_query = source_query + ' WHERE ('
                 target_query = 'SELECT '
                 for col in pk_dict[table]:
-                    source_query = source_query + '"' + col + '", '
+                    source_query = source_query + col + ', '
                     target_query = target_query + '"' + col + '", '
                 source_query = source_query[:-2]
                 target_query = target_query[:-2] + ' FROM "' + table + '";' 
@@ -357,15 +344,31 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
                 if len(pk_dict[table]) > 1: # Compound key
                     source_query = source_query + ') NOT IN (' + ', '.join(map(str, target_values)) + ')' 
                 else:
-                    source_query = source_query + ') NOT IN (' + ','.join(map(str, ([x[0] for x in target_values]))) + ')'                        
+                    source_query = source_query + ') NOT IN (' + ','.join(map(str, ([x[0] for x in target_values]))) + ')' 
+        
+        if insert:   
+            print("Copying table '" + table + "':") 
+            if DDL_GEN == 'SQLWB':  
+                params = mode + std_params + ' -createTarget=true -dropTarget=true' 
+            elif DDL_GEN == 'PWCode':
+                t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)               
+                ddl = '\nCREATE TABLE "' + table + '"\n(\n' + ddl_columns[table][:-1] + '\n);'
+                if table in pk_dict:
+                    for col in pk_dict[table]:
+                        ddl = ddl + '\nCREATE INDEX c_' +  col + ' ON "' + table + '" ("' + col + '");'
+                print(ddl)
+                sql = 'DROP TABLE IF EXISTS "' + table + '"; ' + ddl
+                run_ddl(t_jdbc, sql)
             else:
-                print('hva her')               
+                print_and_exit("Valid values for DDL generation are 'PWCode' and 'SQLWB'. Exiting.")                              
 
-        print("Copying table '" + table + "':")
+        
         batch.runScript("WbConnect -url='" + s_jdbc.url + "' -password=" + s_jdbc.pwd + ";")
-        target_conn = '"username=,password=,url=' + target_url + ';" ' + params 
+        target_conn = '"username=,password=,url=' + target_url + '" ' + params 
         target_table = '"' + table + '"'
-        copy_data_str = "WbCopy -targetConnection=" + target_conn + " -targetSchema=PUBLIC -targetTable=" + target_table + " -sourceQuery='" + source_query + "'" + p_key + ";" 
+        copy_data_str = "WbCopy -targetConnection=" + target_conn + " -targetSchema=PUBLIC -targetTable=" + target_table + " -sourceQuery=" + source_query + p_key + ";" 
+        # print(copy_data_str)
+        # sys.exit()
         result = batch.runScript(copy_data_str) 
         batch.runScript("WbDisconnect;")
         jp.java.lang.System.gc()
