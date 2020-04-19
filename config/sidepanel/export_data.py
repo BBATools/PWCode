@@ -2,7 +2,6 @@
 ### SYSTEM ###
 SYSTEM_NAME = 'test2' # Will also be the name of the generated data package
 EXPORT_TYPE = 'DATABASE' # DATABASE | FILES | BOTH
-OVERWRITE = True # Overwrite extracted data if previous export detected
 PACKAGE = False # Set to true when all export runs are done to package as a wim or tar file with checksum
 # TODO: Lag kode for package valg
 
@@ -32,6 +31,7 @@ SYNC_TABLES =     [
 
 ### FILES ###
 SUB_NAME = 'dir1' # Name of subsystem. Not needed or used if a combined database/files export
+# TODO: Test å bruke denne heller: https://stackoverflow.com/questions/49757063/truncate-path-in-python
 # Extract all files from these directories:
 DIR_PATHS =         [
 #                            "path/to/extract/on/linux", 
@@ -78,7 +78,7 @@ if __name__ == '__main__':
     
         if DIR_PATHS and EXPORT_TYPE != 'DATABASE':
             # Extract files from paths:
-            capture_dirs(subsystem_dir, config_dir, DIR_PATHS, OVERWRITE)   
+            capture_dirs(subsystem_dir, config_dir, DIR_PATHS)   
 
         if DB_NAME and DB_SCHEMA and JDBC_URL and EXPORT_TYPE != 'FILES':
             # Get details for database type:
@@ -99,7 +99,7 @@ if __name__ == '__main__':
 
                     if export_tables:
                          # Copy schema data:
-                        copy_db_schema(subsystem_dir, jdbc, OVERWRITE, class_path, MAX_JAVA_HEAP, export_tables, bin_dir, table_columns, sync_tables, DDL_GEN)
+                        copy_db_schema(subsystem_dir, jdbc, class_path, MAX_JAVA_HEAP, export_tables, bin_dir, table_columns, sync_tables, DDL_GEN)
                     else:
                         print_and_exit('No table data to export. Exiting.')  
                     
@@ -112,7 +112,10 @@ if __name__ == '__main__':
         print_and_exit('Missing system name. Exiting.')
 
 
-    print_and_exit('Data copied. Create system data package now if finished extracting all system data.') 
+    print_and_exit('All data copied. Create system data package now if finished extracting system data.') 
+
+
+
 
 
 

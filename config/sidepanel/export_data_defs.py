@@ -51,17 +51,15 @@ def get_db_details(jdbc_url, bin_dir):
     return jdbc_url, driver_jar, driver_class
 
 
-def capture_dirs(subsystem_dir, config_dir, dir_paths, overwrite):
+def capture_dirs(subsystem_dir, config_dir, dir_paths):
     i = 0
     for source_path in dir_paths:
         if os.path.isdir(source_path):
             i += 1
             target_path = subsystem_dir + '/content/documents/' + "dir" + str(i) + ".wim"
             print(target_path)
-            if not os.path.isfile(target_path) or overwrite == True:
+            if not os.path.isfile(target_path):
                 capture_files(config_dir, source_path, target_path)
-            else:
-                print_and_exit(target_path + ' already exists. Exiting.')
         else:
             print_and_exit(source_path + ' is not a valid path. Exiting.')    
 
@@ -85,6 +83,9 @@ def get_tables(conn, schema):
 
 def export_schema(class_path, max_java_heap, subsystem_dir, jdbc):
     base_dir = subsystem_dir + '/documentation/'
+    if os.path.isfile(base_dir + 'metadata.xml'):
+        return
+
     init_jvm(class_path, max_java_heap) # Start Java virtual machine
     WbManager = jp.JPackage('workbench').WbManager
     WbManager.prepareForEmbedded()
@@ -232,17 +233,23 @@ def wb_batch(class_path, max_java_heap):
 
 
 def get_target_tables(jdbc):
-    tables = {}
-    conn= jdbc.connection                        
+    target_tables = {}
+    conn = jdbc.connection                        
     cursor = conn.cursor()                        
-    tables = get_tables(conn, jdbc.db_schema)            
+    tables = get_tables(conn, jdbc.db_schema)
+
+    # Get row count per table:
+    for table in tables:
+        cursor.execute('SELECT COUNT(*) from "' + table + '";')
+        (row_count,)=cursor.fetchone()
+        target_tables[table] = row_count
 
     cursor.close()
     conn.close()
-    return tables
+    return target_tables
 
 
-def get_primary_keys(subsystem_dir, sync_tables):  
+def get_primary_keys(subsystem_dir, export_tables,sync_tables):  
     pk_dict = {}
     schema_file = subsystem_dir + '/documentation/metadata.xml'
     tree = ET.parse(schema_file)
@@ -251,7 +258,7 @@ def get_primary_keys(subsystem_dir, sync_tables):
     for table_def in table_defs:
         table_name = table_def.find("table-name") 
         pk = False
-        if table_name.text not in sync_tables:
+        if table_name.text not in export_tables:
             continue
 
         pk_list = []
@@ -264,13 +271,15 @@ def get_primary_keys(subsystem_dir, sync_tables):
                 pk_list.append(column_name.text)
 
         if not pk_list:
-            print_and_exit("Table '" + table_name.text + "' has no primary key and cannot be synced. Exiting.")
-        pk_dict[table_name.text] = ', '.join(sorted(pk_list)) 
+            if table_name.text in sync_tables:
+                print_and_exit("Table '" + table_name.text + "' has no primary key and cannot be synced. Exiting.")
+        else:                
+            pk_dict[table_name.text] = pk_list
 
     return pk_dict
 
 
-def run_sql(jdbc, sql):
+def run_ddl(jdbc, sql):
     result = 'Success'
     try:
         conn = jdbc.connection                        
@@ -283,24 +292,27 @@ def run_sql(jdbc, sql):
         result = e
 
     if result != 'Success':
-        print_and_exit(result)             
+        print_and_exit(result)  
 
 
-def copy_db_schema(subsystem_dir, s_jdbc, overwrite, class_path, max_java_heap, export_tables, bin_dir, table_columns, sync_tables, DDL_GEN): 
-    if not overwrite:
-        target_path = subsystem_dir + '/documentation/' + s_jdbc.db_name + '_' +  s_jdbc.db_schema + '.mv.db'
-        if os.path.isfile(target_path):
-            print_and_exit("'" + target_path + "' already exists. Exiting")        
+def run_select(jdbc, sql):
+    conn = jdbc.connection                        
+    cursor = conn.cursor()  
+    cursor.execute(sql)  
+    result = cursor.fetchall()               
+    cursor.close()
+    conn.close()
+    return result
 
-    # TODO: Avvent hva som skal gjøres når blob (sync virket ikke bra nok)
+
+def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tables, bin_dir, table_columns, sync_tables, DDL_GEN): 
     blob_tables = get_blob_tables(subsystem_dir, export_tables)     
     batch = wb_batch(class_path, max_java_heap)
     target_url = 'jdbc:h2:' + subsystem_dir + '/documentation/' + s_jdbc.db_name + '_' +  s_jdbc.db_schema + ';autocommit=off'
-
     target_url, driver_jar, driver_class = get_db_details(target_url, bin_dir)
     t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
     target_tables = get_target_tables(t_jdbc)
-    pk_dict = get_primary_keys(subsystem_dir, sync_tables)
+    pk_dict = get_primary_keys(subsystem_dir, export_tables, sync_tables)
 
     if DDL_GEN == 'PWCode':
         ddl_columns = get_ddl_columns(subsystem_dir)
@@ -310,24 +322,48 @@ def copy_db_schema(subsystem_dir, s_jdbc, overwrite, class_path, max_java_heap, 
     p_key = '' 
     for table, row_count in export_tables.items():
         params = mode + std_params
-        if overwrite and table in sync_tables and table in target_tables:
-            params = '-mode=UPDATE,INSERT' + std_params
-            p_key = ' -keyColumns="' + pk_dict[table] + '"'
-        elif overwrite and DDL_GEN == 'SQLWB':                 
-                params = mode + std_params + ' -createTarget=true -dropTarget=true' 
+        source_query = 'SELECT "' + '","'.join(table_columns[table]) + '" FROM "' + s_jdbc.db_schema + '"."' + table + '"' 
 
-        if DDL_GEN == 'PWCode' and (overwrite or table not in target_tables):
+        if table in sync_tables and table in target_tables: # TODO: Test denne med compound key
+            params = '-mode=UPDATE,INSERT' + std_params
+            p_key = ' -keyColumns=' + ', '.join(pk_dict[table]) # WAIT: Trengs det quotes for kolonnenavn her hvis ulovlig navn?
+        elif DDL_GEN == 'SQLWB':                 
+            params = mode + std_params + ' -createTarget=true -dropTarget=true' 
+        elif DDL_GEN == 'PWCode' and table not in target_tables:
             t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)               
             ddl = '\nCREATE TABLE "' + table + '"\n(\n' + ddl_columns[table][:-1] + '\n);'
+            if table in pk_dict:
+                for col in pk_dict[table]:
+                    ddl = ddl + '\nCREATE INDEX c_' +  col + ' ON "' + table + '" ("' + col + '");'
             print(ddl)
             sql = 'DROP TABLE IF EXISTS "' + table + '"; ' + ddl
-            run_sql(t_jdbc, sql)
-           
+            run_ddl(t_jdbc, sql)
+        else:
+            t_row_count = target_tables[table]
+            if t_row_count == row_count:
+                print("Table '" + table + "' is already exported.")
+                continue
+            elif table in pk_dict: # TODO: Test denne med compound key          
+                source_query = source_query + ' WHERE ('
+                target_query = 'SELECT '
+                for col in pk_dict[table]:
+                    source_query = source_query + '"' + col + '", '
+                    target_query = target_query + '"' + col + '", '
+                source_query = source_query[:-2]
+                target_query = target_query[:-2] + ' FROM "' + table + '";' 
+
+                t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)  
+                target_values = run_select(t_jdbc, target_query)
+                if len(pk_dict[table]) > 1: # Compound key
+                    source_query = source_query + ') NOT IN (' + ', '.join(map(str, target_values)) + ')' 
+                else:
+                    source_query = source_query + ') NOT IN (' + ','.join(map(str, ([x[0] for x in target_values]))) + ')'                        
+            else:
+                print('hva her')               
+
         print("Copying table '" + table + "':")
         batch.runScript("WbConnect -url='" + s_jdbc.url + "' -password=" + s_jdbc.pwd + ";")
         target_conn = '"username=,password=,url=' + target_url + ';" ' + params 
-        source_query = 'SELECT "' + '","'.join(table_columns[table]) + '" FROM "' + s_jdbc.db_schema + '"."' + table + '"' 
-
         target_table = '"' + table + '"'
         copy_data_str = "WbCopy -targetConnection=" + target_conn + " -targetSchema=PUBLIC -targetTable=" + target_table + " -sourceQuery='" + source_query + "'" + p_key + ";" 
         result = batch.runScript(copy_data_str) 
@@ -335,42 +371,8 @@ def copy_db_schema(subsystem_dir, s_jdbc, overwrite, class_path, max_java_heap, 
         jp.java.lang.System.gc()
         if str(result) == 'Error':
             print_and_exit("Error on copying table '" + table + "'\nScroll up for details.")
-        
-    print('\nDatabase copy finished. Verifying data...')  
-    verify_db_copy(class_path, max_java_heap, target_url, bin_dir, export_tables)   
 
-
-def verify_db_copy(class_path, max_java_heap, target_url, bin_dir, export_tables):
-    # Check if row count matches source database:
-    init_jvm(class_path, max_java_heap) # Start Java virtual machine if not started already
-    url, driver_jar, driver_class = get_db_details(target_url, bin_dir)
-    jdbc = Jdbc(url, '', '', None, 'PUBLIC', driver_jar, driver_class, True, True)
-    target_tables = {}
-    if jdbc:
-        conn= jdbc.connection                        
-        cursor = conn.cursor()                        
-        tables = get_tables(conn, jdbc.db_schema)
-
-        # Get row count per table:
-        for table in tables:
-            cursor.execute("SELECT COUNT(*) from " + table)
-            (row_count,)=cursor.fetchone()
-            target_tables[table] = row_count          
-
-        cursor.close()
-        conn.close()
-
-        row_errors = 0
-        for table, row_count in export_tables.items():
-            if table in target_tables:
-                if not target_tables[table] == row_count:
-                    print("Row count mismatch for table '" + table + "'")
-                    row_errors += 1
-            else:
-                print("'" + table + "' missing from database copy.")
-
-        if row_errors == 0:
-            print_and_exit('Copied data rows matches source database. Create system data package now if finished extracting all system data.') 
+    print('Database export complete.')            
 
 
 # WAIT: Mangler disse for å ha alle i JDBC 4.0: ROWID=-8 og SQLXML=2009
@@ -404,7 +406,8 @@ jdbc_to_iso_data_type = {
                          '2011' : 'clob',               # NCLOB
 }            
 
-
+# WAIT: Sortere long raw sist eller først for å unngå bug i driver?
+# -> https://blog.jooq.org/tag/long-raw/
 def get_ddl_columns(subsystem_dir):
     ddl_columns = {}
     schema_file = subsystem_dir + '/documentation/metadata.xml'
