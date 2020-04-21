@@ -338,7 +338,7 @@ def gen_sync_table(table, columns, target_url, driver_jar, driver_class, source_
     target_query = 'SELECT '
 
     for col in columns:
-        source_query = source_query + col + ', '
+        source_query = source_query + '"' + col + '", '
         target_query = target_query + '"' + col + '", '
 
     source_query = source_query[:-2]
