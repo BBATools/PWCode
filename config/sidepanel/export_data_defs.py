@@ -258,7 +258,6 @@ def get_primary_keys(subsystem_dir, export_tables):
     table_defs = tree.findall("table-def")
     for table_def in table_defs:
         table_name = table_def.find("table-name") 
-        pk = False
         if table_name.text not in export_tables:
             continue
 
@@ -275,6 +274,35 @@ def get_primary_keys(subsystem_dir, export_tables):
             pk_dict[table_name.text] = pk_list
 
     return pk_dict
+
+
+def get_unique_indexes(subsystem_dir, export_tables):    
+    unique_dict = {}
+    schema_file = subsystem_dir + '/documentation/metadata.xml'
+    tree = ET.parse(schema_file)
+
+    table_defs = tree.findall("table-def")
+    for table_def in table_defs:
+        table_name = table_def.find("table-name") 
+        if table_name.text not in export_tables:
+            continue
+
+        index_defs = table_def.findall("index-def")
+        for index_def in index_defs:
+            unique = index_def.find('unique')
+            primary_key = index_def.find('primary-key')
+            index_name = index_def.find('name')
+
+            unique_col_list = []
+            if unique.text == 'true' and primary_key.text == 'false':
+                index_column_names = index_def.findall("column-list/column")
+                for index_column_name in index_column_names:
+                    unique_constraint_name = index_column_name.attrib['name']    
+                    unique_col_list.append(unique_constraint_name)   
+                unique_dict[table_name.text] = unique_col_list 
+                break # Only need one unique column
+
+    return unique_dict
 
 
 def run_ddl(jdbc, sql):
@@ -303,6 +331,40 @@ def run_select(jdbc, sql):
     return result
 
 
+def gen_sync_table(table, columns, target_url, driver_jar, driver_class, source_query):
+    insert = False 
+    print("Syncing table '" + table + "'...")        
+    source_query = source_query + ' WHERE ('
+    target_query = 'SELECT '
+
+    for col in columns:
+        source_query = source_query + col + ', '
+        target_query = target_query + '"' + col + '", '
+
+    source_query = source_query[:-2]
+    target_query = target_query[:-2] + ' FROM "' + table + '";' 
+
+    t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)  
+    target_values = run_select(t_jdbc, target_query)
+    if len(columns) > 1: # Compound key
+        source_query = source_query + ') NOT IN (' + ', '.join(map(str, target_values)) + ')' 
+    else:
+        source_query = source_query + ") NOT IN ('" + "','".join(map(str, ([x[0] for x in target_values]))) + "')"   
+
+    return source_query   
+
+
+def create_index(table, pk_dict, unique_dict, ddl): 
+    if table in pk_dict:
+        for col in pk_dict[table]:
+            ddl = ddl + '\nCREATE INDEX c_' +  col + ' ON "' + table + '" ("' + col + '");' 
+    if table in unique_dict:
+        for col in unique_dict[table]:
+            ddl = ddl + '\nCREATE INDEX c_' +  col + ' ON "' + table + '" ("' + col + '");' 
+
+    return ddl                                     
+
+
 def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN): 
     blob_tables = get_blob_tables(subsystem_dir, export_tables)     
     batch = wb_batch(class_path, max_java_heap)
@@ -311,6 +373,7 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
     t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
     target_tables = get_target_tables(t_jdbc)
     pk_dict = get_primary_keys(subsystem_dir, export_tables)
+    unique_dict = get_unique_indexes(subsystem_dir, export_tables)
 
     if DDL_GEN == 'PWCode':
         ddl_columns = get_ddl_columns(subsystem_dir)
@@ -321,30 +384,19 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
     for table, row_count in export_tables.items():
         insert = True
         params = mode + std_params
-        source_query = 'SELECT ' + ','.join(table_columns[table]) + ' FROM ' + s_jdbc.db_schema + '.' + table
+        source_query = 'SELECT "' + '","'.join(table_columns[table]) + '" FROM "' + s_jdbc.db_schema + '"."' + table + '"'
 
         if table in target_tables and table not in overwrite_tables: 
             t_row_count = target_tables[table]
             if t_row_count == row_count:
                 print("Table '" + table + "' is already exported.")
                 continue
-            elif table in pk_dict:
+            elif table in pk_dict:  
+                source_query = gen_sync_table(table, pk_dict[table], target_url, driver_jar, driver_class, source_query)         
                 insert = False 
-                print("Syncing table '" + table + "'...")        
-                source_query = source_query + ' WHERE ('
-                target_query = 'SELECT '
-                for col in pk_dict[table]:
-                    source_query = source_query + col + ', '
-                    target_query = target_query + '"' + col + '", '
-                source_query = source_query[:-2]
-                target_query = target_query[:-2] + ' FROM "' + table + '";' 
-
-                t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)  
-                target_values = run_select(t_jdbc, target_query)
-                if len(pk_dict[table]) > 1: # Compound key
-                    source_query = source_query + ') NOT IN (' + ', '.join(map(str, target_values)) + ')' 
-                else:
-                    source_query = source_query + ') NOT IN (' + ','.join(map(str, ([x[0] for x in target_values]))) + ')' 
+            elif table in unique_dict:
+                source_query = gen_sync_table(table, unique_dict[table], target_url, driver_jar, driver_class, source_query)   
+                insert = False 
         
         if insert:   
             print("Copying table '" + table + "':") 
@@ -353,22 +405,17 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
             elif DDL_GEN == 'PWCode':
                 t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)               
                 ddl = '\nCREATE TABLE "' + table + '"\n(\n' + ddl_columns[table][:-1] + '\n);'
-                if table in pk_dict:
-                    for col in pk_dict[table]:
-                        ddl = ddl + '\nCREATE INDEX c_' +  col + ' ON "' + table + '" ("' + col + '");'
+                ddl = create_index(table, pk_dict, unique_dict, ddl)
                 print(ddl)
                 sql = 'DROP TABLE IF EXISTS "' + table + '"; ' + ddl
                 run_ddl(t_jdbc, sql)
             else:
                 print_and_exit("Valid values for DDL generation are 'PWCode' and 'SQLWB'. Exiting.")                              
 
-        
         batch.runScript("WbConnect -url='" + s_jdbc.url + "' -password=" + s_jdbc.pwd + ";")
         target_conn = '"username=,password=,url=' + target_url + '" ' + params 
         target_table = '"' + table + '"'
         copy_data_str = "WbCopy -targetConnection=" + target_conn + " -targetSchema=PUBLIC -targetTable=" + target_table + " -sourceQuery=" + source_query + p_key + ";" 
-        # print(copy_data_str)
-        # sys.exit()
         result = batch.runScript(copy_data_str) 
         batch.runScript("WbDisconnect;")
         jp.java.lang.System.gc()
@@ -392,8 +439,8 @@ jdbc_to_iso_data_type = {
                          '-2'   : 'blob',               # BINARY                      
                          '-1'   : 'clob',               # LONGVARCHAR
                          '1'    : 'varchar',            # CHAR
-                         '2'    : 'numeric',            # NUMERIC  # TODO: Se xslt for ekstra nyanser på denne  
-                         '3'    : 'decimal',            # DECIMAL  # TODO: Se xslt for ekstra nyanser på denne    
+                         '2'    : 'numeric',            # NUMERIC 
+                         '3'    : 'decimal',            # DECIMAL
                          '4'    : 'integer',            # INTEGER 
                          '5'    : 'integer',            # SMALLINT
                          '6'    : 'float',              # FLOAT   
