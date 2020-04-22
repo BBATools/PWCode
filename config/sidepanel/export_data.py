@@ -5,6 +5,16 @@ EXPORT_TYPE = 'BOTH' # DATABASE | FILES | BOTH
 PACKAGE = False # Set to true when all export runs are done to package as a wim or tar file with checksum
 # TODO: Lag kode for package valg
 
+### FILES ###
+SUB_NAME = 'dir1' # Name of subsystem. Not needed or used if a combined database/files export
+# TODO: Test å bruke denne heller: https://stackoverflow.com/questions/49757063/truncate-path-in-python
+# Extract all files from these directories:
+DIR_PATHS =         [
+#                            "path/to/extract/on/linux", 
+                            "/home/bba/Downloads/python/",        
+#                            "c:\path\on\windows"
+                    ]
+
 ### DATABASE ###
 DB_NAME = 'DOCULIVEHIST_DBO'
 DB_SCHEMA = 'PUBLIC'
@@ -20,25 +30,14 @@ SKIP_TABLES =       [
                     ]
 # Copy only these tables (overrides 'SKIP_TABLES') :
 INCL_TABLES =       [
-#                            'EDOKFILES',
+                            'EDOKFILES',
 #                            'ALL',
                     ]
-# Sync these tables rather than drop and insert:
+# Overwrite table rather than sync if exists in target:
 OVERWRITE_TABLES =  [
-#                            'EDOKFILES',
-#                            'ALL',
+                            'EDOKFILES',
+#                            'OA_SAK',
                     ]
-
-### FILES ###
-SUB_NAME = 'dir1' # Name of subsystem. Not needed or used if a combined database/files export
-# TODO: Test å bruke denne heller: https://stackoverflow.com/questions/49757063/truncate-path-in-python
-# Extract all files from these directories:
-DIR_PATHS =         [
-#                            "path/to/extract/on/linux", 
-                            "/home/bba/Downloads/python/",        
-#                            "c:\path\on\windows"
-                    ]
-
 
 ################# CODE #################
 
@@ -80,39 +79,33 @@ if __name__ == '__main__':
             # Extract files from paths:
             capture_dirs(subsystem_dir, config_dir, DIR_PATHS)   
 
+        # Export database schema:
         if DB_NAME and DB_SCHEMA and JDBC_URL and EXPORT_TYPE != 'FILES':
-            # Get details for database type:
-            url, driver_jar, driver_class = get_db_details(JDBC_URL, bin_dir)
-            if driver_jar and driver_class:
-                # Start Java virtual machine if not started already:
-                class_paths = class_path + ':' + driver_jar
-                init_jvm(class_paths, MAX_JAVA_HEAP) 
-
-                try:
-                    jdbc = Jdbc(url, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, driver_jar, driver_class, True, True)
-                    if jdbc:                
-                        # Get database metadata:
-                        db_tables, table_columns = get_db_meta(jdbc)   
-                        export_schema(class_path, MAX_JAVA_HEAP, subsystem_dir, jdbc)   
-                        add_row_count_to_schema_file(subsystem_dir, db_tables)          
-                        export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables, subsystem_dir)   
-
-                    if export_tables:
-                         # Copy schema data:
-                        copy_db_schema(subsystem_dir, jdbc, class_path, MAX_JAVA_HEAP, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN)
-                    else:
-                        print_and_exit('No table data to export. Exiting.')  
-                    
-                except Exception as e:
-                    print_and_exit(e)
-
-            else:
-                print_and_exit('Not a supported jdbc url. Exiting')
+            export_db_schema(
+                JDBC_URL, 
+                bin_dir, 
+                class_path, 
+                MAX_JAVA_HEAP, 
+                DB_USER, 
+                DB_PASSWORD, 
+                DB_NAME, 
+                DB_SCHEMA, 
+                subsystem_dir, 
+                INCL_TABLES, 
+                SKIP_TABLES, 
+                OVERWRITE_TABLES, 
+                DDL_GEN)
     else:
         print_and_exit('Missing system name. Exiting.')
 
-
     print_and_exit('All data copied. Create system data package now if finished extracting system data.') 
+
+
+
+
+
+
+
 
 
 

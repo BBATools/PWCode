@@ -1,2 +1,0 @@
-#! /bin/bash
-"../../bin/vendor/linux/python/usr/bin/python3.8" "$@"

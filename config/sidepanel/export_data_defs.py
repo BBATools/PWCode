@@ -82,7 +82,7 @@ def get_tables(conn, schema):
     return tables   
 
 
-def export_schema(class_path, max_java_heap, subsystem_dir, jdbc):
+def export_schema(class_path, max_java_heap, subsystem_dir, jdbc, db_tables):
     base_dir = subsystem_dir + '/documentation/'
     if os.path.isfile(base_dir + 'metadata.xml'):
         return
@@ -98,11 +98,40 @@ def export_schema(class_path, max_java_heap, subsystem_dir, jdbc):
     gen_report_str = "WbSchemaReport -file=metadata.xml -schemas=" + jdbc.db_schema + " -types=SYNONYM,TABLE,VIEW -includeProcedures=true \
                             -includeTriggers=true -writeFullSource=true;"
     batch.runScript(gen_report_str) 
+    add_row_count_to_schema_file(subsystem_dir, db_tables)  
 
 
 def print_and_exit(msg):
     print(msg)
     sys.exit()
+
+
+def export_db_schema(JDBC_URL, bin_dir, class_path, MAX_JAVA_HEAP, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, subsystem_dir, INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, DDL_GEN):
+    url, driver_jar, driver_class = get_db_details(JDBC_URL, bin_dir)
+    if driver_jar and driver_class:
+        # Start Java virtual machine if not started already:
+        class_paths = class_path + ':' + driver_jar
+        init_jvm(class_paths, MAX_JAVA_HEAP) 
+
+        try:
+            jdbc = Jdbc(url, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, driver_jar, driver_class, True, True)
+            if jdbc:                
+                # Get database metadata:
+                db_tables, table_columns = get_db_meta(jdbc)   
+                export_schema(class_path, MAX_JAVA_HEAP, subsystem_dir, jdbc, db_tables)           
+                export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables, subsystem_dir)   
+
+            if export_tables:
+                    # Copy schema data:
+                copy_db_schema(subsystem_dir, jdbc, class_path, MAX_JAVA_HEAP, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN)
+            else:
+                print_and_exit('No table data to export. Exiting.')  
+            
+        except Exception as e:
+            print_and_exit(e)          
+
+    else:
+        print_and_exit('Not a supported jdbc url. Exiting')    
 
 
 def get_db_meta(jdbc):
@@ -111,7 +140,7 @@ def get_db_meta(jdbc):
     conn= jdbc.connection                        
     cursor = conn.cursor()                        
     tables = get_tables(conn, jdbc.db_schema)
-
+    
     # Get row count per table:
     for table in tables:
         cursor.execute('SELECT COUNT(*) from "' + table + '";')
@@ -119,14 +148,16 @@ def get_db_meta(jdbc):
         db_tables[table] = row_count
 
         # Get column names per table:
-        cursor.execute('SELECT * from "' + table + '" limit 1') # WAIT: TOP eller rownum når mssql, oracle
+        cursor.execute('SELECT * from "' + table + '"')
         columns = [desc[0] for desc in cursor.description]
-        table_columns[table] = columns              
+
+        for column in columns:
+            table_columns[table] = columns              
 
     cursor.close()
     conn.close()
     return db_tables, table_columns  
-
+    
 
 def indent(elem, level=0):
     i = "\n" + level * "  "
@@ -171,29 +202,6 @@ def add_row_count_to_schema_file(subsystem_dir, db_tables):
     root = tree.getroot()
     indent(root)
     tree.write(schema_file)  
-
-
-def get_blob_tables(subsystem_dir, export_tables):  
-    blob_tables = []
-    schema_file = subsystem_dir + '/documentation/metadata.xml'
-    tree = ET.parse(schema_file)
-
-    table_defs = tree.findall("table-def")
-    for table_def in table_defs:
-        table_name = table_def.find("table-name") 
-        blobs = False
-        if table_name.text not in export_tables:
-            continue
-
-        column_defs = table_def.findall("column-def")
-        for column_def in column_defs:
-            java_sql_type = column_def.find('java-sql-type') 
-            if int(java_sql_type.text) in (-4,-3,-2,2004,2005,2011):
-                blob_tables.append(table_name.text)
-                blobs = True
-                continue
-
-    return blob_tables 
 
 
 def table_check(incl_tables, skip_tables, overwrite_tables, db_tables, subsystem_dir):
@@ -248,6 +256,32 @@ def get_target_tables(jdbc):
     cursor.close()
     conn.close()
     return target_tables
+
+
+def get_blob_columns(subsystem_dir, export_tables):  
+    blob_columns = {}
+    schema_file = subsystem_dir + '/documentation/metadata.xml'
+    tree = ET.parse(schema_file)
+
+    table_defs = tree.findall("table-def")
+    for table_def in table_defs:
+        table_name = table_def.find("table-name") 
+        blobs = False
+        if table_name.text not in export_tables:
+            continue
+
+        columns = []
+        column_defs = table_def.findall("column-def")
+        for column_def in column_defs:
+            column_name = column_def.find('column-name')
+            java_sql_type = column_def.find('java-sql-type') 
+            if int(java_sql_type.text) in (-4,-3,-2,2004,2005,2011):
+                columns.append(column_name.text)
+
+        if columns:
+            blob_columns[table_name.text] = columns                
+
+    return blob_columns 
 
 
 def get_primary_keys(subsystem_dir, export_tables):  
@@ -366,7 +400,6 @@ def create_index(table, pk_dict, unique_dict, ddl):
 
 
 def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN): 
-    blob_tables = get_blob_tables(subsystem_dir, export_tables)     
     batch = wb_batch(class_path, max_java_heap)
     target_url = 'jdbc:h2:' + subsystem_dir + '/documentation/' + s_jdbc.db_name + '_' +  s_jdbc.db_schema + ';autocommit=off'
     target_url, driver_jar, driver_class = get_db_details(target_url, bin_dir)
@@ -374,23 +407,32 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
     target_tables = get_target_tables(t_jdbc)
     pk_dict = get_primary_keys(subsystem_dir, export_tables)
     unique_dict = get_unique_indexes(subsystem_dir, export_tables)
+    blob_columns = get_blob_columns(subsystem_dir, export_tables)
 
     if DDL_GEN == 'PWCode':
         ddl_columns = get_ddl_columns(subsystem_dir)
     
     mode = '-mode=INSERT'
     std_params = ' -ignoreIdentityColumns=false -removeDefaults=true -commitEvery=1000 ' 
-    p_key = '' 
+    previous_export = []
     for table, row_count in export_tables.items():
         insert = True
         params = mode + std_params
-        source_query = 'SELECT "' + '","'.join(table_columns[table]) + '" FROM "' + s_jdbc.db_schema + '"."' + table + '"'
+
+        col_query = ''
+        if table in blob_columns:
+            for column in blob_columns[table]:
+                col_query = ',LENGTH("' + column + '") AS ' + column.upper() + '_BLOB_LENGTH_PWCODE'
+
+        source_query = 'SELECT "' + '","'.join(table_columns[table]) + '"' + col_query + ' FROM "' + s_jdbc.db_schema + '"."' + table + '"'
 
         if table in target_tables and table not in overwrite_tables: 
             t_row_count = target_tables[table]
             if t_row_count == row_count:
-                print("Table '" + table + "' is already exported.")
+                previous_export.append(table)
                 continue
+            elif t_row_count > row_count:
+                print_and_exit("Error. More data in target than in source. Table '" + table + "'. Exiting.")
             elif table in pk_dict:  
                 source_query = gen_sync_table(table, pk_dict[table], target_url, driver_jar, driver_class, source_query)         
                 insert = False 
@@ -410,19 +452,31 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
                 sql = 'DROP TABLE IF EXISTS "' + table + '"; ' + ddl
                 run_ddl(t_jdbc, sql)
             else:
-                print_and_exit("Valid values for DDL generation are 'PWCode' and 'SQLWB'. Exiting.")                              
+                print_and_exit("Valid values for DDL generation are 'PWCode' and 'SQLWB'. Exiting.") 
+
+            if table in blob_columns:
+                for column in blob_columns[table]:
+                    t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)               
+                    sql = 'ALTER TABLE "' + table + '" ADD COLUMN ' + column.upper() + '_BLOB_LENGTH_PWCODE VARCHAR(255);'
+                    run_ddl(t_jdbc, sql)
+
 
         batch.runScript("WbConnect -url='" + s_jdbc.url + "' -password=" + s_jdbc.pwd + ";")
         target_conn = '"username=,password=,url=' + target_url + '" ' + params 
         target_table = '"' + table + '"'
-        copy_data_str = "WbCopy -targetConnection=" + target_conn + " -targetSchema=PUBLIC -targetTable=" + target_table + " -sourceQuery=" + source_query + p_key + ";" 
-        result = batch.runScript(copy_data_str) 
+        copy_data_str = "WbCopy -targetConnection=" + target_conn + " -targetSchema=PUBLIC -targetTable=" + target_table + " -sourceQuery=" + source_query + ";" 
+        result = batch.runScript(copy_data_str)    
         batch.runScript("WbDisconnect;")
         jp.java.lang.System.gc()
         if str(result) == 'Error':
             print_and_exit("Error on copying table '" + table + "'\nScroll up for details.")
 
-    print('Database export complete.')            
+    if len(previous_export) == len(export_tables.keys()):
+        print('All tables already exported.')
+    elif not previous_export:  
+        print('Database export complete.')            
+    else:        
+        print('Database export complete. ' + str(len(previous_export)) + ' of ' + str(len(export_tables.keys())) + ' tables were already exported.')       
 
 
 # WAIT: Mangler disse for å ha alle i JDBC 4.0: ROWID=-8 og SQLXML=2009
