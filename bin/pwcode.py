@@ -105,7 +105,7 @@ if __name__ == "__main__":
 
     # Make paths available to plugins without hard coding:
     os.environ["pwcode_data_dir"] = data_dir
-    os.environ["pwcode_config_dir"] = data_dir    
+    os.environ["pwcode_config_dir"] = config_dir   
     os.environ["pwcode_bin_dir"] = bin_dir
 
     pwcode_icon_file = os.path.join(bin_dir, 'img/arkimint_fin_32px.gif')  # WAIT: Replace icon

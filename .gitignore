@@ -4,6 +4,7 @@ bin/tmp/*
 bin/vendor/linux/*
 bin/vendor/windows/*
 bin/vendor/jdbc/*
+config/tmp/*
 
 # exceptions to above rule
 !projects/.gitkeep

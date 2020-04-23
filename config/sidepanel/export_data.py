@@ -1,7 +1,7 @@
 ############### USER INPUT ###############
 ### SYSTEM ###
 SYSTEM_NAME = 'test2' # Will also be the name of the generated data package
-EXPORT_TYPE = 'FILES' # DATABASE | FILES | BOTH
+EXPORT_TYPE = 'BOTH' # DATABASE | FILES | BOTH
 PACKAGE = False # Set to true when all export runs are done to package as a wim or tar file with checksum
 # TODO: Lag kode for package valg
 
@@ -57,8 +57,11 @@ if __name__ == '__main__':
     overwrite_tables = {} # Overwrite these instead of sync (if exists)
     bin_dir = os.environ["pwcode_bin_dir"] # Get PWCode executable path
     class_path = os.environ['CLASSPATH'] # Get Java jar path
+    data_dir = os.environ["pwcode_data_dir"] # Get PWCode data path (projects)
     config_dir = os.environ["pwcode_config_dir"] # Get PWCode config path
     subsystem_dir = None
+
+    os.chdir(config_dir + 'tmp') # Avoid littering from subprocesses
 
     if SYSTEM_NAME:
         data_dir = os.environ["pwcode_data_dir"] + SYSTEM_NAME # --> projects/[system]
@@ -73,7 +76,7 @@ if __name__ == '__main__':
                 print_and_exit('Missing directory paths. Exiting.')                  
 
         # Create data package directories and extract any files:
-        export_files(data_dir, subsystem_dir, EXPORT_TYPE, SYSTEM_NAME, DIR_PATHS, config_dir) 
+        export_files(data_dir, subsystem_dir, EXPORT_TYPE, SYSTEM_NAME, DIR_PATHS) 
 
         # Export database schema:
         if DB_NAME and DB_SCHEMA and JDBC_URL and EXPORT_TYPE != 'FILES':
@@ -95,6 +98,9 @@ if __name__ == '__main__':
         print_and_exit('Missing system name. Exiting.')
 
     print_and_exit('All data copied. Create system data package now if finished extracting system data.') 
+
+
+
 
 
 
