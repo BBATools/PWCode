@@ -1,18 +1,18 @@
 ############### USER INPUT ###############
 ### SYSTEM ###
 SYSTEM_NAME = 'test2' # Will also be the name of the generated data package
-EXPORT_TYPE = 'BOTH' # DATABASE | FILES | BOTH
+EXPORT_TYPE = 'FILES' # DATABASE | FILES | BOTH
 PACKAGE = False # Set to true when all export runs are done to package as a wim or tar file with checksum
 # TODO: Lag kode for package valg
 
 ### FILES ###
-SUB_NAME = 'dir1' # Name of subsystem. Not needed or used if a combined database/files export
-# TODO: Test å bruke denne heller: https://stackoverflow.com/questions/49757063/truncate-path-in-python
 # Extract all files from these directories:
 DIR_PATHS =         [
-#                            "path/to/extract/on/linux", 
-                            "/home/bba/Downloads/python/",        
-#                            "c:\path\on\windows"
+#                            'path/to/extract/on/linux', 
+#                            '/home/bba/Downloads/RationalPlan/',
+#                            '/home/bba/Downloads/python/',   
+                            '/home/bba/Downloads/vscode-icons-master/'     
+#                            'c:\path\on\windows'
                     ]
 
 ### DATABASE ###
@@ -58,26 +58,22 @@ if __name__ == '__main__':
     bin_dir = os.environ["pwcode_bin_dir"] # Get PWCode executable path
     class_path = os.environ['CLASSPATH'] # Get Java jar path
     config_dir = os.environ["pwcode_config_dir"] # Get PWCode config path
+    subsystem_dir = None
 
     if SYSTEM_NAME:
         data_dir = os.environ["pwcode_data_dir"] + SYSTEM_NAME # --> projects/[system]
 
-        if SUB_NAME and EXPORT_TYPE == 'FILES':                
-            subsystem_dir = data_dir + '/content/sub_systems/' + SUB_NAME
-        elif DB_NAME and DB_SCHEMA:
-            subsystem_dir = data_dir + '/content/sub_systems/' + DB_NAME + '_' + DB_SCHEMA
-        else:
-            if EXPORT_TYPE == 'FILES':
-                print_and_exit('Missing subsystem name. Exiting.')  
-            else:
+        if EXPORT_TYPE != 'FILES':
+            if not (DB_NAME and DB_SCHEMA):
                 print_and_exit('Missing database- or schema -name. Exiting.')
+            else:
+                subsystem_dir = data_dir + '/content/sub_systems/' + DB_NAME + '_' + DB_SCHEMA
+        
+        if EXPORT_TYPE == 'FILES' and not DIR_PATHS :
+                print_and_exit('Missing directory paths. Exiting.')                  
 
-        # Create data package directories:
-        ensure_dirs(data_dir, subsystem_dir) 
-    
-        if DIR_PATHS and EXPORT_TYPE != 'DATABASE':
-            # Extract files from paths:
-            capture_dirs(subsystem_dir, config_dir, DIR_PATHS)   
+        # Create data package directories and extract any files:
+        export_files(data_dir, subsystem_dir, EXPORT_TYPE, SYSTEM_NAME, DIR_PATHS, config_dir) 
 
         # Export database schema:
         if DB_NAME and DB_SCHEMA and JDBC_URL and EXPORT_TYPE != 'FILES':
@@ -99,6 +95,7 @@ if __name__ == '__main__':
         print_and_exit('Missing system name. Exiting.')
 
     print_and_exit('All data copied. Create system data package now if finished extracting system data.') 
+
 
 
 

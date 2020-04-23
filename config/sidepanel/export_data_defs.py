@@ -1,7 +1,7 @@
 import os, sys, subprocess
 import jpype as jp
 import jpype.imports
-from pathlib import Path
+from pathlib import Path, PurePath
 import xml.etree.ElementTree as ET
 from database.jdbc import Jdbc
 from toposort import toposort, toposort_flatten
@@ -17,29 +17,6 @@ def init_jvm(class_path, max_heap_size):
                             '-ea', max_heap_size,
                             )
 
-def unique_dir(directory):
-    counter = 0
-    while True:
-        counter += 1
-        path = Path(directory + str(counter))
-        if not path.exists():
-            return path 
-
-
-def ensure_dirs(data_dir, subsystem_dir):
-    dirs = [
-                data_dir,
-                data_dir + '/administrative_metadata/',        
-                data_dir + '/descriptive_metadata/',
-                data_dir + '/content/documentation/',
-                subsystem_dir + '/header/',
-                subsystem_dir + '/content/documents/',
-                subsystem_dir + '/documentation/dip/'         
-                ]
-
-    for dir in dirs:            
-        Path(dir).mkdir(parents=True, exist_ok=True) 
-
 
 def get_db_details(jdbc_url, bin_dir):
     if 'jdbc:h2:' in jdbc_url: # H2 database
@@ -48,21 +25,86 @@ def get_db_details(jdbc_url, bin_dir):
         driver_jar = bin_dir + '/vendor/jdbc/h2-1.4.199.jar'            
         driver_class = 'org.h2.Driver'
 
-    return jdbc_url, driver_jar, driver_class
+    return jdbc_url, driver_jar, driver_class                            
 
 
-def capture_dirs(subsystem_dir, config_dir, dir_paths):
-    i = 0
-    for source_path in dir_paths:
-        if os.path.isdir(source_path):
-            i += 1
-            target_path = subsystem_dir + '/content/documents/' + "dir" + str(i) + ".wim"
-            if not os.path.isfile(target_path):
-                capture_files(config_dir, source_path, target_path)
+def get_unique_dir(directory):
+    counter = 0
+    while True:
+        counter += 1
+        path = Path(directory + str(counter))
+        if not path.exists():
+            return str(path)
+
+
+def export_files(data_dir, subsystem_dir, export_type, system_name, dir_paths, config_dir):
+    Path(data_dir + '/content/sub_systems/').mkdir(parents=True, exist_ok=True) 
+    file_export_done = False
+    exported_dirs = []
+    if export_type == 'FILES': 
+        source_paths = set(dir_paths) # Remove duplicates
+        for source_path in source_paths: # Validate source paths
+            if not os.path.isdir(source_path):
+                print_and_exit(source_path + ' is not a valid path. Exiting.')  
+
+        subdirs = os.listdir(data_dir + '/content/sub_systems/') 
+        existing_subsystem = False 
+        for sub_dir in subdirs:
+            source_paths_file = data_dir + '/content/sub_systems/' + sub_dir + '/content/documents/source_paths.txt' 
+            if os.path.isfile(source_paths_file): 
+                exported_dirs = [line.rstrip('\n') for line in open(source_paths_file)]                 
+                count = 0
+                for dir in source_paths:
+                    if dir in exported_dirs:
+                        count += 1
+                        print("'" + dir + "' already exported.")    
+                        existing_subsystem = True
+                        subsystem_dir = data_dir + '/content/sub_systems/' + sub_dir 
+                     
+                if count == len(source_paths):
+                    print("All files already exported to '" + sub_dir + "'. Exiting.")
+                    file_export_done = True
+
             else:
-                print("'" + source_path + "' is already exported.")                
-        else:
-            print_and_exit(source_path + ' is not a valid path. Exiting.')    
+                existing_subsystem = True
+                subsystem_dir = data_dir + '/content/sub_systems/' + sub_dir 
+
+            if existing_subsystem:
+                break                
+
+        if not existing_subsystem:
+            subsystem_dir = get_unique_dir(data_dir + '/content/sub_systems/' + system_name + '_')
+
+    dirs =  [
+            data_dir + '/administrative_metadata/',        
+            data_dir + '/descriptive_metadata/',
+            data_dir + '/content/documentation/',
+            subsystem_dir + '/header',
+            subsystem_dir + '/content/documents/',
+            subsystem_dir + '/documentation/dip/'         
+            ]
+
+    for dir in dirs:            
+        Path(dir).mkdir(parents=True, exist_ok=True) 
+
+    if source_paths and not file_export_done:
+        source_paths_file = subsystem_dir + '/content/documents/source_paths.txt'        
+        with open(source_paths_file, 'w') as f:
+            i = 0
+            for source_path in source_paths:
+                if source_path in exported_dirs:
+                    f.write(source_path + '\n')
+                    continue
+
+                done = False
+                while not done:
+                    i += 1                
+                    target_path = subsystem_dir + '/content/documents/' + "dir" + str(i) + ".wim"
+                    if not os.path.isfile(target_path):
+                        if source_path not in exported_dirs:
+                            capture_files(config_dir, source_path, target_path)
+                            f.write(source_path + '\n')
+                            done = True                                                           
 
 
 def capture_files(config_dir, source_path, target_path):
@@ -535,7 +577,6 @@ def get_ddl_columns(subsystem_dir):
                     iso_data_type = iso_data_type.replace('()', '(' + dbms_data_size.text + ')')
                 
                 ddl_columns_list.append('"' + column_name.text + '" ' + iso_data_type + ',')                            
-
 
         ddl_columns[table_name.text] =  '\n'.join(ddl_columns_list)  
 
