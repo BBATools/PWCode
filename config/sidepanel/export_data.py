@@ -9,7 +9,7 @@ PACKAGE = False # Set to true when all export runs are done to package as a wim 
 # Extract all files from these directories:
 DIR_PATHS =         [
 #                            'path/to/extract/on/linux', 
-#                            '/home/bba/Downloads/RationalPlan/',
+                            '/home/bba/Downloads/RationalPlan/',
 #                            '/home/bba/Downloads/python/',   
                             '/home/bba/Downloads/vscode-icons-master/'     
 #                            'c:\path\on\windows'
@@ -25,17 +25,17 @@ MAX_JAVA_HEAP = '-Xmx4g' # g=GB. Increase available memory as needed
 DDL_GEN = 'PWCode'  # PWCode | SQLWB -> Choose between generators for 'create table'
 # Copy all tables in schema except this:
 SKIP_TABLES =       [         
-#                            'EDOKFILES',
+                            'EDOKFILES',
 #                            'tabnavn',
                     ]
 # Copy only these tables (overrides 'SKIP_TABLES') :
 INCL_TABLES =       [
-                            'EDOKFILES',
+#                            'EDOKFILES',
 #                            'ALL',
                     ]
 # Overwrite table rather than sync if exists in target:
 OVERWRITE_TABLES =  [
-                            'EDOKFILES',
+#                            'EDOKFILES',
 #                            'OA_SAK',
                     ]
 
@@ -69,7 +69,7 @@ if __name__ == '__main__':
             else:
                 subsystem_dir = data_dir + '/content/sub_systems/' + DB_NAME + '_' + DB_SCHEMA
         
-        if EXPORT_TYPE == 'FILES' and not DIR_PATHS :
+        if EXPORT_TYPE != 'DATABASE' and not DIR_PATHS :
                 print_and_exit('Missing directory paths. Exiting.')                  
 
         # Create data package directories and extract any files:

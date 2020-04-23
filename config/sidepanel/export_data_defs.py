@@ -41,7 +41,7 @@ def export_files(data_dir, subsystem_dir, export_type, system_name, dir_paths, c
     Path(data_dir + '/content/sub_systems/').mkdir(parents=True, exist_ok=True) 
     file_export_done = False
     exported_dirs = []
-    if export_type == 'FILES': 
+    if export_type != 'DATABASE': 
         source_paths = set(dir_paths) # Remove duplicates
         for source_path in source_paths: # Validate source paths
             if not os.path.isdir(source_path):
@@ -62,7 +62,7 @@ def export_files(data_dir, subsystem_dir, export_type, system_name, dir_paths, c
                         subsystem_dir = data_dir + '/content/sub_systems/' + sub_dir 
                      
                 if count == len(source_paths):
-                    print("All files already exported to '" + sub_dir + "'. Exiting.")
+                    print("All files already exported to '" + sub_dir + "'.")
                     file_export_done = True
 
             else:
@@ -87,9 +87,16 @@ def export_files(data_dir, subsystem_dir, export_type, system_name, dir_paths, c
     for dir in dirs:            
         Path(dir).mkdir(parents=True, exist_ok=True) 
 
+    if export_type == 'DATABASE': 
+        return
+
     if source_paths and not file_export_done:
         source_paths_file = subsystem_dir + '/content/documents/source_paths.txt'        
         with open(source_paths_file, 'w') as f:
+            for dir in exported_dirs:
+                if dir not in source_paths:
+                    f.write(dir + '\n')
+
             i = 0
             for source_path in source_paths:
                 if source_path in exported_dirs:
@@ -577,6 +584,7 @@ def get_ddl_columns(subsystem_dir):
                     iso_data_type = iso_data_type.replace('()', '(' + dbms_data_size.text + ')')
                 
                 ddl_columns_list.append('"' + column_name.text + '" ' + iso_data_type + ',')                            
+
 
         ddl_columns[table_name.text] =  '\n'.join(ddl_columns_list)  
 
