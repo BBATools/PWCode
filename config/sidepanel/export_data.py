@@ -1,7 +1,7 @@
 ############### USER INPUT ###############
 ### SYSTEM ###
 SYSTEM_NAME = 'test2' # Will also be the name of the generated data package
-EXPORT_TYPE = 'BOTH' # DATABASE | FILES | BOTH
+EXPORT_TYPE = 'FILES' # DATABASE | FILES | BOTH
 PACKAGE = False # Set to true when all export runs are done to package as a wim or tar file with checksum
 # TODO: Lag kode for package valg
 
@@ -61,7 +61,7 @@ if __name__ == '__main__':
     config_dir = os.environ["pwcode_config_dir"] # Get PWCode config path
     subsystem_dir = None
 
-    os.chdir(config_dir + 'tmp') # Avoid littering from subprocesses
+    os.chdir(config_dir + '/tmp') # Avoid littering from subprocesses
 
     if SYSTEM_NAME:
         data_dir = os.environ["pwcode_data_dir"] + SYSTEM_NAME # --> projects/[system]
@@ -98,7 +98,6 @@ if __name__ == '__main__':
         print_and_exit('Missing system name. Exiting.')
 
     print_and_exit('All data copied. Create system data package now if finished extracting system data.') 
-
 
 
 
