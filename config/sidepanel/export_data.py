@@ -10,8 +10,8 @@ PACKAGE = False # Set to true when all export runs are done to package as a wim 
 DIR_PATHS =         [
 #                            'path/to/extract/on/linux', 
                             '/home/bba/Downloads/RationalPlan/',
-#                            '/home/bba/Downloads/python/',   
-                            '/home/bba/Downloads/vscode-icons-master/'     
+                            '/home/bba/Downloads/python/',   
+#                            '/home/bba/Downloads/vscode-icons-master/'     
 #                            'c:\path\on\windows'
                     ]
 
@@ -42,7 +42,7 @@ OVERWRITE_TABLES =  [
 ################# CODE #################
 
 # Import external code:
-import os, sys
+import os, sys, shutil
 from pathlib import Path
 import jpype as jp
 import jpype.imports
@@ -65,6 +65,9 @@ if __name__ == '__main__':
 
     if SYSTEM_NAME:
         data_dir = os.environ["pwcode_data_dir"] + SYSTEM_NAME # --> projects/[system]
+        archive = data_dir + ".wim"
+        if os.path.isfile(archive):
+            print_and_exit("'" + archive + "' already exists. Exiting.")
 
         if EXPORT_TYPE != 'FILES':
             if not (DB_NAME and DB_SCHEMA):
@@ -76,7 +79,7 @@ if __name__ == '__main__':
                 print_and_exit('Missing directory paths. Exiting.')                  
 
         # Create data package directories and extract any files:
-        export_files(data_dir, subsystem_dir, EXPORT_TYPE, SYSTEM_NAME, DIR_PATHS) 
+        export_files(data_dir, subsystem_dir, EXPORT_TYPE, SYSTEM_NAME, DIR_PATHS, bin_dir) 
 
         # Export database schema:
         if DB_NAME and DB_SCHEMA and JDBC_URL and EXPORT_TYPE != 'FILES':
@@ -97,45 +100,22 @@ if __name__ == '__main__':
     else:
         print_and_exit('Missing system name. Exiting.')
 
-    print_and_exit('All data copied. Create system data package now if finished extracting system data.') 
 
+    if PACKAGE:
+        archive = data_dir + ".wim"
+        md5sumFile = os.path.splitext(archive)[0] + "_md5sum.txt"
+        capture_files(bin_dir, data_dir, archive)
+        check = md5sum(archive)
 
+        with open(md5sumFile, "w+") as f:
+            f.write(check)
 
+        shutil.rmtree(data_dir, ignore_errors=True)     
 
+        print('All data copied and system data package created.')         
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    else:              
+        print('All data copied. Create system data package now if finished extracting system data.') 
 
 
 

@@ -1,10 +1,19 @@
-import os, sys, subprocess
+import os, sys, subprocess, hashlib
 import jpype as jp
 import jpype.imports
 from pathlib import Path, PurePath
 import xml.etree.ElementTree as ET
 from database.jdbc import Jdbc
 from toposort import toposort, toposort_flatten
+
+
+def md5sum(filename, blocksize=65536):
+    hash = hashlib.md5()
+    with open(filename, "rb") as f:
+        for block in iter(lambda: f.read(blocksize), b""):
+            hash.update(block)
+    return hash.hexdigest()
+
 
 # Start java virtual machine:
 def init_jvm(class_path, max_heap_size):
@@ -37,7 +46,7 @@ def get_unique_dir(directory):
             return str(path)
 
 
-def export_files(data_dir, subsystem_dir, export_type, system_name, dir_paths):
+def export_files(data_dir, subsystem_dir, export_type, system_name, dir_paths, bin_dir):
     Path(data_dir + '/content/sub_systems/').mkdir(parents=True, exist_ok=True) 
     file_export_done = False
     exported_dirs = []
@@ -72,7 +81,8 @@ def export_files(data_dir, subsystem_dir, export_type, system_name, dir_paths):
             if existing_subsystem:
                 break                
 
-        if not existing_subsystem:
+    
+        if export_type == 'FILES' and not existing_subsystem:
             subsystem_dir = get_unique_dir(data_dir + '/content/sub_systems/' + system_name + '_')
 
     dirs =  [
@@ -109,13 +119,13 @@ def export_files(data_dir, subsystem_dir, export_type, system_name, dir_paths):
                     target_path = subsystem_dir + '/content/documents/' + "dir" + str(i) + ".wim"
                     if not os.path.isfile(target_path):
                         if source_path not in exported_dirs:
-                            capture_files(data_dir, source_path, target_path)
+                            capture_files(bin_dir, source_path, target_path)
                             f.write(source_path + '\n')
                             done = True                                                           
 
 
-def capture_files(data_dir, source_path, target_path):
-    wim_cmd = data_dir + "/vendor/wimlib-imagex capture "
+def capture_files(bin_dir, source_path, target_path):
+    wim_cmd = bin_dir + "/vendor/wimlib-imagex capture "
     if os.name == "posix":
         wim_cmd = "wimcapture " # WAIT: Bruk tar eller annet som kan mountes på posix. Trenger ikke wim da
     subprocess.run(wim_cmd + source_path + " " + target_path + " --no-acls --compress=none", shell=True)   
@@ -133,6 +143,7 @@ def get_tables(conn, schema):
 
 def export_schema(class_path, max_java_heap, subsystem_dir, jdbc, db_tables):
     base_dir = subsystem_dir + '/documentation/'
+
     if os.path.isfile(base_dir + 'metadata.xml'):
         return
 
