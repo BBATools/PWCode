@@ -1,27 +1,79 @@
 #!/bin/bash
 
+SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
+PYTHON_BIN=$SCRIPTPATH/vendor/linux/python/AppRun
+PIP_DONE=$SCRIPTPATH/vendor/linux/python/pip_done
+JAVA_BIN=$SCRIPTPATH/vendor/linux/jre/bin/java
+
+
+install_python_runtime() {
+    if [ ! -f $PYTHON_BIN ]; then
+        cd $SCRIPTPATH/vendor/linux &&
+        wget https://github.com/niess/linuxdeploy-plugin-python/releases/download/continuous/python3.8.2-x86_64.AppImage -O python.AppImage
+        chmod u+x python.AppImage;
+        ./python.AppImage --appimage-extract > /dev/null
+        rm python.AppImage
+        mv squashfs-root python
+    fi
+}
+
+install_python_packages() {
+    if [ ! -f $PIP_DONE ]; then
+        cd $SCRIPTPATH/vendor/linux/python
+        ./AppRun -m pip install --no-warn-script-location --force-reinstall JPype1==0.6.3 psutil jaydebeapi toposort
+        touch $PIP_DONE
+    fi
+}
+
+install_java() {
+    if [ ! -f $JAVA_BIN ]; then
+        cd $SCRIPTPATH/vendor/linux
+        wget https://corretto.aws/downloads/latest/amazon-corretto-11-x64-linux-jdk.tar.gz
+        tar -xf amazon-corretto-11-x64-linux-jdk.tar.gz
+        cd amazon-corretto-*-linux-x64/bin/
+        ./jlink --output $SCRIPTPATH/vendor/linux/jre --compress=2 --no-header-files --no-man-pages --module-path ../jmods --add-modules java.base,java.datatransfer,java.desktop,java.management,java.net.http,java.security.jgss,java.sql,java.sql.rowset,java.xml,jdk.net,jdk.unsupported,jdk.unsupported.desktop,jdk.xml.dom
+        rm $SCRIPTPATH/vendor/linux/amazon-corretto-11-x64-linux-jdk.tar.gz
+        rm -rdf $SCRIPTPATH/vendor/linux/amazon-corretto-*-linux-x64
+    fi
+}
+
 silent_background() {
     { 2>&3 "$@"& } 3>&2 2>/dev/null
     disown &>/dev/null
 }
 
-SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
-#PYTHONPATH="$(printf "%s:" ./*/)"
 
+#PYTHONPATH="$(printf "%s:" ./*/)"
 #export APPDIR=$SCRIPTPATH/vendor/linux/python
 
+# WAIT: Add more linear progress
+if [ -e $PYTHON_BIN -a -e $PIP_DONE -a -e $JAVA_BIN ]; then
+    silent_background  $SCRIPTPATH/vendor/linux/python/AppRun $SCRIPTPATH/pwcode.py $@
+else
+    (
+    echo 25
+    echo "# Installing python runtime..."
+    install_python_runtime
+    sleep 1
 
-# TODO: Test videre med bundlet python når skaffet tk med støtte for truetype
-# Denne er for stor og mangler truetype font støtte: https://github.com/indygreg/python-build-standalone
-# if python3 -c 'import tkinter;'; then
-#     silent_background $SCRIPTPATH/pwcode.py $@
-# else
-#     #export TCL_LIBRARY=$SCRIPTPATH/vendor/linux/python/lib/tcl/tcl8.6:$TCL_LIBRARY:$TK_LIBRARY
-#     silent_background $SCRIPTPATH/pwcode.py $@
-#     #silent_background $SCRIPTPATH/vendor/linux/python/bin/python3 $SCRIPTPATH/pwcode.py $@
-# fi
+    echo 30
+    echo "# Installing python packages..."
+    install_python_packages
+    sleep 1
 
-silent_background  $SCRIPTPATH/vendor/linux/python/AppRun $SCRIPTPATH/pwcode.py $@
+    echo 70
+    echo "# Installing java 11..."
+    install_java
+    sleep 1
+
+    echo 100
+    echo "# Done!"
+    ) | zenity --title "Downloading dependencies" --progress --auto-kill --width=400
+fi
+
+
+
+
 
 
 

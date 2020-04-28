@@ -88,7 +88,7 @@ if __name__ == '__main__':
                 bin_dir, 
                 class_path, 
                 MAX_JAVA_HEAP, 
-                DB_USER, 
+                DB_USER, |
                 DB_PASSWORD, 
                 DB_NAME, 
                 DB_SCHEMA, 
@@ -97,25 +97,28 @@ if __name__ == '__main__':
                 SKIP_TABLES, 
                 OVERWRITE_TABLES, 
                 DDL_GEN)
+
+        if PACKAGE:
+            md5sumFile = os.path.splitext(archive)[0] + "_md5sum.txt"
+            capture_files(bin_dir, data_dir, archive)
+            check = md5sum(archive)
+
+            with open(md5sumFile, "w+") as f:
+                f.write(check)
+
+            shutil.rmtree(data_dir, ignore_errors=True)     
+
+            print('All data copied and system data package created.')         
+
+        else:              
+            print('All data copied. Create system data package now if finished extracting system data.')   
+                          
     else:
         print_and_exit('Missing system name. Exiting.')
 
 
-    if PACKAGE:
-        archive = data_dir + ".wim"
-        md5sumFile = os.path.splitext(archive)[0] + "_md5sum.txt"
-        capture_files(bin_dir, data_dir, archive)
-        check = md5sum(archive)
 
-        with open(md5sumFile, "w+") as f:
-            f.write(check)
 
-        shutil.rmtree(data_dir, ignore_errors=True)     
-
-        print('All data copied and system data package created.')         
-
-    else:              
-        print('All data copied. Create system data package now if finished extracting system data.') 
 
 
 
