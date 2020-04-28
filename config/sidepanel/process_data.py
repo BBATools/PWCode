@@ -1,8 +1,11 @@
 ############### USER INPUT ###############
+ARCHIVE = 
+
+
 ### SYSTEM ###
 SYSTEM_NAME = 'test2' # Will also be the name of the generated data package
 EXPORT_TYPE = 'FILES' # DATABASE | FILES | BOTH
-PACKAGE = True # Set to true when all export runs are done to package as a wim or tar file with checksum
+PACKAGE = False # Set to true when all export runs are done to package as a wim or tar file with checksum
 # TODO: Lag kode for package valg
 
 ### FILES ###
@@ -88,7 +91,7 @@ if __name__ == '__main__':
                 bin_dir, 
                 class_path, 
                 MAX_JAVA_HEAP, 
-                DB_USER,
+                DB_USER, |
                 DB_PASSWORD, 
                 DB_NAME, 
                 DB_SCHEMA, 
@@ -115,10 +118,6 @@ if __name__ == '__main__':
                           
     else:
         print_and_exit('Missing system name. Exiting.')
-
-
-
-
 
 
 

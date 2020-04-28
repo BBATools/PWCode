@@ -115,7 +115,7 @@ if __name__ == "__main__":
     python_path = 'python3'
     if os.name == "posix":
         os.environ['JAVA_HOME'] = bin_dir + '/vendor/linux/jre'
-        python_path = os.path.join(bin_dir, 'vendor/linux/python/opt/python3.8/bin/python3.8')
+        python_path = os.path.join(bin_dir, 'vendor/linux/python/usr/python/bin/python')
         fix_desktop_file(bin_dir, pwcode_icon_file, 'PWCode.desktop')  
         fix_desktop_file(bin_dir, sqlwb_icon_file, 'SQLWB.desktop') 
         fix_desktop_file(bin_dir, python_icon_file, 'Python.desktop')  
