@@ -46,8 +46,8 @@ def get_unique_dir(directory):
             return str(path)
 
 
-def export_files(data_dir, subsystem_dir, export_type, system_name, dir_paths, bin_dir):
-    Path(data_dir + '/content/sub_systems/').mkdir(parents=True, exist_ok=True) 
+def export_files(system_dir, subsystem_dir, export_type, system_name, dir_paths, bin_dir):
+    Path(system_dir + '/content/sub_systems/').mkdir(parents=True, exist_ok=True) 
     file_export_done = False
     exported_dirs = []
     if export_type != 'DATABASE': 
@@ -56,10 +56,10 @@ def export_files(data_dir, subsystem_dir, export_type, system_name, dir_paths, b
             if not os.path.isdir(source_path):
                 print_and_exit(source_path + ' is not a valid path. Exiting.')  
 
-        subdirs = os.listdir(data_dir + '/content/sub_systems/') 
+        subdirs = os.listdir(system_dir + '/content/sub_systems/') 
         existing_subsystem = False 
         for sub_dir in subdirs:
-            source_paths_file = data_dir + '/content/sub_systems/' + sub_dir + '/content/documents/source_paths.txt' 
+            source_paths_file = system_dir + '/content/sub_systems/' + sub_dir + '/content/documents/source_paths.txt' 
             if os.path.isfile(source_paths_file): 
                 exported_dirs = [line.rstrip('\n') for line in open(source_paths_file)]                 
                 count = 0
@@ -68,7 +68,7 @@ def export_files(data_dir, subsystem_dir, export_type, system_name, dir_paths, b
                         count += 1
                         print("'" + dir + "' already exported.")    
                         existing_subsystem = True
-                        subsystem_dir = data_dir + '/content/sub_systems/' + sub_dir 
+                        subsystem_dir = system_dir + '/content/sub_systems/' + sub_dir 
                      
                 if count == len(source_paths):
                     print("All files already exported to '" + sub_dir + "'.")
@@ -76,19 +76,19 @@ def export_files(data_dir, subsystem_dir, export_type, system_name, dir_paths, b
 
             else:
                 existing_subsystem = True
-                subsystem_dir = data_dir + '/content/sub_systems/' + sub_dir 
+                subsystem_dir = system_dir + '/content/sub_systems/' + sub_dir 
 
             if existing_subsystem:
                 break                
 
     
         if export_type == 'FILES' and not existing_subsystem:
-            subsystem_dir = get_unique_dir(data_dir + '/content/sub_systems/' + system_name + '_')
+            subsystem_dir = get_unique_dir(system_dir + '/content/sub_systems/' + system_name + '_')
 
     dirs =  [
-            data_dir + '/administrative_metadata/',        
-            data_dir + '/descriptive_metadata/',
-            data_dir + '/content/documentation/',
+            system_dir + '/administrative_metadata/',        
+            system_dir + '/descriptive_metadata/',
+            system_dir + '/content/documentation/',
             subsystem_dir + '/header',
             subsystem_dir + '/content/documents/',
             subsystem_dir + '/documentation/dip/'         

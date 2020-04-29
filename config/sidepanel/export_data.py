@@ -1,7 +1,7 @@
 ############### USER INPUT ###############
 ### SYSTEM ###
 SYSTEM_NAME = 'test2' # Will also be the name of the generated data package
-EXPORT_TYPE = 'FILES' # DATABASE | FILES | BOTH
+EXPORT_TYPE = 'BOTH' # DATABASE | FILES | BOTH
 PACKAGE = True # Set to true when all export runs are done to package as a wim or tar file with checksum
 # TODO: Lag kode for package valg
 
@@ -64,8 +64,8 @@ if __name__ == '__main__':
     os.chdir(config_dir + '/tmp') # Avoid littering from subprocesses
 
     if SYSTEM_NAME:
-        data_dir = os.environ["pwcode_data_dir"] + SYSTEM_NAME # --> projects/[system]
-        archive = data_dir + ".wim"
+        system_dir = data_dir + SYSTEM_NAME # --> projects/[system]
+        archive = system_dir + ".wim"
         if os.path.isfile(archive):
             print_and_exit("'" + archive + "' already exists. Exiting.")
 
@@ -73,13 +73,13 @@ if __name__ == '__main__':
             if not (DB_NAME and DB_SCHEMA):
                 print_and_exit('Missing database- or schema -name. Exiting.')
             else:
-                subsystem_dir = data_dir + '/content/sub_systems/' + DB_NAME + '_' + DB_SCHEMA
+                subsystem_dir = system_dir + '/content/sub_systems/' + DB_NAME + '_' + DB_SCHEMA
         
         if EXPORT_TYPE != 'DATABASE' and not DIR_PATHS :
                 print_and_exit('Missing directory paths. Exiting.')                  
 
         # Create data package directories and extract any files:
-        export_files(data_dir, subsystem_dir, EXPORT_TYPE, SYSTEM_NAME, DIR_PATHS, bin_dir) 
+        export_files(system_dir, subsystem_dir, EXPORT_TYPE, SYSTEM_NAME, DIR_PATHS, bin_dir) 
 
         # Export database schema:
         if DB_NAME and DB_SCHEMA and JDBC_URL and EXPORT_TYPE != 'FILES':
@@ -106,7 +106,7 @@ if __name__ == '__main__':
             with open(md5sumFile, "w+") as f:
                 f.write(check)
 
-            shutil.rmtree(data_dir, ignore_errors=True)     
+            shutil.rmtree(system_dir, ignore_errors=True)     
 
             print('All data copied and system data package created.')         
 
@@ -115,6 +115,7 @@ if __name__ == '__main__':
                           
     else:
         print_and_exit('Missing system name. Exiting.')
+
 
 
 
