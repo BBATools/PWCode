@@ -70,11 +70,12 @@ def start_server(tmp_dir, port_file, icon_file, python_path, data_dir):
 
 
 def fix_desktop_file(bin_dir, icon_file, desktop_file):
-    desktop_file_path = os.path.abspath(os.path.join(bin_dir, '..', desktop_file))        
-    for line in fileinput.input(desktop_file_path, inplace = 1): 
-        if line.startswith('Icon='):
-            line = 'Icon=' + icon_file
-        print(line.strip())
+    desktop_file_path = os.path.abspath(os.path.join(bin_dir, '..', desktop_file))  
+    if os.path.isfile(desktop_file_path):      
+        for line in fileinput.input(desktop_file_path, inplace = 1): 
+            if line.startswith('Icon='):
+                line = 'Icon=' + icon_file
+            print(line.strip())
 
 
 # WAIT: Kan legge tilbake psutil-kode da den trengs av jdbc
