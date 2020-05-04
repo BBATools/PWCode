@@ -1,127 +1,37 @@
-############### USER INPUT ###############
-ARCHIVE = 
+# import shutil
+import os
+from export_data_defs import print_and_exit, md5sum
 
-
-### SYSTEM ###
-SYSTEM_NAME = 'test2' # Will also be the name of the generated data package
-EXPORT_TYPE = 'FILES' # DATABASE | FILES | BOTH
-PACKAGE = False # Set to true when all export runs are done to package as a wim or tar file with checksum
-# TODO: Lag kode for package valg
-
-### FILES ###
-# Extract all files from these directories:
-DIR_PATHS =         [
-#                            'path/to/extract/on/linux', 
-                            '/home/bba/Downloads/RationalPlan/',
-                            '/home/bba/Downloads/python/',   
-#                            '/home/bba/Downloads/vscode-icons-master/'     
-#                            'c:\path\on\windows'
-                    ]
-
-### DATABASE ###
-DB_NAME = 'DOCULIVEHIST_DBO'
-DB_SCHEMA = 'PUBLIC'
-JDBC_URL = 'jdbc:h2:/home/bba/Desktop/DOCULIVEHIST_DBO_PUBLIC'
-DB_USER = ''
-DB_PASSWORD = ''
-MAX_JAVA_HEAP = '-Xmx4g' # g=GB. Increase available memory as needed
-DDL_GEN = 'PWCode'  # PWCode | SQLWB -> Choose between generators for 'create table'
-# Copy all tables in schema except this:
-SKIP_TABLES =       [         
-                            'EDOKFILES',
-#                            'tabnavn',
-                    ]
-# Copy only these tables (overrides 'SKIP_TABLES') :
-INCL_TABLES =       [
-#                            'EDOKFILES',
-#                            'ALL',
-                    ]
-# Overwrite table rather than sync if exists in target:
-OVERWRITE_TABLES =  [
-#                            'EDOKFILES',
-#                            'OA_SAK',
-                    ]
-
-################# CODE #################
-
-# Import external code:
-import os, sys, shutil
-from pathlib import Path
-import jpype as jp
-import jpype.imports
-from database.jdbc import Jdbc
-from export_data_defs import *
+""" SYSTEM """
+ARCHIVE_PATH = '/home/bba/bin/PWCode/projects/test2.wim'
+INTEGRITY_CHECK = True
 
 # Start execution:
-if __name__ == '__main__':
-    db_tables = {} # All database tables
-    export_tables = {} # All tables to be exported
-    table_columns = {} # Columns per table
-    overwrite_tables = {} # Overwrite these instead of sync (if exists)
-    bin_dir = os.environ["pwcode_bin_dir"] # Get PWCode executable path
-    class_path = os.environ['CLASSPATH'] # Get Java jar path
-    data_dir = os.environ["pwcode_data_dir"] # Get PWCode data path (projects)
-    config_dir = os.environ["pwcode_config_dir"] # Get PWCode config path
-    subsystem_dir = None
+if __name__ == "__main__":
+    bin_dir = os.environ["pwcode_bin_dir"]  # Get PWCode executable path
+    class_path = os.environ['CLASSPATH']  # Get Java jar path
+    data_dir = os.environ["pwcode_data_dir"]  # Get PWCode data path (projects)
+    config_dir = os.environ["pwcode_config_dir"]  # Get PWCode config path
+    # subsystem_dir = None
+    tmp_dir = config_dir + '/tmp'
 
-    os.chdir(config_dir + '/tmp') # Avoid littering from subprocesses
+    os.chdir(tmp_dir)  # Avoid littering from subprocesses
 
-    if SYSTEM_NAME:
-        data_dir = os.environ["pwcode_data_dir"] + SYSTEM_NAME # --> projects/[system]
-        archive = data_dir + ".wim"
-        if os.path.isfile(archive):
-            print_and_exit("'" + archive + "' already exists. Exiting.")
-
-        if EXPORT_TYPE != 'FILES':
-            if not (DB_NAME and DB_SCHEMA):
-                print_and_exit('Missing database- or schema -name. Exiting.')
+    if os.path.isfile(ARCHIVE_PATH):
+        if INTEGRITY_CHECK:
+            md5sum_file = os.path.splitext(ARCHIVE_PATH)[0]+'_md5sum.txt'
+            if not os.path.isfile(md5sum_file):
+                print_and_exit("'" + os.path.basename(md5sum_file) + "' not in path. Exiting.")
             else:
-                subsystem_dir = data_dir + '/content/sub_systems/' + DB_NAME + '_' + DB_SCHEMA
-        
-        if EXPORT_TYPE != 'DATABASE' and not DIR_PATHS :
-                print_and_exit('Missing directory paths. Exiting.')                  
+                file = open(md5sum_file, "r")
+                orig = file.read().replace('\n', '')
+                check = md5sum(ARCHIVE_PATH)
 
-        # Create data package directories and extract any files:
-        export_files(data_dir, subsystem_dir, EXPORT_TYPE, SYSTEM_NAME, DIR_PATHS, bin_dir) 
+                if check == orig:
+                    message = "'Checksum Matches'"
+                else:
+                    message = "'Checksum Mismatch'"
 
-        # Export database schema:
-        if DB_NAME and DB_SCHEMA and JDBC_URL and EXPORT_TYPE != 'FILES':
-            export_db_schema(
-                JDBC_URL, 
-                bin_dir, 
-                class_path, 
-                MAX_JAVA_HEAP, 
-                DB_USER, |
-                DB_PASSWORD, 
-                DB_NAME, 
-                DB_SCHEMA, 
-                subsystem_dir, 
-                INCL_TABLES, 
-                SKIP_TABLES, 
-                OVERWRITE_TABLES, 
-                DDL_GEN)
-
-        if PACKAGE:
-            md5sumFile = os.path.splitext(archive)[0] + "_md5sum.txt"
-            capture_files(bin_dir, data_dir, archive)
-            check = md5sum(archive)
-
-            with open(md5sumFile, "w+") as f:
-                f.write(check)
-
-            shutil.rmtree(data_dir, ignore_errors=True)     
-
-            print('All data copied and system data package created.')         
-
-        else:              
-            print('All data copied. Create system data package now if finished extracting system data.')   
-                          
+                print(message)
     else:
-        print_and_exit('Missing system name. Exiting.')
-
-
-
-
-
-
-
+        print_and_exit("'" + ARCHIVE_PATH + "' is not a valid path. Exiting.")

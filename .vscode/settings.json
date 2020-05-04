@@ -11,4 +11,5 @@
     "python.linting.flake8Args": [
         "--max-line-length=200"
     ],
+    "files.trimTrailingWhitespace": true
 }

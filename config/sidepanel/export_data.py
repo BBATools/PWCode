@@ -38,8 +38,8 @@ INCL_TABLES = [
 ]
 # Overwrite table rather than sync if exists in target:
 OVERWRITE_TABLES = [
-    #                            'EDOKFILES',
-    #                            'OA_SAK',
+    # 'EDOKFILES',
+    # 'OA_SAK',
 ]
 
 # Start execution:
@@ -53,8 +53,9 @@ if __name__ == '__main__':
     data_dir = os.environ["pwcode_data_dir"]  # Get PWCode data path (projects)
     config_dir = os.environ["pwcode_config_dir"]  # Get PWCode config path
     subsystem_dir = None
+    tmp_dir = config_dir + '/tmp'
 
-    os.chdir(config_dir + '/tmp')  # Avoid littering from subprocesses
+    os.chdir(tmp_dir)  # Avoid littering from subprocesses
 
     if SYSTEM_NAME:
         system_dir = data_dir + SYSTEM_NAME  # --> projects/[system]
@@ -90,7 +91,8 @@ if __name__ == '__main__':
                 INCL_TABLES,
                 SKIP_TABLES,
                 OVERWRITE_TABLES,
-                DDL_GEN)
+                DDL_GEN
+            )
 
         if PACKAGE:
             md5sumFile = os.path.splitext(archive)[0] + "_md5sum.txt"
