@@ -5,6 +5,8 @@ bin/vendor/linux/*
 bin/vendor/windows/*
 bin/vendor/jdbc/*
 config/tmp/*
+Python.desktop
+SQLWB.desktop
 
 # exceptions to above rule
 !projects/.gitkeep
