@@ -8,7 +8,6 @@ silent_background() {
 SCRIPTPATH="$(dirname "$(readlink -f "$0")")"
 VENDORPATH="$SCRIPTPATH/vendor"
 JDBCPATH="$VENDORPATH/jdbc"
-#SQLWBJAR="$JDBCPATH/sqlworkbench.jar"
 JAVACMD="silent_background $VENDORPATH/linux/jre/bin/java -Xmx6g -jar"
 
 echo "[ENV]
