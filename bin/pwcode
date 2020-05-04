@@ -4,12 +4,12 @@ SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 PYTHON_BIN=$SCRIPTPATH/vendor/linux/python/AppRun
 PIP_DONE=$SCRIPTPATH/vendor/linux/python/pip_done
 JAVA_BIN=$SCRIPTPATH/vendor/linux/jre/bin/java
-
+OJDBC10=$SCRIPTPATH/vendor/jdbc/ojdbc10.jar
 
 install_python_runtime() {
     if [ ! -f $PYTHON_BIN ]; then
-        cd $SCRIPTPATH/vendor/linux &&
-        wget https://github.com/niess/linuxdeploy-plugin-python/releases/download/continuous/python3.8.2-x86_64.AppImage -O python.AppImage
+        cd $SCRIPTPATH/vendor/linux
+        wget https://github.com/niess/python-appimage/releases/download/python3.8/python3.8.2-cp38-cp38-manylinux2014_x86_64.AppImage -O python.AppImage
         chmod u+x python.AppImage;
         ./python.AppImage --appimage-extract > /dev/null
         rm python.AppImage
@@ -18,10 +18,12 @@ install_python_runtime() {
 }
 
 install_python_packages() {
-    if [ ! -f $PIP_DONE ]; then
-        cd $SCRIPTPATH/vendor/linux/python
-        ./AppRun -m pip install --no-warn-script-location --force-reinstall JPype1==0.6.3 psutil jaydebeapi toposort
-        touch $PIP_DONE
+    if [ -e $PYTHON_BIN ]; then
+        if [ ! -f $PIP_DONE ]; then
+            cd $SCRIPTPATH/vendor/linux/python
+            ./AppRun -m pip install --no-warn-script-location --force-reinstall JPype1==0.6.3 psutil jaydebeapi toposort
+            touch $PIP_DONE
+        fi
     fi
 }
 
@@ -37,33 +39,42 @@ install_java() {
     fi
 }
 
+install_ojdbc() {
+    if [ ! -f $OJDBC10 ]; then
+        cd $SCRIPTPATH/vendor/jdbc
+        wget https://repo1.maven.org/maven2/com/oracle/database/jdbc/ojdbc10/19.6.0.0/ojdbc10-19.6.0.0.jar -O ojdbc10.jar
+    fi
+}
+
 silent_background() {
     { 2>&3 "$@"& } 3>&2 2>/dev/null
     disown &>/dev/null
 }
 
 
-#PYTHONPATH="$(printf "%s:" ./*/)"
-#export APPDIR=$SCRIPTPATH/vendor/linux/python
-
 # WAIT: Add more linear progress
-if [ -e $PYTHON_BIN -a -e $PIP_DONE -a -e $JAVA_BIN ]; then
+if [ -e $PYTHON_BIN -a -e $PIP_DONE -a -e $JAVA_BIN -a -e $OJDBC10 ]; then
     silent_background  $SCRIPTPATH/vendor/linux/python/AppRun $SCRIPTPATH/pwcode.py $@
 else
     (
-    echo 25
+    echo 20
     echo "# Installing python runtime..."
     install_python_runtime
     sleep 1
 
-    echo 30
+    echo 40
     echo "# Installing python packages..."
     install_python_packages
     sleep 1
 
-    echo 70
+    echo 60
     echo "# Installing java 11..."
     install_java
+    sleep 1
+
+    echo 80
+    echo "# Installing oracle driver..."
+    install_ojdbc
     sleep 1
 
     echo 100

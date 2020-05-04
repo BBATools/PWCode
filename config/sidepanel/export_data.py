@@ -1,7 +1,7 @@
 ############### USER INPUT ###############
 ### SYSTEM ###
 SYSTEM_NAME = 'test2' # Will also be the name of the generated data package
-EXPORT_TYPE = 'BOTH' # DATABASE | FILES | BOTH
+EXPORT_TYPE = 'FILES' # DATABASE | FILES | BOTH
 PACKAGE = True # Set to true when all export runs are done to package as a wim or tar file with checksum
 # TODO: Lag kode for package valg
 
@@ -100,7 +100,7 @@ if __name__ == '__main__':
 
         if PACKAGE:
             md5sumFile = os.path.splitext(archive)[0] + "_md5sum.txt"
-            capture_files(bin_dir, data_dir, archive)
+            capture_files(bin_dir, system_dir, archive)
             check = md5sum(archive)
 
             with open(md5sumFile, "w+") as f:
@@ -115,7 +115,6 @@ if __name__ == '__main__':
                           
     else:
         print_and_exit('Missing system name. Exiting.')
-
 
 
 

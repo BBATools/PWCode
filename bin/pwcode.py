@@ -48,13 +48,10 @@ def start_client(tmp_dir, port_file, icon_file, python_path, data_dir):
     if os.path.isfile(port_file):
         port=open(port_file, 'r').read()
         if port:
-            try:
-                app = xmlrpc.client.ServerProxy('http://localhost:' + port)
-                open_files_from_arg(sys.argv, app)
-                app.focus()
-                server = False
-            except ConnectionRefusedError: 
-                pass
+            server = False
+            app = xmlrpc.client.ServerProxy('http://localhost:' + port)
+            open_files_from_arg(sys.argv, app)
+            app.focus()              
     
     if server:
         start_server(tmp_dir, port_file, icon_file, python_path, data_dir)            
