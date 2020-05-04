@@ -22,7 +22,7 @@ SQLWB.desktop
 !bin/vendor/jdbc/sqlite-jdbc-*.jar
 !bin/vendor/jdbc/sqlworkbench.jar
 !bin/vendor/jdbc/*-LICENSE
-!
+!bin/vendor/config/*.desktop
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
