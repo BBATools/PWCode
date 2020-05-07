@@ -1,32 +1,29 @@
+# Copyright (C) 2020 Morten Eek
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import os
-import sys
 import subprocess
-import hashlib
 import jpype as jp
 import jpype.imports
 from pathlib import Path
 import xml.etree.ElementTree as ET
 from database.jdbc import Jdbc
-
-
-def md5sum(filename, blocksize=65536):
-    hash = hashlib.md5()
-    with open(filename, "rb") as f:
-        for block in iter(lambda: f.read(blocksize), b""):
-            hash.update(block)
-    return hash.hexdigest()
-
-
-# Start java virtual machine:
-def init_jvm(class_path, max_heap_size):
-    if jpype.isJVMStarted():
-        return
-    jpype.startJVM(jpype.getDefaultJVMPath(),
-                   '-Djava.class.path=%s' % class_path,
-                   # '-Dworkbench.db.h2.create.table.temp="CREATE LOCAL TEMPORARY TABLE %fq_table_name% ( %columnlist% %pk_definition%)"'
-                   '-Dfile.encoding=UTF8',
-                   '-ea', max_heap_size,
-                   )
+from common.file import get_unique_dir
+from common.jvm import init_jvm, wb_batch
+from common.print import print_and_exit
+from common.xml import indent
 
 
 def get_db_details(jdbc_url, bin_dir):
@@ -37,15 +34,6 @@ def get_db_details(jdbc_url, bin_dir):
         driver_class = 'org.h2.Driver'
 
     return jdbc_url, driver_jar, driver_class
-
-
-def get_unique_dir(directory):
-    counter = 0
-    while True:
-        counter += 1
-        path = Path(directory + str(counter))
-        if not path.exists():
-            return str(path)
 
 
 def export_files(system_dir, subsystem_dir, export_type, system_name, dir_paths, bin_dir):
@@ -162,11 +150,6 @@ def export_schema(class_path, max_java_heap, subsystem_dir, jdbc, db_tables):
     add_row_count_to_schema_file(subsystem_dir, db_tables)
 
 
-def print_and_exit(msg):
-    print(msg)
-    sys.exit()
-
-
 def export_db_schema(JDBC_URL, bin_dir, class_path, MAX_JAVA_HEAP, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, subsystem_dir, INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, DDL_GEN):
     url, driver_jar, driver_class = get_db_details(JDBC_URL, bin_dir)
     if driver_jar and driver_class:
@@ -220,22 +203,6 @@ def get_db_meta(jdbc):
     return db_tables, table_columns
 
 
-def indent(elem, level=0):
-    i = "\n" + level * "  "
-    if len(elem):
-        if not elem.text or not elem.text.strip():
-            elem.text = i + "  "
-        if not elem.tail or not elem.tail.strip():
-            elem.tail = i
-        for elem in elem:
-            indent(elem, level + 1)
-        if not elem.tail or not elem.tail.strip():
-            elem.tail = i
-    else:
-        if level and (not elem.tail or not elem.tail.strip()):
-            elem.tail = i
-
-
 def add_row_count_to_schema_file(subsystem_dir, db_tables):
     schema_file = subsystem_dir + '/documentation/metadata.xml'
     tree = ET.parse(schema_file)
@@ -287,18 +254,6 @@ def table_check(incl_tables, skip_tables, overwrite_tables, db_tables, subsystem
                 print_and_exit("Table '" + tbl + "' is empty or not in source schema. Exiting.")
 
     return non_empty_tables, overwrite_tables
-
-
-def wb_batch(class_path, max_java_heap):
-    # Start Java virtual machine if not started already:
-    init_jvm(class_path, max_java_heap)
-
-    # Create instance of sqlwb Batchrunner:
-    WbManager = jp.JPackage('workbench').WbManager
-    WbManager.prepareForEmbedded()
-    batch = jp.JPackage('workbench.sql').BatchRunner()
-    batch.setAbortOnError(True)
-    return batch
 
 
 def get_target_tables(jdbc):

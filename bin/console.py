@@ -19,8 +19,6 @@ import logging
 import threading
 import time
 import queue
-import datetime
-import sys
 import os
 import subprocess
 import selectors
@@ -133,8 +131,8 @@ class Processing():
     def run_file(self, file_obj, stop=False):
         def log_run(file_obj):
             os.environ['PYTHONUNBUFFERED'] = "1"
-            from functools import partial
-            printerr = partial(print, flush=True, file=sys.stderr)
+            # from functools import partial
+            # printerr = partial(print, flush=True, file=sys.stderr)
 
             self.process = subprocess.Popen([self.app.python_path, file_obj.path],
                                             bufsize=1,

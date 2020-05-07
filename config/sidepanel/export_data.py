@@ -1,16 +1,16 @@
 import shutil
 import os
+from common.file import md5sum
 from export_data_defs import (
     export_db_schema,
     export_files,
     print_and_exit,
     capture_files,
-    md5sum,
 )
 
 """ SYSTEM """
 SYSTEM_NAME = 'test'  # Will also be the name of the generated data package
-EXPORT_TYPE = 'FILES'  # DATABASE | FILES | BOTH
+EXPORT_TYPE = 'BOTH'  # DATABASE | FILES | BOTH
 PACKAGE = True  # Set to true when all export runs are done to package as a wim or tar file with checksum
 
 """ FILES """
