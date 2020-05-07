@@ -15,7 +15,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import logging, threading, time, queue, datetime, sys, os, subprocess, selectors
+import logging
+import threading
+import time
+import queue
+import datetime
+import sys
+import os
+import subprocess
+import selectors
 from text.tktextext import EnhancedText
 from settings import COLORS
 import tkinter as tk
@@ -29,11 +37,11 @@ class ConsoleUi:
         self.frame = frame
         self.file_obj = file_obj
         self.text = EnhancedText(
-            frame, 
+            frame,
             state='disabled',  # TODO: Denne som gjør at ikke shortcuts for copy mm virker?
-            background=COLORS.bg, 
+            background=COLORS.bg,
             # background=COLORS.text_bg,
-            # background=COLORS.sidebar_bg,            
+            # background=COLORS.sidebar_bg,
             foreground="#eeeeee",
             insertbackground=COLORS.status_bg,
             # insertbackground="#eeeeee",
@@ -41,15 +49,15 @@ class ConsoleUi:
             highlightthickness=0,
             relief=tk.FLAT,
             takefocus=1,
-            insertofftime =0, #Disable blinking cursor
-            insertwidth = 2,
-            spacing1 = 0,
-            spacing3 = 0,
+            insertofftime=0,  # Disable blinking cursor
+            insertwidth=2,
+            spacing1=0,
+            spacing3=0,
             # selectbackground=COLORS.sidebar_bg,
             # inactiveselectbackground = COLORS.sidebar_bg,
             # selectforeground=COLORS.text_fg,
-            padx = 5,
-            pady = 5,            
+            padx=5,
+            pady=5,
             height=10)
 
         self.text.pack(side="bottom", fill="both")
@@ -60,7 +68,7 @@ class ConsoleUi:
         self.text.tag_config('WARNING', foreground='blue')
         self.text.tag_config('ERROR', foreground='red')
         self.text.tag_config('CRITICAL', foreground='red', underline=1)
-        
+
         # Create a logging handler using a queue
         self.log_queue = queue.Queue()
         self.queue_handler = QueueHandler(self.log_queue)
@@ -74,21 +82,19 @@ class ConsoleUi:
         self.frame.after(100, self.poll_log_queue)
 
         self.text.v_scrollbar = AutoHideScrollbar(
-            self.text, 
-            command = self.v_scrollbar_scroll,
-            width = 10,               
-            troughcolor = COLORS.bg, 
-            buttoncolor = COLORS.bg,                
-            thumbcolor = COLORS.status_bg, 
-            )
-        self.text["yscrollcommand"] = self.text.v_scrollbar.set 
+            self.text,
+            command=self.v_scrollbar_scroll,
+            width=10,
+            troughcolor=COLORS.bg,
+            buttoncolor=COLORS.bg,
+            thumbcolor=COLORS.status_bg,
+        )
+        self.text["yscrollcommand"] = self.text.v_scrollbar.set
         self.text.v_scrollbar.pack(side="right", fill="y")
-
 
     def v_scrollbar_scroll(self, *args):
         self.text.yview(*args)
-        self.text.event_generate("<<VerticalScroll>>")           
-
+        self.text.event_generate("<<VerticalScroll>>")
 
     def display(self, record):
         msg = self.queue_handler.format(record)
@@ -98,7 +104,6 @@ class ConsoleUi:
         self.text.configure(state='disabled')
         # Autoscroll to the bottom
         self.text.yview(tk.END)
-
 
     def poll_log_queue(self):
         # Check every 100ms if there is a new message in the queue to display
@@ -119,58 +124,54 @@ class Processing():
         super().__init__()
         self.logger = logging.getLogger(self.file_obj.path)
 
-
     def show_message(self, message):
         def log_message(message):
             self.logger.log(logging.DEBUG, message)
-        
-        threading.Thread(target=log_message, args=(message,),daemon = True).start() 
-                
 
-    def run_file(self, file_obj, stop = False): 
+        threading.Thread(target=log_message, args=(message,), daemon=True).start()
 
+    def run_file(self, file_obj, stop=False):
         def log_run(file_obj):
             os.environ['PYTHONUNBUFFERED'] = "1"
-            from functools import partial 
-            printerr = partial(print, flush=True, file=sys.stderr) 
+            from functools import partial
+            printerr = partial(print, flush=True, file=sys.stderr)
 
             self.process = subprocess.Popen([self.app.python_path, file_obj.path],
-                                    bufsize=1,
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE,
-                                    universal_newlines=True # required for line buffering
-                                    )
+                                            bufsize=1,
+                                            stdout=subprocess.PIPE,
+                                            stderr=subprocess.PIPE,
+                                            universal_newlines=True  # required for line buffering
+                                            )
 
             selector = selectors.DefaultSelector()
             selector.register(self.process.stdout, selectors.EVENT_READ)
-            selector.register(self.process.stderr, selectors.EVENT_READ)  
+            selector.register(self.process.stderr, selectors.EVENT_READ)
 
-            while self.process.poll() is None: # poll() returns None while the program is still running
+            while self.process.poll() is None:  # poll() returns None while the program is still running
                 for key, mask in selector.select():
                     data = key.fileobj.readline().strip()
                     if key.fileobj is self.process.stdout:
                         self.logger.log(logging.INFO, data)
                     else:
-                        self.logger.log(logging.ERROR, data) 
+                        self.logger.log(logging.ERROR, data)
 
             return_code = self.process.wait()
             selector.close()
             success = (return_code == 0)
-            return (success) # TODO: Gjøre hva når registrert at script ferdig samt om success eller ikke?  
+            return (success)  # TODO: Gjøre hva når registrert at script ferdig samt om success eller ikke?
 
-        delay = False # WAIT: Find better method when time  
+        delay = False  # WAIT: Find better method when time
         for thread in threading.enumerate():
             if thread.name == file_obj.path:
                 delay = True
-                self.process.terminate()                     
-                # self.process.kill()  # WAIT: Legg inn test med delay og så kjøre process.kill hvis terminate ikke virket? 
+                self.process.terminate()
+                # self.process.kill()  # WAIT: Legg inn test med delay og så kjøre process.kill hvis terminate ikke virket?
 
-        if not stop:  
+        if not stop:
             if delay:
-                time.sleep(2)  # Give terminated process time to cleanup            
-            t = threading.Thread(name=file_obj.path, target=log_run, args=(file_obj,), daemon = True)
+                time.sleep(2)  # Give terminated process time to cleanup
+            t = threading.Thread(name=file_obj.path, target=log_run, args=(file_obj,), daemon=True)
             t.start()
-            
 
 
 class QueueHandler(logging.Handler):
@@ -180,6 +181,3 @@ class QueueHandler(logging.Handler):
 
     def emit(self, record):
         self.log_queue.put(record)
-
-
-

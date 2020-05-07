@@ -1,10 +1,15 @@
 import shutil
 import os
-from export_data_defs import export_db_schema, export_files, print_and_exit, \
-    capture_files, md5sum
+from export_data_defs import (
+    export_db_schema,
+    export_files,
+    print_and_exit,
+    capture_files,
+    md5sum,
+)
 
 """ SYSTEM """
-SYSTEM_NAME = 'test2'  # Will also be the name of the generated data package
+SYSTEM_NAME = 'test'  # Will also be the name of the generated data package
 EXPORT_TYPE = 'FILES'  # DATABASE | FILES | BOTH
 PACKAGE = True  # Set to true when all export runs are done to package as a wim or tar file with checksum
 
@@ -111,3 +116,4 @@ if __name__ == '__main__':
 
     else:
         print_and_exit('Missing system name. Exiting.')
+
