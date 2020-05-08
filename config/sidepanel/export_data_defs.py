@@ -36,7 +36,7 @@ def get_db_details(jdbc_url, bin_dir):
     return jdbc_url, driver_jar, driver_class
 
 
-def export_files(system_dir, subsystem_dir, export_type, system_name, dir_paths, bin_dir):
+def export_files(system_dir, subsystem_dir, export_type, system_name, dir_paths, bin_dir, archive_format):
     Path(system_dir + '/content/sub_systems/').mkdir(parents=True, exist_ok=True)
     file_export_done = False
     exported_dirs = []
@@ -105,7 +105,7 @@ def export_files(system_dir, subsystem_dir, export_type, system_name, dir_paths,
                 done = False
                 while not done:
                     i += 1
-                    target_path = subsystem_dir + '/content/documents/' + "dir" + str(i) + ".wim"
+                    target_path = subsystem_dir + '/content/documents/' + "dir" + str(i) + "." + archive_format
                     if not os.path.isfile(target_path):
                         if source_path not in exported_dirs:
                             capture_files(bin_dir, source_path, target_path)
@@ -114,10 +114,16 @@ def export_files(system_dir, subsystem_dir, export_type, system_name, dir_paths,
 
 
 def capture_files(bin_dir, source_path, target_path):
-    wim_cmd = bin_dir + "/vendor/wimlib-imagex capture "
-    if os.name == "posix":
-        wim_cmd = "wimcapture "  # WAIT: Bruk tar eller annet som kan mountes på posix. Trenger ikke wim da
-    subprocess.run(wim_cmd + source_path + " " + target_path + " --no-acls --compress=none", shell=True)
+    Path(os.path.dirname(target_path)).mkdir(parents=True, exist_ok=True)
+    archive_format = Path(target_path).suffix[1:]
+
+    if archive_format == 'wim':
+        cmd = bin_dir + "/vendor/wimlib-imagex capture "
+        if os.name == "posix":
+            cmd = "wimcapture "  # WAIT: Bruk tar eller annet som kan mountes på posix. Trenger ikke wim da
+    else:
+        print_and_exit("'" + archive_format + "' not implemented yet")
+    subprocess.run(cmd + source_path + " " + target_path + " --no-acls --compress=none", shell=True)
 
 
 def get_tables(conn, schema):

@@ -1,17 +1,20 @@
 import shutil
 import os
+from configparser import ConfigParser
+from common.config import add_config_section
 from common.file import md5sum
+from common.print import print_and_exit
 from export_data_defs import (
     export_db_schema,
     export_files,
-    print_and_exit,
     capture_files,
 )
 
 """ SYSTEM """
-SYSTEM_NAME = 'test'  # Will also be the name of the generated data package
-EXPORT_TYPE = 'BOTH'  # DATABASE | FILES | BOTH
+SYSTEM_NAME = 'test3'  # Will also be the name of the generated data package
+EXPORT_TYPE = 'FILES'  # DATABASE | FILES | BOTH
 PACKAGE = True  # Set to true when all export runs are done to package as a wim or tar file with checksum
+ARCHIVE_FORMAT = 'wim'  # TODO: Implementer tar som alternativ + autodekter hva som er tilgjengelig
 
 """ FILES """
 # Extract all files from these directories:
@@ -63,8 +66,8 @@ if __name__ == '__main__':
     os.chdir(tmp_dir)  # Avoid littering from subprocesses
 
     if SYSTEM_NAME:
-        system_dir = data_dir + SYSTEM_NAME  # --> projects/[system]
-        archive = system_dir + ".wim"
+        system_dir = data_dir + SYSTEM_NAME + '_'  # --> projects/[system_]
+        archive = system_dir[:-1] + '/' + SYSTEM_NAME + '.' + ARCHIVE_FORMAT
         if os.path.isfile(archive):
             print_and_exit("'" + archive + "' already exists. Exiting.")
 
@@ -78,8 +81,7 @@ if __name__ == '__main__':
             print_and_exit('Missing directory paths. Exiting.')
 
         # Create data package directories and extract any files:
-        export_files(system_dir, subsystem_dir, EXPORT_TYPE,
-                     SYSTEM_NAME, DIR_PATHS, bin_dir)
+        export_files(system_dir, subsystem_dir, EXPORT_TYPE, SYSTEM_NAME, DIR_PATHS, bin_dir, ARCHIVE_FORMAT)
 
         # Export database schema:
         if DB_NAME and DB_SCHEMA and JDBC_URL and EXPORT_TYPE != 'FILES':
@@ -100,15 +102,20 @@ if __name__ == '__main__':
             )
 
         if PACKAGE:
-            md5sumFile = os.path.splitext(archive)[0] + "_md5sum.txt"
             capture_files(bin_dir, system_dir, archive)
-            check = md5sum(archive)
+            checksum = md5sum(archive)
 
-            with open(md5sumFile, "w+") as f:
-                f.write(check)
+            config = ConfigParser()
+            config_file = system_dir[:-1] + "/pwcode.ini"
+            config.read(config_file)
+            add_config_section(config, 'SYSTEM')
+            config.set('SYSTEM', 'checksum', checksum)
+            config.set('SYSTEM', 'archive_format', ARCHIVE_FORMAT)
+            config.set('SYSTEM', 'checksum_verified', "False")
+            with open(config_file, "w+") as f:
+                config.write(f, space_around_delimiters=False)
 
             shutil.rmtree(system_dir, ignore_errors=True)
-
             print('All data copied and system data package created.')
 
         else:
@@ -116,4 +123,3 @@ if __name__ == '__main__':
 
     else:
         print_and_exit('Missing system name. Exiting.')
-
