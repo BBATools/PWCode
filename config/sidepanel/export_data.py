@@ -3,7 +3,6 @@ import os
 from configparser import ConfigParser
 from common.config import add_config_section
 from common.file import md5sum
-from common.print import print_and_exit
 from export_data_defs import (
     export_db_schema,
     export_files,
@@ -11,7 +10,7 @@ from export_data_defs import (
 )
 
 """ SYSTEM """
-SYSTEM_NAME = 'test3'  # Will also be the name of the generated data package
+SYSTEM_NAME = 'test2'  # Will also be the name of the generated data package
 EXPORT_TYPE = 'FILES'  # DATABASE | FILES | BOTH
 PACKAGE = True  # Set to true when all export runs are done to package as a wim or tar file with checksum
 ARCHIVE_FORMAT = 'wim'  # TODO: Implementer tar som alternativ + autodekter hva som er tilgjengelig
@@ -36,7 +35,7 @@ MAX_JAVA_HEAP = '-Xmx4g'  # g=GB. Increase available memory as needed
 DDL_GEN = 'PWCode'  # PWCode | SQLWB -> Choose between generators for 'create table'
 # Copy all tables in schema except this:
 SKIP_TABLES = [
-    'EDOKFILES',
+    #    'EDOKFILES',
     # 'tabnavn',
 ]
 # Copy only these tables (overrides 'SKIP_TABLES') :
@@ -50,12 +49,8 @@ OVERWRITE_TABLES = [
     # 'OA_SAK',
 ]
 
-# Start execution:
-if __name__ == '__main__':
-    db_tables = {}  # All database tables
-    export_tables = {}  # All tables to be exported
-    table_columns = {}  # Columns per table
-    overwrite_tables = {}  # Overwrite these instead of sync (if exists)
+
+def main():
     bin_dir = os.environ["pwcode_bin_dir"]  # Get PWCode executable path
     class_path = os.environ['CLASSPATH']  # Get Java jar path
     data_dir = os.environ["pwcode_data_dir"]  # Get PWCode data path (projects)
@@ -69,16 +64,16 @@ if __name__ == '__main__':
         system_dir = data_dir + SYSTEM_NAME + '_'  # --> projects/[system_]
         archive = system_dir[:-1] + '/' + SYSTEM_NAME + '.' + ARCHIVE_FORMAT
         if os.path.isfile(archive):
-            print_and_exit("'" + archive + "' already exists. Exiting.")
+            return "'" + archive + "' already exists. Exiting."
 
         if EXPORT_TYPE != 'FILES':
             if not (DB_NAME and DB_SCHEMA):
-                print_and_exit('Missing database- or schema -name. Exiting.')
+                return 'Missing database- or schema -name. Exiting.'
             else:
                 subsystem_dir = system_dir + '/content/sub_systems/' + DB_NAME + '_' + DB_SCHEMA
 
         if EXPORT_TYPE != 'DATABASE' and not DIR_PATHS:
-            print_and_exit('Missing directory paths. Exiting.')
+            return 'Missing directory paths. Exiting.'
 
         # Create data package directories and extract any files:
         export_files(system_dir, subsystem_dir, EXPORT_TYPE, SYSTEM_NAME, DIR_PATHS, bin_dir, ARCHIVE_FORMAT)
@@ -116,10 +111,24 @@ if __name__ == '__main__':
                 config.write(f, space_around_delimiters=False)
 
             shutil.rmtree(system_dir, ignore_errors=True)
-            print('All data copied and system data package created.')
+            return 'All data copied and system data package created.'
 
         else:
-            print('All data copied. Create system data package now if finished extracting system data.')
+            return 'All data copied. Create system data package now if finished extracting system data.'
 
     else:
-        print_and_exit('Missing system name. Exiting.')
+        return 'Missing system name. Exiting.'
+
+
+if __name__ == '__main__':
+    data_dir = os.environ["pwcode_data_dir"]
+    from toml_config.core import Config
+    config_file  = data_dir + 'config.toml'
+    my_config = Config(config_file)
+    my_config.add_section('app').set(key='value',other_key=[1,2,3])
+
+
+    # msg = main()
+    # print(msg)
+
+

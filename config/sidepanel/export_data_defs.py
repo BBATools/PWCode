@@ -26,6 +26,9 @@ from common.print import print_and_exit
 from common.xml import indent
 
 
+# TODO: Bytt ut print_and_exit og fjern så den (må sjekke at da avslutter hele med return heller)
+
+
 def get_db_details(jdbc_url, bin_dir):
     if 'jdbc:h2:' in jdbc_url:  # H2 database
         if 'LAZY_QUERY_EXECUTION' not in jdbc_url:
