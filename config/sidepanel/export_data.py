@@ -1,6 +1,7 @@
 import shutil
 import os
 from configparser import ConfigParser
+from common.xml_settings import XMLSettings
 from common.config import add_config_section
 from common.file import md5sum
 from export_data_defs import (
@@ -102,6 +103,7 @@ def main():
 
             config = ConfigParser()
             config_file = system_dir[:-1] + "/pwcode.ini"
+
             config.read(config_file)
             add_config_section(config, 'SYSTEM')
             config.set('SYSTEM', 'checksum', checksum)
@@ -121,14 +123,19 @@ def main():
 
 
 if __name__ == '__main__':
-    data_dir = os.environ["pwcode_data_dir"]
-    from toml_config.core import Config
-    config_file  = data_dir + 'config.toml'
-    my_config = Config(config_file)
-    my_config.add_section('app').set(key='value',other_key=[1,2,3])
 
+    data_dir = os.environ["pwcode_data_dir"]
+    config = XMLSettings(data_dir + "/config.xml")
+    # from toml_config.core import Config
+    # config_file = data_dir + 'config.toml'
+    # my_config = Config(config_file)
+    # my_config.add_section('app').set(key='value', other_key=[1, 2, 3])
+
+
+    #http://spika.net/py/xmlsettings/
+    config.put('userdata/level', 100)
+    config.save()
 
     # msg = main()
     # print(msg)
-
 

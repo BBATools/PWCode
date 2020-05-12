@@ -61,7 +61,7 @@ COLOR_DATA = dict(
 # command metadata as tuple:
 # label, method name to call on the app object, description (optional), shortcut (optional)
 # COMMAND_DATA = [
-#     ("Show Welcome", "show_welcome", "Show welcome screen"),
+#     ("Show Home", "show_home", "Show home tab"),
 #     ("FILE: Open", "open_file", "Open file from filesystem", "<Control-o>"),
 #     (
 #         "FILE: Open folder",

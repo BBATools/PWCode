@@ -21,7 +21,6 @@ import codecs
 import os
 from functools import partial
 import bs4
-import time
 
 basestring = str
 
@@ -144,7 +143,7 @@ class GUI(tk.Frame):
         self.display = VerticalScrolledFrame(self.data_frame)
         self.display.pack(fill=tk.BOTH, expand=True)
         self.data_frame.pack(fill=tk.BOTH, expand=True)
-        self.load_file('/home/bba/bin/PWCode/bin/xml/xml_edit.xml')
+        self.load_file('/home/bba/bin/PWCode/bin/xml/edit.xml')
 
     def _quit(self):
         # if opt.get('save_position'):

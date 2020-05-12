@@ -69,7 +69,7 @@ def start_server(tmp_dir, port_file, icon_file, python_path, data_dir):
     app = App(tmp_dir, port_file, icon_file, python_path, data_dir)
     app.build_ui()
     open_files_from_tmp(app)
-    app.run_command('show_welcome')
+    app.run_command('show_home')
     open_files_from_arg(sys.argv, app)
     port = find_free_port()
     with open(app.port_file, 'w') as file:

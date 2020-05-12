@@ -21,13 +21,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import os, webbrowser, pickle
+import os
+import webbrowser
+import pickle
 import tkinter as tk
 from tkinter import ttk
-from collections import OrderedDict
 
 
-class WelcomeTab(ttk.Frame):
+class HomeTab(ttk.Frame):
     """ A start-up screen with recent folder and useful links """
 
     def __init__(self, parent, app):
@@ -40,7 +41,7 @@ class WelcomeTab(ttk.Frame):
         )
         ttk.Label(self, text=app.settings.long_desc, style="Text.TLabel").pack(
             side=tk.TOP, anchor=tk.W
-        )        
+        )
 
         frame = ttk.Frame(self, style="Welcome.TFrame")
         frame.pack(fill=tk.BOTH, expand=1, pady=12)
@@ -86,11 +87,10 @@ class WelcomeTab(ttk.Frame):
                 # ("Introductory videos", None),
                 # ("GitHub repository", app.command_callable("open_home_url('https://github.com/BBATools/PreservationWorkbench')")),
                 # ("GitHub repository", app.command_callable("open_home_url")),
-                ("GitHub repository", self.open_home_url),                
+                ("GitHub repository", self.open_home_url),
                 # ("StackOverflow", None),
             ),
         ).pack(side=tk.TOP, anchor=tk.W, pady=12)
-
 
     def open_home_url(self):
         webbrowser.open('https://github.com/BBATools/PWCode', new=2)
@@ -109,12 +109,11 @@ class LinksFrame(ttk.Frame):
             for label, action in links:
                 if action:
                     self.add_link(label, action)
-                else:                  
+                else:
                     self.add_label(label)
-                                    
-    def add_link(self, label, action):     
-        ttk.Button(self, text=label, style="Links.TButton", command=action).pack(side=tk.TOP, anchor=tk.W)
 
+    def add_link(self, label, action):
+        ttk.Button(self, text=label, style="Links.TButton", command=action).pack(side=tk.TOP, anchor=tk.W)
 
     def add_label(self, text):
         ttk.Label(self, text=text, style="Links.TLabel").pack(side=tk.TOP, anchor=tk.W)
@@ -133,29 +132,27 @@ class RecentLinksFrame(LinksFrame):
             self.app.recent_links = pickle.load(open(self.app.tmp_dir + "/recent_files.p", "rb"))
             self.update_recent_links(None)
 
-
-    def update_recent_links(self, new_file_obj): 
-        if new_file_obj: 
+    def update_recent_links(self, new_file_obj):
+        if new_file_obj:
             if new_file_obj.path in self.app.recent_links.keys():
                 del self.app.recent_links[new_file_obj.path]
-            self.app.recent_links.update({new_file_obj.path:new_file_obj})
+            self.app.recent_links.update({new_file_obj.path: new_file_obj})
 
         for widget in self.winfo_children():
             if isinstance(widget, ttk.Button):
-                widget.destroy()         
+                widget.destroy()
 
         for path, file_obj in reversed(self.app.recent_links.items()):
-            if os.path.isfile(file_obj.path): 
+            if os.path.isfile(file_obj.path):
                 if 'PWCode/bin/tmp/Untitled-' in file_obj.path:
                     if os.path.getsize(file_obj.path) == 0:
                         os.remove(file_obj.path)
                     continue
-                    
-                if file_obj in self.app.model.openfiles: 
-                    continue   
 
-                self.add_link(file_obj.basename,lambda p=path: self.app.command_callable("open_file")(p))             
+                if file_obj in self.app.model.openfiles:
+                    continue
 
+                self.add_link(file_obj.basename, lambda p=path: self.app.command_callable("open_file")(p))
 
     def on_file_closed(self, file_obj):
         """model callback"""
@@ -163,8 +160,4 @@ class RecentLinksFrame(LinksFrame):
 
     def on_file_open(self, file_obj):
         """model callback"""
-        self.update_recent_links(None)        
-
-  
-
-
+        self.update_recent_links(None)

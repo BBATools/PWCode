@@ -55,7 +55,7 @@ class ButtonStack(ttk.Frame):
             )
             button.pack(side=tk.TOP, padx=4, pady=4)
             self.buttons.append(button)
-        ttk.Button(self, text="?", command=app.command_callable("show_welcome")).pack(
+        ttk.Button(self, text="?", command=app.command_callable("show_home")).pack(
             side=tk.BOTTOM, padx=4, pady=4
         )
 
@@ -115,4 +115,4 @@ class SideBar(ttk.Frame):
     def on_folder_selected(self, folder):
         """model callback"""
         if not isinstance(self.current_panel, Explorer):
-            self.button_stack.buttons[0].invoke()            
+            self.button_stack.buttons[0].invoke()
