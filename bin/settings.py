@@ -52,6 +52,7 @@ COLOR_DATA = dict(
     selected_fg="#ffffff",  # active selection foreground
     text_bg="#1e1e1e",  # default text editor background
     text_fg="#eeeeee",  # default text editor foreground
+    green="#7bd88f",  # default text editor foreground
 )
 
 # END OF USER SETTING
@@ -89,6 +90,7 @@ PALETTE_PROPERTIES = [
     "selected_fg",
     "text_bg",
     "text_fg",
+    "green"
 ]
 
 # A data structure that contains colors for theming

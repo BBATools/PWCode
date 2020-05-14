@@ -97,7 +97,7 @@ def build_style(colors: Palette):
                     "font": ("", 8, ""),
                 }
             },
-            "Welcome.TFrame": {"configure": {"background": colors.tab_bg}},
+            "Home.TFrame": {"configure": {"background": colors.tab_bg}},
             "Heading.TLabel": {
                 "configure": {
                     "background": colors.tab_bg,
@@ -118,7 +118,7 @@ def build_style(colors: Palette):
                     "foreground": colors.fg,
                     "font": ("", 16, ""),
                 }
-            },            
+            },
             "Links.TFrame": {
                 "configure": {"background": colors.tab_bg, "foreground": colors.fg}
             },
@@ -127,6 +127,9 @@ def build_style(colors: Palette):
             },
             "Links.TButton": {
                 "configure": {"background": colors.tab_bg, "foreground": colors.link}
+            },
+            "Entry.TButton": {
+                "configure": {"background": colors.tab_bg, "foreground": colors.green}
             },
             "PaletteSelected.TFrame": {
                 "configure": {

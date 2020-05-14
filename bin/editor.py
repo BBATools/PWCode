@@ -203,7 +203,7 @@ class EditorFrame(tk.ttk.Frame):
             try:
                 with open(path, 'w') as file:
                     file.write(content)
-            except:
+            except Exception:
                 pass
             finally:
                 text_editor.modified = False
@@ -253,7 +253,7 @@ class TextEditorFrame(tk.ttk.Frame):
         self.current_line = None
         self.app = app
         self.font_style = tk.font.Font(family="Ubuntu Monospace", size=11)
-        # self.font_style = tk.font.Font(size=11) # WAIT: Virker og -> ha som backup når ikke ønsket font finnes?
+        # self.font_style = tk.font.Font(size=11)  # WAIT: Virker og -> ha som backup når ikke ønsket font finnes?
         self.lexer = lexer
 
         tab_to_spaces = False

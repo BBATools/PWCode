@@ -21,18 +21,21 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from console import ConsoleUi, Processing
 import os
 import webbrowser
 import pickle
 import tkinter as tk
 from tkinter import ttk
+from tkinter import filedialog
+from settings import COLORS
 
 
 class HomeTab(ttk.Frame):
     """ A start-up screen with recent folder and useful links """
 
     def __init__(self, parent, app):
-        super().__init__(parent, style="Welcome.TFrame", padding=[56, 12, 8, 8])
+        super().__init__(parent, style="Home.TFrame", padding=[56, 12, 8, 8])
         ttk.Label(self, text=app.settings.name, style="Heading.TLabel").pack(
             side=tk.TOP, anchor=tk.W
         )
@@ -43,57 +46,113 @@ class HomeTab(ttk.Frame):
             side=tk.TOP, anchor=tk.W
         )
 
-        frame = ttk.Frame(self, style="Welcome.TFrame")
+        frame = ttk.Frame(self, style="Home.TFrame")
         frame.pack(fill=tk.BOTH, expand=1, pady=12)
 
-        left_frame = ttk.Frame(frame, style="Welcome.TFrame")
-        left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
+        self.left_frame = ttk.Frame(frame, style="Home.TFrame")
+        self.left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
 
-        LinksFrame(
-            left_frame,
-            "Start",
-            (
-                ("New File", app.command_callable("new_file")),
-                ("Open File ...", app.command_callable("open_file")),
-                ("Open Folder ...", app.command_callable("open_folder")),
-                # ("Clone git repository ...", None),
-            ),
-        ).pack(side=tk.TOP, anchor=tk.W, pady=12)
+        self.right_frame = ttk.Frame(frame, style="Home.TFrame")
+        self.right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=1, padx=(0, 56))
 
-        self.recent_links_frame = RecentLinksFrame(left_frame, app).pack(side=tk.TOP, anchor=tk.W, pady=12)
-
-        # LinksFrame(
-        #     left_frame,
-        #     "Help",
-        #     (
-        #         ("Product documentation", None),
-        #         # ("Introductory videos", None),
-        #         ("GitHub repository", None),
-        #         # ("StackOverflow", None),
-        #     ),
-        # ).pack(side=tk.TOP, anchor=tk.W, pady=12)
-
-        right_frame = ttk.Frame(frame, style="Welcome.TFrame")
-        right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=1)
-        # ttk.Label(right_frame, text="Quick links", style="Links.TLabel").pack(
-        #     side=tk.TOP, anchor=tk.W, pady=16, padx=1
-        # )
-
-        LinksFrame(
-            right_frame,
-            "Help",
-            (
-                # ("Product documentation", None),
-                # ("Introductory videos", None),
-                # ("GitHub repository", app.command_callable("open_home_url('https://github.com/BBATools/PreservationWorkbench')")),
-                # ("GitHub repository", app.command_callable("open_home_url")),
-                ("GitHub repository", self.open_home_url),
-                # ("StackOverflow", None),
-            ),
-        ).pack(side=tk.TOP, anchor=tk.W, pady=12)
+        self.show_start(app)
+        self.show_help()
 
     def open_home_url(self):
         webbrowser.open('https://github.com/BBATools/PWCode', new=2)
+
+    def show_console(self, app):  # TODO: For test. Remove if send to new tab works better
+        path = '/home/bba/bin/PWCode/config/sidepanel/export_data.py'
+        app.model.open_file(path)
+
+        tab_id = app.editor_frame.path2id[path]
+        file_obj = app.editor_frame.id2path[tab_id]
+
+        # file_obj = app.model.current_file
+        # print(file_obj)
+        if file_obj:
+            self.console = ConsoleUi(self.right_frame, file_obj)
+            self.processing = Processing(file_obj, app)
+            # self.processing.show_message('run_file [Ctrl+Enter]\nkill_process [Ctrl+k]\n')
+            # self.console.pack(side=tk.RIGHT, fill=tk.BOTH, expand=1)
+
+    def show_help(self):
+        for widget in self.right_frame.winfo_children():
+            widget.destroy()
+
+        LinksFrame(
+            self.right_frame,
+            "Help",
+            (
+                ("GitHub repository", self.open_home_url),
+            ),
+        ).pack(side=tk.TOP, anchor=tk.W, pady=12)
+
+    def show_start(self, app):
+        LinksFrame(
+            self.left_frame,
+            "Start",
+            (
+                ("New Data Project", lambda: self.system_entry(app)),
+                ("New File", app.command_callable("new_file")),
+                ("Open File ...", app.command_callable("open_file")),
+                ("Open Folder ...", app.command_callable("open_folder")),
+            ),
+        ).pack(side=tk.TOP, anchor=tk.W, pady=12)
+        self.recent_links_frame = RecentLinksFrame(self.left_frame, app).pack(side=tk.TOP, anchor=tk.W, pady=12)
+
+    def make_entry(self, parent, app):
+        entry = tk.Entry(parent,
+                         font=app.font,
+                         bg=COLORS.sidebar_bg,
+                         fg=COLORS.fg,
+                         bd=0,
+                         insertbackground=COLORS.link,
+                         insertofftime=0,
+                         width=50,
+                         highlightthickness=0
+                         )
+
+        return entry
+
+    def subsystem_entry(self, app):
+        system_frame.configure(text=' ' + system_title_entry.get() + ' ')
+
+        # TODO: Lag sjekk på at tittel som kan bruks som navn på mappe på win og lin
+        # TODO: Lag mappe hvis ikke finnes
+        # Skriv til xml config fil i mappe
+        # skriv path for config til environment variable -> gjøre før kjøring av selve eksport bare heller?
+
+        subsystem_frame = ttk.LabelFrame(self.right_frame, style="Links.TFrame", text=" Subsystem ", relief=tk.GROOVE)
+        subsystem_frame.pack(side=tk.TOP, anchor=tk.W, fill="both", expand="yes", pady=12)
+
+        label = ttk.Label(subsystem_frame, text="Database Name:")
+        label.pack(side=tk.LEFT, anchor=tk.N, padx=(12, 0), pady=6)
+
+    def system_entry(self, app):
+        global system_frame
+        global system_title_entry
+
+        for widget in self.right_frame.winfo_children():
+            widget.destroy()
+
+        LinksFrame(self.right_frame, "Export data", (),).pack(side=tk.TOP, anchor=tk.W, pady=12)
+
+        system_frame = ttk.LabelFrame(self.right_frame, style="Links.TFrame", text=" New Data Project ", relief=tk.GROOVE)
+        system_frame.pack(side=tk.TOP, anchor=tk.W, fill="both", expand="yes")
+
+        system_title_label = ttk.Label(system_frame, text="System Name:")
+        system_title_label.pack(side=tk.LEFT, anchor=tk.N, padx=(12, 0), pady=6)
+
+        system_title_entry = self.make_entry(system_frame, app)
+        system_title_entry.pack(side=tk.LEFT, anchor=tk.N, pady=6)
+        system_title_entry.focus()
+
+        subsystem_button = ttk.Button(system_frame, text='Cancel', style="Links.TButton", command=lambda: self.show_help())
+        subsystem_button.pack(side=tk.RIGHT, anchor=tk.N, pady=6, padx=(0, 12))
+
+        cancel_button = ttk.Button(system_frame, text='Add Subsystem', style="Entry.TButton", command=lambda: self.subsystem_entry(app))
+        cancel_button.pack(side=tk.RIGHT, anchor=tk.N, pady=6, padx=(0, 12))
 
 
 class LinksFrame(ttk.Frame):

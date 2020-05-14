@@ -92,6 +92,9 @@ class App:
         # def_font = tk.font.nametofont("TkDefaultFont")
         # def_font.config(size=16)
 
+        self.font = tk.font.nametofont("TkDefaultFont")
+        self.font.config(size=10)  # WAIT: Gjør denne konfigurerbar. Også brukes av editor, eller fortsatt separat?
+
         style = theme.build_style(self.settings.colors)
         style.theme_use("pwcode")
 

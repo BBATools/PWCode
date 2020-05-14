@@ -43,7 +43,7 @@ class FSEntryFactory:
             file_obj = class_obj(path)
             # if len(self.__cache) > self.cache_size:
             #     self.clear_cache()
-            self.__cache[file_obj.path] = file_obj       
+            self.__cache[file_obj.path] = file_obj
 
         file_obj.factory = self
         return file_obj
@@ -97,13 +97,13 @@ class FSEntry:
 class FileEntry(FSEntry):
     """File entry model class"""
 
-    def __get_content(self): 
+    def __get_content(self):
         content = None
-        if os.path.isfile(self.path):             
-            content =  open(self.path).read() 
+        if os.path.isfile(self.path):
+            content = open(self.path).read()
         else:
-            content = 'empty_buffer'                            
-      
+            content = 'empty_buffer'
+
         return content
 
     content = property(__get_content)
@@ -120,7 +120,7 @@ class Folder(FSEntry):
             bname = os.path.basename(path)
 
             if not os.path.islink(path) and not bname.startswith('.'):
-                if os.path.isdir(path) and os.access(path, os.W_OK):                    
+                if os.path.isdir(path) and os.access(path, os.W_OK):
                     dir_entries.append(self.factory.get_folder(path))
                 else:
                     file_entries.append(self.factory.get_file(path))
@@ -130,7 +130,7 @@ class Folder(FSEntry):
 
     entries = property(__get_entries)
 
-    
+
 class PWCodeModel:
     """A model that implements a simple observer pattern """
 
@@ -140,13 +140,12 @@ class PWCodeModel:
         self.openfiles = []
         self.folders = []
         self.recent_folders = []
-        self.recent_files = [] # TODO: Sjekk hva denne brukes til ift. Kombinere med recent_links i app?
+        self.recent_files = []  # TODO: Sjekk hva denne brukes til ift. Kombinere med recent_links i app?
         self.initial_activity = None
         self.observers = []
         self.current_file = None
         self.current_folder = None
         self.preview = None
-
 
     def add_observer(self, obverser):
         """ add an observer to the model """
@@ -165,7 +164,6 @@ class PWCodeModel:
             and getattr(observer, method_name).__self__ is not originator
         ]
 
-
     def open_folder(self, path, originator=None):
         """open a folder """
         folder = self.factory.get_folder(path)
@@ -174,13 +172,12 @@ class PWCodeModel:
             self.recent_folders.remove(folder)
 
         self.recent_folders.insert(0, folder)
-        
+
         if folder in self.folders:
             self.set_current_folder(folder, originator)
-        else:            
+        else:
             self.folders.append(folder)
             self.update_observers("on_folder_open", folder, originator=originator)
-
 
     def open_file(self, path, originator=None):
         """open a single file"""
@@ -193,8 +190,7 @@ class PWCodeModel:
             self.set_current_file(file_obj, originator)
         else:
             self.openfiles.append(file_obj)
-            self.update_observers("on_file_open", file_obj, originator=originator) 
-                                    
+            self.update_observers("on_file_open", file_obj, originator=originator)
 
     def close_file(self, file_obj, originator=None):
         """ remove a file entry from the model """
@@ -212,25 +208,21 @@ class PWCodeModel:
             else:
                 self.set_current_file(self.openfiles[i - 1])
         else:
-            self.set_current_file(None)  
-
+            self.set_current_file(None)
 
     def set_current_file(self, file_obj, originator=None):
         """ fire on_file_selected event to observers"""
         self.current_file = file_obj
         self.update_observers("on_file_selected", file_obj, originator=originator)
 
-
     def set_current_folder(self, folder, originator=None):
         """ fire on_folder_selected event to observers"""
         self.current_folder = folder
-        self.update_observers("on_folder_selected", folder, originator=originator)                      
-
+        self.update_observers("on_folder_selected", folder, originator=originator)
 
     def save_file(self, file_obj, new_path, originator=None):
         """ save file """
-        self.update_observers("on_file_save", file_obj, new_path, originator=originator)      
-      
+        self.update_observers("on_file_save", file_obj, new_path, originator=originator)
 
     def get_file_obj(self, path_or_obj):
         """If path_or_obj is a string, build and return a FileEntry instance.
@@ -242,10 +234,9 @@ class PWCodeModel:
         elif isinstance(path_or_obj, FileEntry):
             return path_or_obj
 
-
     def new_file(self, tmp_dir, originator=None):
         """open new empty file"""
-        # WAIT: Slå sammen med open_file. For mye duplisering nå. 
+        # WAIT: Slå sammen med open_file. For mye duplisering nå.
         i = 1
         while True:
             file_name = 'Untitled-' + str(i)
@@ -261,10 +252,9 @@ class PWCodeModel:
                     self.set_current_file(file_obj, originator)
                 else:
                     self.openfiles.append(file_obj)
-                    self.update_observers("on_file_open", file_obj, originator=originator) 
-                break  
+                    self.update_observers("on_file_open", file_obj, originator=originator)
+                break
             else:
-                i += 1              
+                i += 1
 
-        Path(file_path).touch() # WAIT: Bør flyttes fra model
-
+        Path(file_path).touch()  # WAIT: Bør flyttes fra model

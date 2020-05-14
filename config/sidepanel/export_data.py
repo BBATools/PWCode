@@ -136,6 +136,9 @@ if __name__ == '__main__':
     config.put('userdata/level', 100)
     config.save()
 
-    # msg = main()
+    msg = main()
     # print(msg)
+
+
+
 
