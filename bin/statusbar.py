@@ -35,15 +35,20 @@ class StatusBar(ttk.Frame):
     def __init__(self, parent, app, initial_status):
         super().__init__(parent, style="StatusBar.TFrame")
 
-        self.status_line = ttk.Label(self)
-        self.status_line.config(text=initial_status, style="StatusBar.TLabel", padding=(2,0,0,0))
-        self.status_line.pack(side=tk.LEFT)
+        self.lc_label = ttk.Label(self)
+        self.lc_label.config(text=initial_status, style="StatusBar.TLabel", padding=(2, 0, 0, 0))
+        self.lc_label.pack(side=tk.LEFT)
 
+        # self.status_label = ttk.Label(self)
+        # self.status_label.config(text=initial_status, style="StatusBar.TLabel", padding=(2, 0, 0, 0))
+        # self.status_label.pack(side=tk.LEFT)
+
+        # system_name_entry.pack(side=tk.LEFT, anchor=tk.N, pady=6)
 
         # self.status_line.config(text='ny tekst')
         # v = tk.StringVar()
         # v.set('hhh')
-        # self.status_line = ttk.Label(self, textvariable=initial_status, style="StatusBar.TLabel", padding=(5,0,0,0)).pack(
+        # self.status_line = ttk.Label(self, textvariable=v.get(), style="StatusBar.TLabel", padding=(5, 0, 0, 0)).pack(
         #     side=tk.LEFT
         # )
         # app.update_idletasks()

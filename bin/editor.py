@@ -194,7 +194,7 @@ class EditorFrame(tk.ttk.Frame):
         if new_path:
             path = new_path
 
-        lexer = self.get_lexer(path)
+        # lexer = self.get_lexer(path)
         tab_id = self.notebook.select()
         if tab_id:
             text_editor = self.notebook.nametowidget(tab_id)
@@ -224,7 +224,7 @@ class EditorFrame(tk.ttk.Frame):
 
         if str(tab_id) == '.!panedwindow.!editorframe.!hometab':
             self.app.on_file_selected(None)
-            self.app.statusbar.status_line.config(text='')
+            self.app.statusbar.lc_label.config(text='')
             self.previous_tab_paths.append(None)
         else:
             text_editor = self.notebook.nametowidget(tab_id)
@@ -378,7 +378,7 @@ class TextEditorFrame(tk.ttk.Frame):
         line, column = self.text.index("insert").split('.')
         self.current_line = line  # WAIT: Lagre også i recent files så huske linje når åpner fil igjen
         lc_text = str(line) + ' : ' + str(column)
-        self.app.statusbar.status_line.config(text=lc_text)
+        self.app.statusbar.lc_label.config(text=lc_text)
 
     def cursor_moved(self, event):
         self.set_line_and_column()

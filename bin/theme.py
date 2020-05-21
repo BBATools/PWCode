@@ -119,6 +119,14 @@ def build_style(colors: Palette):
                     "font": ("", 16, ""),
                 }
             },
+            "Text.TEntry": {
+                "configure": {
+                    "background": 'red',
+                    "foreground": colors.fg,
+                    "font": ("", 16, ""),
+                }
+            },
+
             "Links.TFrame": {
                 "configure": {"background": colors.tab_bg, "foreground": colors.fg}
             },
@@ -128,8 +136,11 @@ def build_style(colors: Palette):
             "Links.TButton": {
                 "configure": {"background": colors.tab_bg, "foreground": colors.link}
             },
-            "Entry.TButton": {
+            "Run.TButton": {
                 "configure": {"background": colors.tab_bg, "foreground": colors.green}
+            },
+            "Entry.TButton": {
+                "configure": {"background": colors.tab_bg, "foreground": colors.fg}
             },
             "PaletteSelected.TFrame": {
                 "configure": {

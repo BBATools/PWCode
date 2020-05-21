@@ -48,7 +48,7 @@ class XMLSettingsUncached(object):
         try:
             self.doc = xml.dom.minidom.parse(fpath)
         except IOError:
-            self.doc = xml.dom.minidom.parseString('<root/>')
+            self.doc = xml.dom.minidom.parseString('<system/>')
         self.rootNode = self.doc.childNodes[0].nodeName
         self.fpath = fpath
         self.modified = False

@@ -86,7 +86,8 @@ def fix_desktop_file(bin_dir, icon_file, desktop_file):
             print(line.strip())
 
 
-# WAIT: Kan legge tilbake psutil-kode da den trengs av jdbc
+# WAIT: Kan legge tilbake psutil-kode da psutil likevel trengs av jdbc
+# -> se også denne: https://anweshadas.in/looking/
 if __name__ == "__main__":
     self_path = Path(__file__).resolve()
     bin_dir = str(self_path.parents[1]) + '/bin'

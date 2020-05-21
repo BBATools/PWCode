@@ -125,20 +125,15 @@ def main():
 if __name__ == '__main__':
 
     data_dir = os.environ["pwcode_data_dir"]
-    config = XMLSettings(data_dir + "/config.xml")
     # from toml_config.core import Config
     # config_file = data_dir + 'config.toml'
     # my_config = Config(config_file)
     # my_config.add_section('app').set(key='value', other_key=[1, 2, 3])
-
-
-    #http://spika.net/py/xmlsettings/
+    # http://spika.net/py/xmlsettings/
+    config = XMLSettings(data_dir + "/config.xml")
     config.put('userdata/level', 100)
     config.save()
 
     msg = main()
     # print(msg)
-
-
-
 
