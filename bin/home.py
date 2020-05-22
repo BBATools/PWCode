@@ -256,34 +256,34 @@ class SubSystem(ttk.LabelFrame):
         self.frame1.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
 
         self.db_name_label = ttk.Label(self.frame1, text="DB Name:", width=8)
-        self.db_name_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 0), pady=(4, 3))
+        self.db_name_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 0), pady=(4,3))
         self.db_name_entry = make_entry(self.frame1, app, 25)
-        self.db_name_entry.pack(side=tk.LEFT, anchor=tk.N, pady=(4, 3))
+        self.db_name_entry.pack(side=tk.LEFT, anchor=tk.N, pady=(4,3))
         self.db_name_entry.focus()
-        self.db_schema_label = ttk.Label(self.frame1, text="Schema Name:", width=8)
-        self.db_schema_label.pack(side=tk.LEFT, anchor=tk.N, padx=(9, 0), pady=3)
+        self.db_schema_label = ttk.Label(self.frame1, text="Schema Name:", width=12)
+        self.db_schema_label.pack(side=tk.LEFT, anchor=tk.N, padx=(12, 0), pady=(4,3))
         self.db_schema_entry = make_entry(self.frame1, app, 25)
-        self.db_schema_entry.pack(side=tk.LEFT, anchor=tk.N, pady=3)
+        self.db_schema_entry.pack(side=tk.LEFT, anchor=tk.N, pady=(4,3))
         self.cancel_button = ttk.Button(self.frame1, text='Discard', style="Links.TButton", command=lambda: self.subsystem_remove(parent))
-        self.cancel_button.pack(side=tk.RIGHT, anchor=tk.N, pady=(3, 2), padx=(0, 12))
+        self.cancel_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
         self.folder_button = ttk.Button(self.frame1, text='Add Folder', style="Entry.TButton", command=lambda: self.choose_folder(app))
-        self.folder_button.pack(side=tk.RIGHT, anchor=tk.N, pady=(3, 2), padx=(0, 12))
+        self.folder_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
 
         self.frame2 = ttk.Frame(self, style="SubHeading.TLabel")
         self.frame2.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
-        self.jdbc_url_label = ttk.Label(self.frame2, text="JDBC Url: ")
-        self.jdbc_url_label.pack(side=tk.LEFT, anchor=tk.N, padx=(9, 0), pady=3)
-        self.jdbc_url_entry = make_entry(self.frame2, app, 63)
+        self.jdbc_url_label = ttk.Label(self.frame2, text="JDBC Url:", width=8)
+        self.jdbc_url_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 0), pady=3)
+        self.jdbc_url_entry = make_entry(self.frame2, app, 64)
         self.jdbc_url_entry.pack(side=tk.LEFT, anchor=tk.N, pady=3)
 
         self.frame3 = ttk.Frame(self, style="SubHeading.TLabel")
         self.frame3.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
-        self.db_user_label = ttk.Label(self.frame3, text="DB User: ")
-        self.db_user_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 1), pady=3)
+        self.db_user_label = ttk.Label(self.frame3, text="DB User:", width=8)
+        self.db_user_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 0), pady=3)
         self.db_user_entry = make_entry(self.frame3, app, 25)
         self.db_user_entry.pack(side=tk.LEFT, anchor=tk.N, pady=3)
-        self.db_pwd_label = ttk.Label(self.frame3, text="DB Password:   ")
-        self.db_pwd_label.pack(side=tk.LEFT, anchor=tk.N, padx=(10, 0), pady=3)
+        self.db_pwd_label = ttk.Label(self.frame3, text="DB Password:", width=12)
+        self.db_pwd_label.pack(side=tk.LEFT, anchor=tk.N, padx=(12, 0), pady=3)
         self.db_pwd_entry = make_entry(self.frame3, app, 25)
         self.db_pwd_entry.pack(side=tk.LEFT, anchor=tk.N, pady=3)
 
@@ -317,15 +317,16 @@ class SubSystem(ttk.LabelFrame):
         self.var.trace("w", self.get_option)
         self.tables_option = ttk.OptionMenu(self.frame5, self.var, *options)
         self.tables_option.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(8, 0))
-        self.tables_entry = make_entry(self.frame5, app, 56)
+        self.tables_option.configure(width=12)
+        self.tables_entry = make_entry(self.frame5, app, 57)
         self.tables_entry.pack(side=tk.LEFT, anchor=tk.N, pady=3)
 
         self.frame6 = ttk.Frame(self, style="SubHeading.TLabel")
         self.frame6.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
 
-        self.overwrite_label = ttk.Label(self.frame6, text="Overwrite Tables:")
-        self.overwrite_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 11), pady=(3, 4))
-        self.overwrite_entry = make_entry(self.frame6, app, 56)
+        self.overwrite_label = ttk.Label(self.frame6, text="Overwrite Tables:",width=15)
+        self.overwrite_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8,0), pady=3)
+        self.overwrite_entry = make_entry(self.frame6, app, 57)
         self.overwrite_entry.pack(side=tk.LEFT, anchor=tk.N, pady=(3, 6))
 
         # self.folder_frame = ttk.Frame(self, style="SubHeading.TLabel")
@@ -335,12 +336,10 @@ class SubSystem(ttk.LabelFrame):
 
     def choose_folder(self, app):
         path = multi_open(app.data_dir, mode='dir')
-        self.folder_list.add_folder('Folder: ' + path, lambda p=path: app.command_callable("open_folder")(p), 68)
+        self.folder_list.add_folder('Folder: ' + path, lambda p=path: app.command_callable("open_folder")(p), 70)
 
     def get_option(self, *args):
         value = ' '.join(self.var.get().split(' ')[:2]) + ':'
-        if value.startswith('In'):
-            value = value + ' '
         self.var.set(value)
         self.tables_option.configure(state=tk.NORMAL)  # Just for refreshing widget
 
@@ -378,7 +377,7 @@ class LinksFrame(ttk.Frame):
 
         folder = ttk.Button(folder_frame, text=label, style="SideBar.TButton", command=action, width=width)
         folder.pack(side=tk.LEFT, anchor=tk.N, pady=(1, 0))
-        remove_button = ttk.Button(folder_frame, text='  x', style="SideBar.TButton", command=lambda: folder_frame.pack_forget())
+        remove_button = ttk.Button(folder_frame, text=' x', style="SideBar.TButton", command=lambda: folder_frame.pack_forget())
         remove_button.pack(side=tk.LEFT, anchor=tk.N, pady=(1, 0))
         # ttk.Button(self, text=label, style="Entry.TButton", command=action).pack(side=tk.TOP, anchor=tk.W)
 
