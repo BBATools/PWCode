@@ -173,22 +173,53 @@ class HomeTab(ttk.Frame):
         system_frame = ttk.LabelFrame(self.right_frame, style="Links.TFrame", text=" New Data Project ", relief=tk.GROOVE)
         system_frame.pack(side=tk.TOP, anchor=tk.W, fill="both", expand=1)
 
-        system_name_label = ttk.Label(system_frame, text="System Name:")
-        system_name_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 0), pady=(4, 24))
+        # TODO: Må ha ny subframe her for linje 1 (ikke ha de direkte på system_frame)
 
-        system_name_entry = make_entry(system_frame, app, 59)
-        system_name_entry.pack(side=tk.LEFT, anchor=tk.N, pady=(4, 24), padx=(4, 0))
+        name_frame = ttk.Frame(system_frame, style="SubHeading.TLabel")
+        name_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)        
+
+        system_name_label = ttk.Label(name_frame, text="System Name:", width = 16)
+        system_name_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 0), pady=(4, 3))
+
+        system_name_entry = make_entry(name_frame, app, 56)
+        system_name_entry.pack(side=tk.LEFT, anchor=tk.N, pady=(4, 3))
         system_name_entry.focus()
 
-        cancel_button = ttk.Button(system_frame, text='Discard', style="Links.TButton", command=lambda: self.show_help(app))
-        cancel_button.pack(side=tk.RIGHT, anchor=tk.N, pady=4, padx=(0, 12))
+        cancel_button = ttk.Button(name_frame, text='Discard', style="Links.TButton", command=lambda: self.show_help(app))
+        cancel_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
 
-        subsystem_button = ttk.Button(system_frame, text='Add Subsystem', style="Entry.TButton", command=lambda: self.subsystem_entry(app))
-        subsystem_button.pack(side=tk.RIGHT, anchor=tk.N, pady=4, padx=(0, 12))
+        subsystem_button = ttk.Button(name_frame, text='Add Subsystem', style="Entry.TButton", command=lambda: self.subsystem_entry(app))
+        subsystem_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
 
         # TODO: Lag def export_system(self, app):
-        run_button = ttk.Button(system_frame, text='Run', style="Run.TButton", command=lambda: self.export_system(app))
-        run_button.pack(side=tk.RIGHT, anchor=tk.N, pady=4, padx=(0, 12))
+        run_button = ttk.Button(name_frame, text='Run', style="Run.TButton", command=lambda: self.export_system(app))
+        run_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
+
+        options_frame = ttk.Frame(system_frame, style="SubHeading.TLabel")
+        options_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X, pady=(0,20))
+        options_label = ttk.Label(options_frame, text="Database Options:", width=16)
+        options_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 0), pady=3)
+        # # TODO: Flytt denne linjen opp på system nivå
+        # # TODO: Legg inn sjekk på at ikke duplikat folder --> i choose_folder kode?
+
+        memory_label = ttk.Label(options_frame, text="Allocated memory:")
+        memory_label.pack(side=tk.LEFT, anchor=tk.N, pady=3)
+        options = ['', '3 Gb', '4 Gb', '5 Gb', '6 Gb', '7 Gb', '8 Gb']
+        var = tk.StringVar()
+        var.set(options[2])
+        memory_option = ttk.OptionMenu(options_frame, var, *options)
+        memory_option.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(0, 55))
+        memory_option.configure(width=4)
+
+        ddl_label = ttk.Label(options_frame, text="DDL Generation:")
+        ddl_label.pack(side=tk.LEFT, anchor=tk.N, pady=3)
+        options = ['', 'Native', 'SQL Workbench']
+        var = tk.StringVar()
+        var.set(options[1])
+        ddl_option = ttk.OptionMenu(options_frame, var, *options)
+        ddl_option.pack(side=tk.LEFT, anchor=tk.N, pady=3)
+        ddl_option.configure(width=12)
+
 
     def subsystem_entry(self, app):
         ok = None
@@ -287,27 +318,6 @@ class SubSystem(ttk.LabelFrame):
         self.db_pwd_entry = make_entry(self.frame3, app, 25)
         self.db_pwd_entry.pack(side=tk.LEFT, anchor=tk.N, pady=3)
 
-        # self.frame4 = ttk.Frame(self, style="SubHeading.TLabel")
-        # self.frame4.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
-        # # TODO: Flytt denne linjen opp på system nivå
-        # # TODO: Legg inn sjekk på at ikke duplikat folder --> i choose_folder kode?
-
-        # self.memory_label = ttk.Label(self.frame4, text="Allocated memory:     ")
-        # self.memory_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 0), pady=3)
-        # options = ['', '3 Gb', '4 Gb', '5 Gb', '6 Gb', '7 Gb', '8 Gb']
-        # var = tk.StringVar()
-        # var.set(options[1])
-        # self.memory_option = ttk.OptionMenu(self.frame4, var, *options)
-        # self.memory_option.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(0, 84))
-
-        # self.ddl_label = ttk.Label(self.frame4, text="DDL Generation:       ")
-        # self.ddl_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 0), pady=3)
-        # options = ['', 'Native', 'SQL Workbench/J']
-        # var = tk.StringVar()
-        # var.set(options[1])
-        # self.ddl_option = ttk.OptionMenu(self.frame4, var, *options)
-        # self.ddl_option.pack(side=tk.LEFT, anchor=tk.N, pady=3)
-
         self.frame5 = ttk.Frame(self, style="SubHeading.TLabel")
         self.frame5.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
 
@@ -329,8 +339,6 @@ class SubSystem(ttk.LabelFrame):
         self.overwrite_entry = make_entry(self.frame6, app, 57)
         self.overwrite_entry.pack(side=tk.LEFT, anchor=tk.N, pady=(3, 6))
 
-        # self.folder_frame = ttk.Frame(self, style="SubHeading.TLabel")
-        # self.folder_frame.pack(side=tk.TOP, anchor=tk.N, fill=tk.BOTH, expand=1)
         self.folder_list = LinksFrame(self)
         self.folder_list.pack(side=tk.TOP, anchor=tk.N, padx=(8, 0), pady=3, fill=tk.X)
 
@@ -379,7 +387,6 @@ class LinksFrame(ttk.Frame):
         folder.pack(side=tk.LEFT, anchor=tk.N, pady=(1, 0))
         remove_button = ttk.Button(folder_frame, text=' x', style="SideBar.TButton", command=lambda: folder_frame.pack_forget())
         remove_button.pack(side=tk.LEFT, anchor=tk.N, pady=(1, 0))
-        # ttk.Button(self, text=label, style="Entry.TButton", command=action).pack(side=tk.TOP, anchor=tk.W)
 
     def add_label(self, text):
         ttk.Label(self, text=text, style="Links.TLabel").pack(side=tk.TOP, anchor=tk.W)

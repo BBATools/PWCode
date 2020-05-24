@@ -34,7 +34,7 @@ DB_USER = ''
 DB_PASSWORD = ''
 MAX_JAVA_HEAP = '-Xmx4g'  # g=GB. Increase available memory as needed
 DDL_GEN = 'PWCode'  # PWCode | SQLWB -> Choose between generators for 'create table'
-# Copy all tables in schema except this:
+# Copy all tables in schema except these:
 SKIP_TABLES = [
     #    'EDOKFILES',
     # 'tabnavn',
@@ -136,4 +136,5 @@ if __name__ == '__main__':
 
     msg = main()
     # print(msg)
+
 
