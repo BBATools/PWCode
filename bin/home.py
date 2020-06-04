@@ -29,7 +29,7 @@ import pickle
 import shutil
 import tkinter as tk
 from tkinter import ttk
-from tkinter import filedialog
+# from tkinter import filedialog
 from settings import COLORS
 from gui.dialog import multi_open
 
@@ -57,6 +57,9 @@ class HomeTab(ttk.Frame):
 
         self.show_start(app)
         self.show_help(app)
+
+        # self.folder_list = LinksFrame(self)
+        # self.folder_list.pack(side=tk.TOP, anchor=tk.N, padx=(8, 0), pady=3, fill=tk.X)
 
     def open_home_url(self):
         webbrowser.open('https://github.com/BBATools/PWCode', new=2)
@@ -101,7 +104,8 @@ class HomeTab(ttk.Frame):
             self.left_frame,
             "Start",
             (
-                ("New Data Project", lambda: self.system_entry(app)),
+                ("Export Data", lambda: self.export_data_project(app)),
+                ("Convert Files", lambda: self.convert_files_project(app)),  # TODO: Legg inn sjekk på at på PWLinux for at denne skal vises
                 ("New File", app.command_callable("new_file")),
                 ("Open File ...", app.command_callable("open_file")),
                 ("Open Folder ...", app.command_callable("open_folder")),
@@ -112,7 +116,7 @@ class HomeTab(ttk.Frame):
         # self.left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
 
     def system_entry_check(self, app):
-        system_name = system_name_entry.get()
+        system_name = self.project_frame.name_entry.get()
         if not system_name:
             msg = 'Missing system name'
             msg_label.config(text=msg)
@@ -145,16 +149,14 @@ class HomeTab(ttk.Frame):
                 msg_label.config(text=msg)
                 return
 
-        system_frame.configure(text=' ' + system_name + ' ')
-        system_name_entry.configure(state=tk.DISABLED)
+        self.project_frame.configure(text=' ' + system_name + ' ')
+        self.project_frame.name_entry.configure(state=tk.DISABLED)
 
         # TODO: Lås tittel felt for redigering
 
         return 'ok'
 
-    def system_entry(self, app):
-        global system_frame
-        global system_name_entry
+    def reset_rhs(self, header):
         global msg_label
 
         self.subheading.pack_forget()
@@ -163,40 +165,57 @@ class HomeTab(ttk.Frame):
         for widget in self.right_frame.winfo_children():
             widget.destroy()
 
-        export_frame = ttk.Frame(self.right_frame, style="SubHeading.TLabel")
-        export_frame.pack(side=tk.TOP, anchor=tk.W, pady=12, fill=tk.X)
-        export_label = ttk.Label(export_frame, text="Export data", style="SubHeading.TLabel")
-        export_label.pack(side=tk.LEFT, anchor=tk.N, pady=4, padx=1, fill="both", expand="yes")
-        msg_label = ttk.Label(export_frame, text="", style="Links.TButton")
+        frame = ttk.Frame(self.right_frame, style="SubHeading.TLabel")
+        frame.pack(side=tk.TOP, anchor=tk.W, pady=12, fill=tk.X)
+        header_label = ttk.Label(frame, text=header, style="SubHeading.TLabel")
+        header_label.pack(side=tk.LEFT, anchor=tk.N, pady=4, padx=1, fill="both", expand="yes")
+        msg_label = ttk.Label(frame, text="", style="Links.TButton")
         msg_label.pack(side=tk.LEFT, anchor=tk.E, pady=4, padx=(0, 12))
 
-        system_frame = ttk.LabelFrame(self.right_frame, style="Links.TFrame", text=" New Data Project ", relief=tk.GROOVE)
-        system_frame.pack(side=tk.TOP, anchor=tk.W, fill="both", expand=1)
+    def convert_files_project(self, app):
+        # TODO: Velge mappe en konverter fra -> overwrite: Ja . Navnestandard for normalisert fil (prepend extension?) -> med eller uten norm
+        self.reset_rhs("Convert Files")
 
-        # TODO: Må ha ny subframe her for linje 1 (ikke ha de direkte på system_frame)
+        self.project_frame = Project(self.right_frame, app, self, "Project Name:", text=" New Data Project ", relief=tk.GROOVE)
+        self.project_frame.pack(side=tk.TOP, anchor=tk.W, fill="both", expand=1, pady=12)
+        name_frame = self.project_frame.name_frame
 
-        name_frame = ttk.Frame(system_frame, style="SubHeading.TLabel")
-        name_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)        
+        folder_button = ttk.Button(name_frame, text='Add Folder', style="Entry.TButton", command=lambda: self.project_frame.choose_folder(app))
+        folder_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
 
-        system_name_label = ttk.Label(name_frame, text="System Name:", width = 16)
-        system_name_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 0), pady=(4, 3))
+        run_button = ttk.Button(name_frame, text='Run', style="Run.TButton", command=lambda: self.convert_files(app))
+        run_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
 
-        system_name_entry = make_entry(name_frame, app, 56)
-        system_name_entry.pack(side=tk.LEFT, anchor=tk.N, pady=(4, 3))
-        system_name_entry.focus()
+        options_frame = ttk.Frame(self.project_frame, style="SubHeading.TLabel")
+        options_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
+        # options_label = ttk.Label(options_frame, text="Options:", width=16)
+        # options_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 0), pady=3)
 
-        cancel_button = ttk.Button(name_frame, text='Discard', style="Links.TButton", command=lambda: self.show_help(app))
-        cancel_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
+        ext_label = ttk.Label(options_frame, text="Prepend extension:")
+        ext_label.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(8, 0))
+        options = ['', "'norm'", 'none']
+        var = tk.StringVar()
+        var.set(options[1])
+        ext_option = ttk.OptionMenu(options_frame, var, *options)
+        ext_option.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(0, 55))
+        ext_option.configure(width=5)
+
+    def export_data_project(self, app):
+        self.reset_rhs("Export Data")
+
+        self.project_frame = Project(self.right_frame, app, self, "System Name:", text=" New Data Project ", relief=tk.GROOVE)
+        self.project_frame.pack(side=tk.TOP, anchor=tk.W, fill="both", expand=1, pady=12)
+        name_frame = self.project_frame.name_frame
 
         subsystem_button = ttk.Button(name_frame, text='Add Subsystem', style="Entry.TButton", command=lambda: self.subsystem_entry(app))
         subsystem_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
 
-        # TODO: Lag def export_system(self, app):
-        run_button = ttk.Button(name_frame, text='Run', style="Run.TButton", command=lambda: self.export_system(app))
+        # TODO: Lag def export_data(self, app):
+        run_button = ttk.Button(name_frame, text='Run', style="Run.TButton", command=lambda: self.export_data(app))
         run_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
 
-        options_frame = ttk.Frame(system_frame, style="SubHeading.TLabel")
-        options_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X, pady=(0,20))
+        options_frame = ttk.Frame(self.project_frame, style="SubHeading.TLabel")
+        options_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X, pady=(0, 20))
         options_label = ttk.Label(options_frame, text="Database Options:", width=16)
         options_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 0), pady=3)
         # # TODO: Flytt denne linjen opp på system nivå
@@ -220,7 +239,6 @@ class HomeTab(ttk.Frame):
         ddl_option.pack(side=tk.LEFT, anchor=tk.N, pady=3)
         ddl_option.configure(width=12)
 
-
     def subsystem_entry(self, app):
         ok = None
         if len(subsystem_frames) == 0:
@@ -230,10 +248,10 @@ class HomeTab(ttk.Frame):
 
         if ok:
             if len(subsystem_frames) == 0:
-                system_frame.pack_forget()
-                system_frame.pack(side=tk.TOP, anchor=tk.W, fill="both", expand=0, pady=(0, 12))
+                self.project_frame.pack_forget()
+                self.project_frame.pack(side=tk.TOP, anchor=tk.W, fill="both", expand=0, pady=(0, 12))
 
-            subsystem_frame = SubSystem(self.right_frame, app, text=" New Subsystem ", relief=tk.GROOVE)
+            subsystem_frame = SubSystem(self.right_frame, app, self, text=" New Subsystem ", relief=tk.GROOVE)
             subsystem_frame.pack(side=tk.TOP, anchor=tk.W, fill="both", expand=1, pady=12)
             subsystem_frames.append(subsystem_frame)
 
@@ -244,7 +262,7 @@ class HomeTab(ttk.Frame):
             os.remove(config_path)
 
         config = XMLSettings(config_path)
-        config.put('name', system_name_entry.get())
+        config.put('name', self.project_frame.name_entry.get())
 
         subsystem_names = []
         for subsystem in subsystem_frames:
@@ -279,23 +297,51 @@ class HomeTab(ttk.Frame):
         return 'ok'
 
 
-class SubSystem(ttk.LabelFrame):
-    def __init__(self, parent, app, *args, **kwargs):
+class Project(ttk.LabelFrame):
+    def __init__(self, parent, app, grandparent, entry_text, *args, **kwargs):
         super().__init__(parent, *args, **kwargs, style="Links.TFrame")
+        self.grandparent = grandparent
+
+        self.name_frame = ttk.Frame(self, style="SubHeading.TLabel")
+        self.name_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
+
+        self.name_label = ttk.Label(self.name_frame, text=entry_text, width=16)
+        self.name_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 0), pady=(4, 3))
+
+        self.name_entry = make_entry(self.name_frame, app, 56)
+        self.name_entry.pack(side=tk.LEFT, anchor=tk.N, pady=(4, 3))
+        self.name_entry.focus()
+
+        self.cancel_button = ttk.Button(self.name_frame, text='Discard', style="Links.TButton", command=lambda: self.grandparent.show_help(app))
+        self.cancel_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
+
+    def choose_folder(self, app):
+        if not hasattr(self, 'folder_list'):
+            self.folder_list = LinksFrame(self)
+            self.folder_list.pack(side=tk.TOP, anchor=tk.N, padx=(8, 0), pady=3, fill=tk.X)
+
+        path = multi_open(app.data_dir, mode='dir')
+        self.folder_list.add_folder('Folder: ' + path, lambda p=path: app.command_callable("open_folder")(p), 70)
+
+
+class SubSystem(ttk.LabelFrame):
+    def __init__(self, parent, app, grandparent, *args, **kwargs):
+        super().__init__(parent, *args, **kwargs, style="Links.TFrame")
+        self.grandparent = grandparent
 
         self.frame1 = ttk.Frame(self, style="SubHeading.TLabel")
         self.frame1.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
 
         self.db_name_label = ttk.Label(self.frame1, text="DB Name:", width=8)
-        self.db_name_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 0), pady=(4,3))
+        self.db_name_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 0), pady=(4, 3))
         self.db_name_entry = make_entry(self.frame1, app, 25)
-        self.db_name_entry.pack(side=tk.LEFT, anchor=tk.N, pady=(4,3))
+        self.db_name_entry.pack(side=tk.LEFT, anchor=tk.N, pady=(4, 3))
         self.db_name_entry.focus()
         self.db_schema_label = ttk.Label(self.frame1, text="Schema Name:", width=12)
-        self.db_schema_label.pack(side=tk.LEFT, anchor=tk.N, padx=(12, 0), pady=(4,3))
+        self.db_schema_label.pack(side=tk.LEFT, anchor=tk.N, padx=(12, 0), pady=(4, 3))
         self.db_schema_entry = make_entry(self.frame1, app, 25)
-        self.db_schema_entry.pack(side=tk.LEFT, anchor=tk.N, pady=(4,3))
-        self.cancel_button = ttk.Button(self.frame1, text='Discard', style="Links.TButton", command=lambda: self.subsystem_remove(parent))
+        self.db_schema_entry.pack(side=tk.LEFT, anchor=tk.N, pady=(4, 3))
+        self.cancel_button = ttk.Button(self.frame1, text='Discard', style="Links.TButton", command=lambda: self.subsystem_remove())
         self.cancel_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
         self.folder_button = ttk.Button(self.frame1, text='Add Folder', style="Entry.TButton", command=lambda: self.choose_folder(app))
         self.folder_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
@@ -334,8 +380,8 @@ class SubSystem(ttk.LabelFrame):
         self.frame6 = ttk.Frame(self, style="SubHeading.TLabel")
         self.frame6.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
 
-        self.overwrite_label = ttk.Label(self.frame6, text="Overwrite Tables:",width=15)
-        self.overwrite_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8,0), pady=3)
+        self.overwrite_label = ttk.Label(self.frame6, text="Overwrite Tables:", width=15)
+        self.overwrite_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 0), pady=3)
         self.overwrite_entry = make_entry(self.frame6, app, 57)
         self.overwrite_entry.pack(side=tk.LEFT, anchor=tk.N, pady=(3, 6))
 
@@ -351,13 +397,13 @@ class SubSystem(ttk.LabelFrame):
         self.var.set(value)
         self.tables_option.configure(state=tk.NORMAL)  # Just for refreshing widget
 
-    def subsystem_remove(self, parent):
+    def subsystem_remove(self):
         subsystem_frames.remove(self)
         self.destroy()
 
         if len(subsystem_frames) == 0:
-            system_frame.pack_forget()
-            system_frame.pack(side=tk.TOP, anchor=tk.W, fill="both", expand=1)
+            self.grandparent.project_frame.pack_forget()
+            self.grandparent.project_frame.pack(side=tk.TOP, anchor=tk.W, fill="both", expand=1)
 
 
 class LinksFrame(ttk.Frame):
