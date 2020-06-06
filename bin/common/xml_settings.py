@@ -48,7 +48,7 @@ class XMLSettingsUncached(object):
         try:
             self.doc = xml.dom.minidom.parse(fpath)
         except IOError:
-            self.doc = xml.dom.minidom.parseString('<system/>')
+            self.doc = xml.dom.minidom.parseString('<project/>')
         self.rootNode = self.doc.childNodes[0].nodeName
         self.fpath = fpath
         self.modified = False
@@ -87,6 +87,7 @@ class XMLSettingsUncached(object):
         node = self.__get_node(path, createPath=True)
         while node.childNodes:
             node.removeChild(node.childNodes[-1])
+
         v = self.doc.createTextNode(_to_string(value))
         node.appendChild(v)
         self.modified = True
@@ -103,7 +104,7 @@ class XMLSettingsUncached(object):
         node = self.__get_node(path)
         if node:
             if len(node.childNodes) == 1 and node.childNodes[0].nodeType == self.doc.TEXT_NODE:
-                if defValue != None:
+                if defValue is not None:
                     a = type(defValue)(node.childNodes[0].nodeValue)
                 else:
                     a = node.childNodes[0].nodeValue
@@ -156,7 +157,7 @@ class XMLSettings(object):
             if x is None:
                 x = defValue
             else:
-                if defValue != None:
+                if defValue is not None:
                     x = type(defValue)(x)
                 self.cache[path] = x
         return x

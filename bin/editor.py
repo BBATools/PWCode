@@ -327,7 +327,7 @@ class TextEditorFrame(tk.ttk.Frame):
         if not stop:
             self.console.text.config(state=tk.NORMAL)
             self.console.text.delete('1.0', tk.END)
-            self.processing.show_message('run_file [Ctrl+Enter]\nkill_process [Ctrl+k]\n')
+            # self.processing.show_message('run_file [Ctrl+Enter]\nkill_process [Ctrl+k]\n')
             self.console.text.config(state=tk.DISABLED)
 
         self.processing.run_file(file_obj, stop)

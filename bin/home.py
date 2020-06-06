@@ -21,8 +21,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from console import ConsoleUi, Processing
+# from console import ConsoleUi, Processing
 from common.xml_settings import XMLSettings
+import commands
 import os
 import webbrowser
 import pickle
@@ -43,7 +44,7 @@ class HomeTab(ttk.Frame):
         global subsystem_frames
         subsystem_frames = []
         self.system_dir = None
-        self.system_dir_created = False
+        self.project_dir_created = False
 
         frame = ttk.Frame(self, style="Home.TFrame")
         frame.pack(fill=tk.BOTH, expand=1, pady=12)
@@ -64,20 +65,20 @@ class HomeTab(ttk.Frame):
     def open_home_url(self):
         webbrowser.open('https://github.com/BBATools/PWCode', new=2)
 
-    def show_console(self, app):  # TODO: For test. Remove if send to new tab works better
-        path = '/home/bba/bin/PWCode/config/sidepanel/export_data.py'
-        app.model.open_file(path)
+    # def show_console(self, app):  # TODO: For test. Remove if send to new tab works better
+    #     path = '/home/bba/bin/PWCode/config/sidepanel/export_data.py'
+    #     app.model.open_file(path)
 
-        tab_id = app.editor_frame.path2id[path]
-        file_obj = app.editor_frame.id2path[tab_id]
+    #     tab_id = app.editor_frame.path2id[path]
+    #     file_obj = app.editor_frame.id2path[tab_id]
 
-        # file_obj = app.model.current_file
-        # print(file_obj)
-        if file_obj:
-            self.console = ConsoleUi(self.right_frame, file_obj)
-            self.processing = Processing(file_obj, app)
-            # self.processing.show_message('run_file [Ctrl+Enter]\nkill_process [Ctrl+k]\n')
-            # self.console.pack(side=tk.RIGHT, fill=tk.BOTH, expand=1)
+    #     # file_obj = app.model.current_file
+    #     # print(file_obj)
+    #     if file_obj:
+    #         self.console = ConsoleUi(self.right_frame, file_obj)
+    #         self.processing = Processing(file_obj, app)
+    #         # self.processing.show_message('run_file [Ctrl+Enter]\nkill_process [Ctrl+k]\n')
+    #         # self.console.pack(side=tk.RIGHT, fill=tk.BOTH, expand=1)
 
     def show_help(self, app):
         self.subheading = ttk.Label(self, text=app.settings.desc, style="SubHeading.TLabel")
@@ -89,7 +90,7 @@ class HomeTab(ttk.Frame):
             widget.destroy()
 
         subsystem_frames.clear()
-        self.system_dir_created = False
+        self.project_dir_created = False
 
         LinksFrame(
             self.right_frame,
@@ -140,19 +141,24 @@ class HomeTab(ttk.Frame):
             msg_label.config(text=msg)
             return
 
-        if not self.system_dir_created:
+        ok = self.create_project_dir(system_dir, system_name)
+        if not ok:
+            return
+
+        return 'ok'
+
+    def create_project_dir(self, path, project_name):
+        if not self.project_dir_created:
             try:
-                os.mkdir(system_dir)
-                self.system_dir_created = True
+                os.mkdir(path)
+                self.project_dir_created = True
             except OSError:
-                msg = "Can't create destination directory '%s'" % (system_dir)
+                msg = "Can't create destination directory '%s'" % (path)
                 msg_label.config(text=msg)
                 return
 
-        self.project_frame.configure(text=' ' + system_name + ' ')
+        self.project_frame.configure(text=' ' + project_name + ' ')
         self.project_frame.name_entry.configure(state=tk.DISABLED)
-
-        # TODO: Lås tittel felt for redigering
 
         return 'ok'
 
@@ -172,8 +178,47 @@ class HomeTab(ttk.Frame):
         msg_label = ttk.Label(frame, text="", style="Links.TButton")
         msg_label.pack(side=tk.LEFT, anchor=tk.E, pady=4, padx=(0, 12))
 
+    def convert_files(self, app):
+        config_dir = os.environ["pwcode_config_dir"]  # Get PWCode config path
+
+        config_path = config_dir + '/tmp/convert_files.xml'
+        if os.path.isfile(config_path):
+            os.remove(config_path)
+
+        config = XMLSettings(config_path)
+
+        if not hasattr(self.project_frame, 'folder_list'):
+            msg_label.config(text='No folders added')
+            return
+
+        project_name = self.project_frame.name_entry.get()
+        if not project_name:
+            msg_label.config(text='Missing project name')
+            return
+
+        ok = self.create_project_dir(app.data_dir + project_name, project_name)
+        if not ok:
+            return
+
+        config.put('name', self.project_frame.name_entry.get())
+        config.put('options/ext', self.project_frame.ext_option.get())
+
+        i = 1
+        for folder in self.project_frame.folder_list.folders:
+            config.put('folders/folder' + str(i), folder)
+            i += 1
+
+        config.save()
+        path = config_dir + 'convert_files.py'  # TODO: Må lese fra xml i tmp først og så kopiere xml til prosjektmappe
+
+        app.model.open_file(path)
+
+        tab_id = app.editor_frame.path2id[path]
+        file_obj = app.editor_frame.id2path[tab_id]
+        text_editor = app.editor_frame.notebook.nametowidget(tab_id)
+        text_editor.run_file(file_obj, False)
+
     def convert_files_project(self, app):
-        # TODO: Velge mappe en konverter fra -> overwrite: Ja . Navnestandard for normalisert fil (prepend extension?) -> med eller uten norm
         self.reset_rhs("Convert Files")
 
         self.project_frame = Project(self.right_frame, app, self, "Project Name:", text=" New Data Project ", relief=tk.GROOVE)
@@ -193,12 +238,13 @@ class HomeTab(ttk.Frame):
 
         ext_label = ttk.Label(options_frame, text="Prepend extension:")
         ext_label.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(8, 0))
-        options = ['', "'norm'", 'none']
+        options = ['', 'norm', 'none']
         var = tk.StringVar()
         var.set(options[1])
         ext_option = ttk.OptionMenu(options_frame, var, *options)
         ext_option.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(0, 55))
         ext_option.configure(width=5)
+        self.project_frame.ext_option = var
 
     def export_data_project(self, app):
         self.reset_rhs("Export Data")
@@ -301,6 +347,7 @@ class Project(ttk.LabelFrame):
     def __init__(self, parent, app, grandparent, entry_text, *args, **kwargs):
         super().__init__(parent, *args, **kwargs, style="Links.TFrame")
         self.grandparent = grandparent
+        self.ext_option = None
 
         self.name_frame = ttk.Frame(self, style="SubHeading.TLabel")
         self.name_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
@@ -321,7 +368,7 @@ class Project(ttk.LabelFrame):
             self.folder_list.pack(side=tk.TOP, anchor=tk.N, padx=(8, 0), pady=3, fill=tk.X)
 
         path = multi_open(app.data_dir, mode='dir')
-        self.folder_list.add_folder('Folder: ' + path, lambda p=path: app.command_callable("open_folder")(p), 70)
+        self.folder_list.add_folder(path, lambda p=path: app.command_callable("open_folder")(p), 70)
 
 
 class SubSystem(ttk.LabelFrame):
@@ -390,7 +437,7 @@ class SubSystem(ttk.LabelFrame):
 
     def choose_folder(self, app):
         path = multi_open(app.data_dir, mode='dir')
-        self.folder_list.add_folder('Folder: ' + path, lambda p=path: app.command_callable("open_folder")(p), 70)
+        self.folder_list.add_folder(path, lambda p=path: app.command_callable("open_folder")(p), 70)
 
     def get_option(self, *args):
         value = ' '.join(self.var.get().split(' ')[:2]) + ':'
@@ -411,6 +458,9 @@ class LinksFrame(ttk.Frame):
 
     def __init__(self, parent, title=None, links=None):
         super().__init__(parent, style="Links.TFrame")
+
+        self.folders = []
+
         if title:
             self.title = ttk.Label(self, text=title, style="SubHeading.TLabel")
             self.title.pack(side=tk.TOP, anchor=tk.W, pady=4, padx=1)
@@ -425,7 +475,14 @@ class LinksFrame(ttk.Frame):
     def add_link(self, label, action):
         ttk.Button(self, text=label, style="Links.TButton", command=action).pack(side=tk.TOP, anchor=tk.W)
 
-    def add_folder(self, label, action, width):
+    def add_folder(self, path, action, width):
+        if path in self.folders:
+            msg_label.config(text='Duplicate folder')
+            return
+
+        self.folders.append(path)
+        label = 'Folder: ' + path
+
         folder_frame = ttk.Frame(self, style="SubHeading.TLabel")
         folder_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
 
@@ -433,6 +490,8 @@ class LinksFrame(ttk.Frame):
         folder.pack(side=tk.LEFT, anchor=tk.N, pady=(1, 0))
         remove_button = ttk.Button(folder_frame, text=' x', style="SideBar.TButton", command=lambda: folder_frame.pack_forget())
         remove_button.pack(side=tk.LEFT, anchor=tk.N, pady=(1, 0))
+
+        msg_label.config(text='')
 
     def add_label(self, text):
         ttk.Label(self, text=text, style="Links.TLabel").pack(side=tk.TOP, anchor=tk.W)
