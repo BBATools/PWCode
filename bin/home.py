@@ -165,6 +165,8 @@ class HomeTab(ttk.Frame):
     def reset_rhs(self, header):
         global msg_label
 
+        self.project_dir_created = False
+
         self.subheading.pack_forget()
         self.description.pack_forget()
 
@@ -187,7 +189,7 @@ class HomeTab(ttk.Frame):
 
         config = XMLSettings(config_path)
 
-        if not hasattr(self.project_frame, 'folder_list'):
+        if not hasattr(self.project_frame, 'folders_frame'):
             msg_label.config(text='No folders added')
             return
 
@@ -197,16 +199,22 @@ class HomeTab(ttk.Frame):
             return
 
         ok = self.create_project_dir(app.data_dir + project_name, project_name)
-        if not ok:
+        if ok:
+            msg_label.config(text='')
+        else:
             return
 
         config.put('name', self.project_frame.name_entry.get())
         config.put('options/ext', self.project_frame.ext_option.get())
 
         i = 1
-        for folder in self.project_frame.folder_list.folders:
-            config.put('folders/folder' + str(i), folder)
+        for frame, path in self.project_frame.folders_frame.folders.items():
+            frame.remove_button.configure(state=tk.DISABLED)
+            config.put('folders/folder' + str(i), path)
             i += 1
+
+        self.project_frame.ext_option_frame.configure(state=tk.DISABLED)
+        self.project_frame.name_frame.folder_button.configure(state=tk.DISABLED)
 
         config.save()
         path = config_dir + 'convert_files.py'  # TODO: Må lese fra xml i tmp først og så kopiere xml til prosjektmappe
@@ -225,8 +233,8 @@ class HomeTab(ttk.Frame):
         self.project_frame.pack(side=tk.TOP, anchor=tk.W, fill="both", expand=1, pady=12)
         name_frame = self.project_frame.name_frame
 
-        folder_button = ttk.Button(name_frame, text='Add Folder', style="Entry.TButton", command=lambda: self.project_frame.choose_folder(app))
-        folder_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
+        name_frame.folder_button = ttk.Button(name_frame, text='Add Folder', style="Entry.TButton", command=lambda: self.project_frame.choose_folder(app))
+        name_frame.folder_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
 
         run_button = ttk.Button(name_frame, text='Run', style="Run.TButton", command=lambda: self.convert_files(app))
         run_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
@@ -240,11 +248,12 @@ class HomeTab(ttk.Frame):
         ext_label.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(8, 0))
         options = ['', 'norm', 'none']
         var = tk.StringVar()
-        var.set(options[1])
+        var.set(options[2])
         ext_option = ttk.OptionMenu(options_frame, var, *options)
         ext_option.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(0, 55))
         ext_option.configure(width=5)
         self.project_frame.ext_option = var
+        self.project_frame.ext_option_frame = ext_option
 
     def export_data_project(self, app):
         self.reset_rhs("Export Data")
@@ -348,6 +357,7 @@ class Project(ttk.LabelFrame):
         super().__init__(parent, *args, **kwargs, style="Links.TFrame")
         self.grandparent = grandparent
         self.ext_option = None
+        self.ext_option_frame = None
 
         self.name_frame = ttk.Frame(self, style="SubHeading.TLabel")
         self.name_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
@@ -363,12 +373,12 @@ class Project(ttk.LabelFrame):
         self.cancel_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
 
     def choose_folder(self, app):
-        if not hasattr(self, 'folder_list'):
-            self.folder_list = LinksFrame(self)
-            self.folder_list.pack(side=tk.TOP, anchor=tk.N, padx=(8, 0), pady=3, fill=tk.X)
+        if not hasattr(self, 'folders_frame'):
+            self.folders_frame = LinksFrame(self)
+            self.folders_frame.pack(side=tk.TOP, anchor=tk.N, padx=(8, 0), pady=3, fill=tk.X)
 
         path = multi_open(app.data_dir, mode='dir')
-        self.folder_list.add_folder(path, lambda p=path: app.command_callable("open_folder")(p), 70)
+        self.folders_frame.add_folder(path, lambda p=path: app.command_callable("open_folder")(p), 70)
 
 
 class SubSystem(ttk.LabelFrame):
@@ -432,12 +442,12 @@ class SubSystem(ttk.LabelFrame):
         self.overwrite_entry = make_entry(self.frame6, app, 57)
         self.overwrite_entry.pack(side=tk.LEFT, anchor=tk.N, pady=(3, 6))
 
-        self.folder_list = LinksFrame(self)
-        self.folder_list.pack(side=tk.TOP, anchor=tk.N, padx=(8, 0), pady=3, fill=tk.X)
+        self.folders_frame = LinksFrame(self)
+        self.folders_frame.pack(side=tk.TOP, anchor=tk.N, padx=(8, 0), pady=3, fill=tk.X)
 
     def choose_folder(self, app):
         path = multi_open(app.data_dir, mode='dir')
-        self.folder_list.add_folder(path, lambda p=path: app.command_callable("open_folder")(p), 70)
+        self.folders_frame.add_folder(path, lambda p=path: app.command_callable("open_folder")(p), 70)
 
     def get_option(self, *args):
         value = ' '.join(self.var.get().split(' ')[:2]) + ':'
@@ -459,7 +469,7 @@ class LinksFrame(ttk.Frame):
     def __init__(self, parent, title=None, links=None):
         super().__init__(parent, style="Links.TFrame")
 
-        self.folders = []
+        self.folders = {}
 
         if title:
             self.title = ttk.Label(self, text=title, style="SubHeading.TLabel")
@@ -476,22 +486,31 @@ class LinksFrame(ttk.Frame):
         ttk.Button(self, text=label, style="Links.TButton", command=action).pack(side=tk.TOP, anchor=tk.W)
 
     def add_folder(self, path, action, width):
+        if not path:
+            msg_label.config(text='Not a valid path.')
+            return
+
         if path in self.folders:
             msg_label.config(text='Duplicate folder')
             return
 
-        self.folders.append(path)
         label = 'Folder: ' + path
 
         folder_frame = ttk.Frame(self, style="SubHeading.TLabel")
         folder_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
 
-        folder = ttk.Button(folder_frame, text=label, style="SideBar.TButton", command=action, width=width)
-        folder.pack(side=tk.LEFT, anchor=tk.N, pady=(1, 0))
-        remove_button = ttk.Button(folder_frame, text=' x', style="SideBar.TButton", command=lambda: folder_frame.pack_forget())
-        remove_button.pack(side=tk.LEFT, anchor=tk.N, pady=(1, 0))
+        self.folders[folder_frame] = path
+
+        folder_frame.folder = ttk.Button(folder_frame, text=label, style="SideBar.TButton", command=action, width=width)
+        folder_frame.folder.pack(side=tk.LEFT, anchor=tk.N, pady=(1, 0))
+        folder_frame.remove_button = ttk.Button(folder_frame, text=' x', style="SideBar.TButton", command=lambda: self.remove_folder(folder_frame))
+        folder_frame.remove_button.pack(side=tk.LEFT, anchor=tk.N, pady=(1, 0))
 
         msg_label.config(text='')
+
+    def remove_folder(self, folder_frame):
+        del self.folders[folder_frame]
+        folder_frame.pack_forget()
 
     def add_label(self, text):
         ttk.Label(self, text=text, style="Links.TLabel").pack(side=tk.TOP, anchor=tk.W)

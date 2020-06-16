@@ -11,6 +11,7 @@ SQLWB.desktop
 # exceptions to above rule
 !projects/.gitkeep
 !bin/tmp/.gitkeep
+!config/tmp/.gitkeep
 !bin/vendor/linux/.gitkeep
 !bin/vendor/windows/.gitkeep
 !bin/vendor/jdbc/WbDrivers.xml
