@@ -57,7 +57,7 @@ def main():
     data_dir = os.environ["pwcode_data_dir"]  # Get PWCode data path (projects)
     config_dir = os.environ["pwcode_config_dir"]  # Get PWCode config path
     subsystem_dir = None
-    tmp_dir = config_dir + '/tmp'
+    tmp_dir = config_dir + 'tmp'
 
     os.chdir(tmp_dir)  # Avoid littering from subprocesses
 
@@ -136,4 +136,3 @@ if __name__ == '__main__':
 
     msg = main()
     # print(msg)
-

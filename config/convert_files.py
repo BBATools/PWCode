@@ -1,6 +1,5 @@
-import os
 import shutil
-from common.xml_settings import XMLSettings
+import os
 import xml.etree.ElementTree as ET
 from pathlib import Path
 import glob
@@ -8,161 +7,164 @@ import json
 import subprocess
 import csv
 import petl as etl
+from common.xml_settings import XMLSettings
+from petl import extendheader, rename, appendtsv
 from convert_files_defs import file_convert
 
-# mime_type: (keep_original, temp_ext, norm_ext)
-# 'pdf', 'pdf' --> convert to pdf and then to pdf/a
+# mime_type: (keep_original, function name, new file extension)
 mime_to_norm = {
-    'application/pdf': (False, None, 'pdf'),  # WAIT: Sjekke først om allerede er pdf/a? Sjekke i funksjon?
-    'image/tiff': (False, 'pdf', 'pdf'),
-    'image/jpeg': (False, 'pdf', 'pdf'),
-    'image/png': (False, None, 'pdf'),
-    'text/plain; charset=ISO-8859-1': (False, None, 'txt'),
-    'text/plain; charset=UTF-8': (False, None, 'txt'),
-    'text/plain; charset=windows-1252': (False, None, 'txt'),
-    'application/xml': (False, None, 'txt'),  # TODO: Endre denne?
-    'image/gif': (False, 'png', 'pdf'),  # WAIT: Sjekk om direkte til pdf/a mulig
-    'application/vnd.ms-excel': (True, 'pdf', 'pdf'),
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': (True, 'pdf', 'pdf'),
-    'text/html': (False, 'pdf', 'pdf'),  # TODO: Legg til undervarianter her (var opprinnelig 'startswith)
-    'application/xhtml+xml; charset=UTF-8': (False, 'pdf', 'pdf'),
-    'application/msword': (False, 'pdf', 'pdf'),
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': (False, 'pdf', 'pdf'),
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation': (False, 'pdf', 'pdf'),
-    'application/vnd.wordperfect': (False, None, 'pdf'),
-    # WAIT: Abiword best å bruke først på rtf. Docbuilder klarer bare noen få ekstra som ikke abiword klarer (og sikkert en del motsatt)
-    'application/rtf': (False, 'pdf', 'pdf'),
-    'application/x-tika-msoffice': (False, None, None),  # Fjern garbage fil når norm_ext == None
+    'application/zip': (False, 'extract_nested_zip', None),  # TODO: Legg inn for denne
+    'application/pdf': (False, 'pdf2pdfa', 'pdf'),
+    'image/tiff': (False, 'image2norm', 'pdf'),
+    'image/jpeg': (False, 'image2norm', 'pdf'),
+    'image/png': (False, 'file_copy', 'png'),
+    'text/plain; charset=ISO-8859-1': (False, 'x2utf8', 'txt'),
+    'text/plain; charset=UTF-8': (False, 'x2utf8', 'txt'),
+    'text/plain; charset=windows-1252': (False, 'x2utf8', 'txt'),
+    'application/xml': (False, 'x2utf8', 'xml'),
+    'image/gif': (False, 'image2norm', 'pdf'),
+    'application/vnd.ms-excel': (True, 'docbuilder2x', 'pdf'),
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': (True, 'docbuilder2x', 'pdf'),
+    'text/html': (False, 'html2pdf'),  # TODO: Legg til undervarianter her (var opprinnelig 'startswith)
+    'application/xhtml+xml; charset=UTF-8': (False, 'wkhtmltopdf', 'pdf'),
+    'application/msword': (False, 'docbuilder2x', 'pdf'),
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': (False, 'docbuilder2x', 'pdf'),
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation': (False, 'docbuilder2x', 'pdf'),
+    'application/vnd.wordperfect': (False, 'docbuilder2x', 'pdf'),  # TODO: Mulig denne må endres til libreoffice
+    'application/rtf': (False, 'abi2x', 'pdf'),
+    'application/x-tika-msoffice': (False, 'delete_file', None),  # TODO: Skriv funksjon ferdig
     # 'application/vnd.ms-project': ('pdf'), # TODO: Har ikke ferdig kode for denne ennå
-    'application/x-msdownload': (False, None, 'pdf')
+    # WAIT: Gjøre hva med executables i linjene under? delete_file?
+    'application/x-msdownload': (False, 'what?', None),  # executable on win
+    'application/x-ms-installer': (False, 'what?', None),  # Installer on win
+    'application/x-elf': (False, 'what?', None)  # executable on lin
 }
 
 
+def append_tsv_row(file_path, row):
+    with open(file_path, 'a') as tsv_file:
+        writer = csv.writer(
+            tsv_file,
+            delimiter='\t',
+            quoting=csv.QUOTE_NONE,
+            quotechar='',
+            lineterminator='\n',
+            escapechar='')
+        writer.writerow(row)
+
+
+def append_txt_file(file_path, msg):
+    with open(file_path, 'a') as txt_file:
+        txt_file.write(msg + '\n')
+
+
 def convert_folder(project_dir, folder, ext_option, tmp_dir, tika=False):
-    source_dir = folder.text
-    target_dir = project_dir + '/' + folder.tag
-    tsv_path = target_dir + '.tsv'
-    json_tmp_dir = target_dir + '_tmp'
+    # TODO: Bør den være convert folders heller? Hvordan best når flere ift brukervennlighet, messages
+    base_source_dir = folder.text
+    base_target_dir = project_dir + '/' + folder.tag
+    tsv_source_path = base_target_dir + '.tsv'
+    txt_target_path = base_target_dir + '_result.txt'
+    tsv_target_path = base_target_dir + '_processed.tsv'
+    json_tmp_dir = base_target_dir + '_tmp'
+    first_run = True
+    converted_now = False
+    errors = False
 
-    Path(target_dir).mkdir(parents=True, exist_ok=True)
+    Path(base_target_dir).mkdir(parents=True, exist_ok=True)
 
-    print('Identifying file types...')
-    if tika:
-        run_tika(tsv_path, source_dir, json_tmp_dir)
+    # TODO: Viser mime direkte om er pdf/a eller må en sjekke mot ekstra felt i de to under?
+
+    if not os.path.isfile(tsv_source_path):
+        if tika:
+            # TODO: Må tilpasse tsv under for tilfelle tika. Bare testet med siegried så langt
+            run_tika(tsv_source_path, base_source_dir, json_tmp_dir)
+        else:
+            run_siegfried(base_source_dir, project_dir, tsv_source_path)
     else:
-        run_siegfried(source_dir, project_dir, tsv_path)
+        first_run = False
 
-    print('Converting files..')
-
-    table = etl.fromcsv(
-        tsv_path,
-        delimiter='\t',
-        skipinitialspace=True,
-        quoting=csv.QUOTE_NONE,
-        quotechar='',
-        escapechar=''
-    )
-
+    table = etl.fromtsv(tsv_source_path)
     row_count = etl.nrows(table)
-    file_count = sum([len(files) for r, d, files in os.walk(source_dir)])
+    file_count = sum([len(files) for r, d, files in os.walk(base_source_dir)])
 
-    # WAIT: Sjekk iforkant om garbage files som skal slettes?
-    if file_count != row_count:
-        print("Files listed in '" + tsv_path + "' doesn't match files on disk. Exiting.")
+    # WAIT: Sjekk i forkant om garbage files som skal slettes?
+    if row_count == 0:
+        print('No files to convert. Exiting.')
         return 'error'
-
-    conversion_failed = []
-    conversion_not_supported = []
+    elif file_count != row_count:
+        print("Files listed in '" + tsv_source_path + "' doesn't match files on disk. Exiting.")
+        return 'error'
+    else:
+        print('Converting files..')
 
     # WAIT: Legg inn sjekk på filstørrelse før og etter konvertering
-    table = etl.values(table, 'filename', 'filesize', 'mime')
-    for row in list(table):
-        file_path = row[0]
-        mime_type = row[2]
-        supported = True
+
+    if first_run:
+        table = etl.rename(table, {'filename': 'source_file_path', 'filesize': 'file_size', 'mime': 'mime_type'}, strict=False)
+        table = etl.addfield(table, 'norm_file_path', None)
+        table = etl.addfield(table, 'result', None)
+
+    header = etl.header(table)
+    append_tsv_row(tsv_target_path, header)
+
+    if os.path.isfile(txt_target_path):
+        os.remove(txt_target_path)
+
+    data = etl.dicts(table)
+    for row in data:
+        source_file_path = row['source_file_path']
+        mime_type = row['mime_type']
+        result = None
+        if not first_run:
+            result = row['result']
 
         if mime_type not in mime_to_norm.keys():
-            supported = False
-            conversion_not_supported.append(file_path + ' (' + mime_type + ')')
-            print('Mime type not supported: ' + mime_type)
-            # TODO: Legg til i conversion not supported
-            continue
+            result = 'Conversion not supported'
+            append_txt_file(txt_target_path, result + ': ' + source_file_path + ' (' + mime_type + ')')
+        else:
+            keep_original = mime_to_norm[mime_type][0]
+            function = mime_to_norm[mime_type][1]
 
-        keep_original = mime_to_norm[mime_type][0]  # TODO: Ha som arg til file_convert?
-        tmp_ext = mime_to_norm[mime_type][1]
-        norm_ext = mime_to_norm[mime_type][2]
+            norm_ext = mime_to_norm[mime_type][2]
+            if ext_option:
+                norm_ext = '.norm.' + norm_ext
 
-        new_path = file_path.replace(source_dir, target_dir)
-        # new_path = os.path.relpath(file_path, target_dir)
-        # print(file_path)
+            target_dir = os.path.dirname(source_file_path.replace(base_source_dir, base_target_dir))
+            normalized = file_convert(source_file_path, mime_type, function, target_dir, keep_original, tmp_dir, norm_ext)
 
-        # print(new_path)
+            if normalized['error'] is not None:
+                print(normalized['error'])
+                return 'error'
 
-        # TODO: Hvorfor er det bare to av filene som printes her?
+            if normalized['result'] == 0:
+                errors = True
+                result = 'Conversion failed'
+                append_txt_file(txt_target_path, result + ': ' + source_file_path + ' (' + mime_type + ')')
+            elif normalized['result'] == 1:
+                result = 'Converted successfully'
+                converted_now = True
+            elif normalized['result'] == 2:
+                errors = True
+                result = 'Conversion not supported'
+                append_txt_file(txt_target_path, result + ': ' + source_file_path + ' (' + mime_type + ')')
+            elif normalized['result'] == 3:
+                if result != 'Converted successfully':
+                    result = 'Manually converted'
+                    converted_now = True
 
-        # TODO: Generer file_rel_path først og bruk som arg i linje under
-        # status, norm_file_path = file_convert(file_path, mime_type, tmp_ext, norm_ext, target_dir, file_rel_path)
-        # status, norm_file_path = file_convert(file_path, mime_type, None, norm_ext)
+        row['norm_file_path'] = normalized['norm_file_path']
+        row['result'] = result
+        append_tsv_row(tsv_target_path, list(row.values()))
 
-        # normalized = (0, '')
-        # def file_convert(file_full_path, file_type, tmp_ext, norm_ext, folder, file_rel_path, keep_original):
-        normalized = file_convert(file_path, mime_type, tmp_ext, norm_ext, target_dir, new_path, keep_original, tmp_dir)
+    shutil.move(tsv_target_path, tsv_source_path)
 
-        # if mime_type == 'application/pdf':
-        #     # normalized = file_convert(file_path, mime_type, None, norm_ext)
-        # elif mime_type in ('image/tiff', 'image/jpeg'):
-        #     normalized = file_convert(file_path, mime_type, 'pdf', norm_ext)
-        #     # TODO: Oppdatere tsv her eller i funksjon?
-        # elif mime_type == 'image/png':
-        #     normalized = file_convert(file_path, mime_type, None, norm_ext)
-        # elif mime_type in ('text/plain; charset=ISO-8859-1',
-        #                    'text/plain; charset=UTF-8',
-        #                    'text/plain; charset=windows-1252',
-        #                    'application/xml'):
-        #     normalized = file_convert(file_path, mime_type, None, norm_ext)
-        # elif mime_type == 'image/gif':
-        #     normalized = file_convert(file_path, mime_type, None, norm_ext)
-        # elif mime_type in (
-        #         'application/vnd.ms-excel',
-        #         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        # ):
-        #     norm_ext = 'pdf'
-        #     keep_original = True
-        #     next_file_rel_path = str(row['next_file_rel_path'])
-        #     if (next_file_rel_path == 'embedded file'):
-        #         normalized = file_convert(file_path, mime_type, None, norm_ext)
-        #     else:
-        #         normalized = file_convert(file_path, mime_type, 'pdf', norm_ext)
-        # elif mime_type.startswith('text/html'):
-        #     normalized = file_convert(file_path, mime_type, 'pdf', norm_ext)
-        # elif mime_type == 'application/xhtml+xml; charset=UTF-8':  # TODO: Slå sammen med den over?
-        #     normalized = file_convert(file_path, mime_type, 'pdf', norm_ext)
-        # elif mime_type in (
-        #         'application/msword',
-        #         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        #         'application/vnd.wordperfect'):
-        #     normalized = file_convert(file_path, mime_type, None, norm_ext)
-        # elif mime_type == 'application/rtf':
-        #     # WAIT: Abiword best å bruke først. Docbuilder klarer bare noen få ekstra som ikke abiword klarer (og sikkert en del motsatt)
-        #     normalized = file_convert(file_path, mime_type, 'pdf', norm_ext)
-        # elif (
-        #         mime_type == 'application/x-tika-msoffice'
-        #         and os.path.basename(file_path) == 'Thumbs.db'
-        # ):  # TODO: Gjør på bedre måte så unngår problem hvis krasj før tsv skrives
-        #     normalized = file_convert(file_path, mime_type, None, norm_ext)
-        # # TODO: Hvis zip, bare sjekk at pakket ut riktig og angi så som ok (husk distinksjon med zip i zip)
-        # # elif mime_type== 'application/zip':
-        # #     normalized = file_convert(file_path, mime_type,
-        # #                               'pdf', 'pdf')
-
-        # elif mime_type == 'application/x-msdownload':
-        #     normalized = file_convert(file_path, mime_type, None, norm_ext)
-        # # elif mime_type== 'application/vnd.ms-project':
-        # #     norm_ext = 'pdf'
-        # #     normalized = file_convert(file_path, mime_type,
-        # #                               None, norm_ext, in_zip)
-        # else:
-        #     normalized = file_convert(file_path, mime_type, None, 'pwb')
+    if converted_now:
+        if errors:
+            print("\nNot all files were converted. See '" + txt_target_path + "' for details.")
+        else:
+            print('\nAll files converted succcessfully.')
+    else:
+        print('No new files converted')
 
 
 def flatten_dir(destination, tsv_log=None):
@@ -275,19 +277,21 @@ def merge_json_files(tmp_dir, json_path):
         json.dump(glob_data, f, indent=4)
 
 
-def run_tika(tsv_path, source_dir, tmp_dir):
+def run_tika(tsv_path, base_source_dir, tmp_dir):
     Path(tmp_dir).mkdir(parents=True, exist_ok=True)
 
     json_path = tmp_dir + '/merged.json'
     tika_path = '~/bin/tika/tika-app.jar'  # WAIT: Som configvalg hvor heller?
-    if not os.path.isfile(tsv_path):  # TODO: Endre så bruker bundlet java
-        # TODO: Legg inn switch for om hente ut metadata også (bruke tika da). Bruke hva ellers?
-        subprocess.run(  # TODO: Denne blir ikke avsluttet ved ctrl-k -> fix (kill prosess gruppe?)
-            'java -jar ' + tika_path + ' -J -m -i ' + source_dir + ' -o ' + tmp_dir,
-            stderr=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            shell=True,
-        )
+    # if not os.path.isfile(tsv_path):
+    # TODO: Endre så bruker bundlet java
+    # TODO: Legg inn switch for om hente ut metadata også (bruke tika da). Bruke hva ellers?
+    print('Identifying file types and extracting metadata...')
+    subprocess.run(  # TODO: Denne blir ikke avsluttet ved ctrl-k -> fix (kill prosess gruppe?)
+        'java -jar ' + tika_path + ' -J -m -i ' + base_source_dir + ' -o ' + tmp_dir,
+        stderr=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        shell=True,
+    )
 
     # Flatten dir hierarchy:
     flatten_dir(tmp_dir)
@@ -303,13 +307,15 @@ def run_tika(tsv_path, source_dir, tmp_dir):
         shutil.rmtree(tmp_dir)
 
 
-def run_siegfried(source_dir, project_dir, tsv_path):
+def run_siegfried(base_source_dir, project_dir, tsv_path):
     if os.path.exists(tsv_path):
         return
 
+    print('Identifying file types...')
+
     csv_path = project_dir + 'tmp.csv'
     subprocess.run(
-        'sf -z -csv ' + source_dir + ' > ' + csv_path,
+        'sf -z -csv ' + base_source_dir + ' > ' + csv_path,
         stderr=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
         shell=True,
@@ -327,7 +333,7 @@ def run_siegfried(source_dir, project_dir, tsv_path):
 
 def main():
     config_dir = os.environ['pwcode_config_dir']
-    tmp_dir = config_dir + '/tmp'
+    tmp_dir = config_dir + 'tmp'
     data_dir = os.environ['pwcode_data_dir']
     tmp_config_path = config_dir + '/tmp/convert_files.xml'
     tmp_config = XMLSettings(tmp_config_path)

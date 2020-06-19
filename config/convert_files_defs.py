@@ -20,15 +20,31 @@ import sys
 import signal
 import zipfile
 import re
-import glob
 import pathlib
 # TODO: Missing deps under ?
 # from pgmagick.api import Image
 # from pdfy import Pdfy
-# from functools import reduce
+from functools import reduce
+
+# Dictionary of converter functions
+converters = {}
+
+
+def add_converter():
+    # Decorator for adding functions to converter functions
+    def _add_converter(func):
+        converters[func.__name__] = func
+        return func
+    return _add_converter
+
+
+def delete_file():
+    # TODO: Fjern garbage files og oppdater i tsv at det er gjort
+    return
 
 
 def x2utf8(file_path, norm_path, tmp_path, file_type):
+    # TODO: Sjekk om beholder extension alltid (ikke endre csv, xml mm)
     ok = False
 
     if file_type in ('text/plain; charset=windows-1252',
@@ -160,32 +176,30 @@ def image2norm(image_path, norm_path):
     return ok
 
 
-def docbuilder2x(file_path, tmp_path, format, file_type, tmp_dir):
+# def docbuilder2x(file_path, tmp_path, format, file_type, tmp_dir):
+@add_converter()
+def docbuilder2x(source_file_path, tmp_file_path, norm_file_path, keep_original, tmp_dir, mime_type):
     ok = False
-    docbuilder_file = tmp_dir + "x2x.docbuilder"
+    docbuilder_file = tmp_dir + "/x2x.docbuilder"
     docbuilder = None
 
-    # TODO: Annet for rtf?
-    if file_type in (
-            'application/msword', 'application/rtf',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    ):
-        docbuilder = [
-            'builder.OpenFile("' + file_path + '", "");',
-            'builder.SaveFile("' + format + '", "' + tmp_path + '");',
-            'builder.CloseFile();',
-        ]
-    elif file_type in (
+    if mime_type in (
             'application/vnd.ms-excel',
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     ):
         docbuilder = [
-            'builder.OpenFile("' + file_path + '", "");',
+            'builder.OpenFile("' + source_file_path + '", "");',
             'var ws;',
             'var sheets = Api.GetSheets();',
             'var arrayLength = sheets.length;',
             'for (var i = 0; i < arrayLength; i++) {ws = sheets[i];ws.SetPageOrientation("xlLandscape");}',
-            'builder.SaveFile("' + format + '", "' + tmp_path + '");',
+            'builder.SaveFile("pdf", "' + tmp_file_path + '");',
+            'builder.CloseFile();',
+        ]
+    else:
+        docbuilder = [
+            'builder.OpenFile("' + source_file_path + '", "");',
+            'builder.SaveFile("pdf", "' + tmp_file_path + '");',
             'builder.CloseFile();',
         ]
 
@@ -195,8 +209,8 @@ def docbuilder2x(file_path, tmp_path, format, file_type, tmp_dir):
     command = ['documentbuilder', docbuilder_file]
     run_shell_command(command)
 
-    if os.path.exists(tmp_path):
-        ok = True
+    if os.path.exists(tmp_file_path):
+        ok = pdf2pdfa(tmp_file_path, norm_file_path)
 
     return ok
 
@@ -306,100 +320,46 @@ def html2pdf(file_path, tmp_path):
     return ok
 
 
-# file_full_path = folder + '/' + file_rel_path
-# TODO: Feil at ikke file_rel_path er arg i def under
-def file_convert(file_full_path, file_type, tmp_ext, norm_ext, folder, new_path, keep_original, tmp_dir):
-    # TODO: Legg inn kode for keep_original argument
-    normalized_file = 0  # Not converted
-    file_name = os.path.basename(file_full_path)
-    if tmp_ext:
-        tmp_file_full_path = new_path + '.tmp.' + tmp_ext
-    else:
-        tmp_file_full_path = new_path + '.tmp.pwb'
-    norm_folder_full_path = os.path.dirname(new_path)
-    # norm_folder_full_path = norm_folder_full_path.replace('//', '/')
-    norm_file_full_path = norm_folder_full_path + '/' + os.path.splitext(file_name)[0] + '.norm.' + norm_ext
+def file_convert(source_file_path, mime_type, function, target_dir, keep_original, tmp_dir, norm_ext):
+    source_file_name = os.path.basename(source_file_path)
+    base_file_name = os.path.splitext(source_file_name)[0] + '.'
+    tmp_file_path = tmp_dir + '/' + base_file_name + 'tmp.pwb'
+    norm_file_path = target_dir + '/' + base_file_name + norm_ext
+    normalized = {'result': None, 'norm_file_path': norm_file_path, 'error': None}
 
-    # TODO: Bør heller sjekke på annet enn at fil finnes slik at evt corrupt-file kan overskrives ved nytt forsøk
-    if not os.path.isfile(norm_file_full_path):
-        pathlib.Path(norm_folder_full_path).mkdir(parents=True, exist_ok=True)
-        # print('Processing ' + norm_file_full_path) #TODO: Vises ikke i wb output
-        norm_ok = False
-        tmp_ok = False
-        if (not os.path.isfile(tmp_file_full_path) or tmp_ext is None):
-            if file_type in ('image/tiff', 'image/jpeg'):
-                tmp_ok = image2norm(file_full_path, tmp_file_full_path)
-            elif file_type == 'image/gif':
-                norm_ok = image2norm(file_full_path, norm_file_full_path)
-            elif file_type == 'application/pdf':
-                norm_ok = pdf2pdfa(file_full_path, norm_file_full_path)
-            elif file_type in ('text/plain; charset=windows-1252',
-                               'text/plain; charset=ISO-8859-1',
-                               'text/plain; charset=UTF-8', 'application/xml'):
-                norm_ok = x2utf8(file_full_path, norm_file_full_path,
-                                 tmp_file_full_path, file_type)
+    if not os.path.isfile(norm_file_path):
+        if function in converters:
+            pathlib.Path(target_dir).mkdir(parents=True, exist_ok=True)
 
-            elif file_type == 'image/png':
-                norm_ok = file_copy(file_full_path, norm_file_full_path)
-            elif file_type in (
-                    'application/vnd.ms-excel',
-                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            ):
-                if tmp_ext is None:
-                    norm_ok = unoconv2x(file_full_path, norm_file_full_path,
-                                        'pdf', file_type)
-                else:
-                    tmp_ok = docbuilder2x(file_full_path, tmp_file_full_path,
-                                          'pdf', file_type, tmp_dir)
-                # tmp_ok = unoconv2x(file_full_path, tmp_file_full_path,
-                #                        'html', file_type)
-            elif file_type.startswith('text/html'):
-                tmp_ok = html2pdf(file_full_path, tmp_file_full_path)
-            elif file_type == 'application/xhtml+xml; charset=UTF-8':
-                tmp_ok = wkhtmltopdf(file_full_path, tmp_file_full_path)
-            elif file_type in (
-                    'application/msword',
-                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-                    'application/vnd.wordperfect'):
-                # tmp_ok = docbuilder2x(file_full_path, tmp_file_full_path,'pdf', file_type)
-                norm_ok = unoconv2x(file_full_path, norm_file_full_path, 'pdf',
-                                    file_type)
-            elif file_type == 'application/rtf':
-                # TODO: Bør først prøve med abiword og så unoconv for de den ikke klarer -> eller omvendt hvis kan forhindre heng av LO
-                # tmp_ok = docbuilder2x(file_full_path, tmp_file_full_path,
-                #                       'pdf', file_type)
-                norm_ok = unoconv2x(file_full_path, norm_file_full_path, 'pdf',
-                                    file_type)
-                # tmp_ok = abi2x(file_full_path, tmp_file_full_path, 'pdf',
-                #                file_type)
-            elif file_type == 'application/x-msdownload':  # TODO: Trengs denne?
-                norm_ok = False
-            elif (file_type == 'application/x-tika-msoffice'
-                  and os.path.basename(file_full_path) == 'Thumbs.db'):
-                norm_ok = False
+            # TODO: Dict som input til conversion functions? https://stackoverflow.com/questions/1769403/what-is-the-purpose-and-use-of-kwargs
+            ok = converters[function](source_file_path, tmp_file_path, norm_file_path, keep_original, tmp_dir, mime_type)
+
+            if not ok:
+                original_files = target_dir + '/original_documents/'
+                pathlib.Path(original_files).mkdir(parents=True, exist_ok=True)
+                file_copy(source_file_path, original_files + os.path.basename(source_file_path))
+                normalized['result'] = 0  # Conversion failed
+                normalized['norm_file_path'] = None
+            elif keep_original:
+                corrupted_files = target_dir + '/corrupted_documents/'
+                pathlib.Path(corrupted_files).mkdir(parents=True, exist_ok=True)
+                file_copy(source_file_path, corrupted_files + os.path.basename(source_file_path))
+                normalized['result'] = 1  # Converted successfully
             else:
-                normalized_file = 3  # Conversion not supported
-
-        if tmp_ok:
-            if tmp_ext == 'pdf':
-                norm_ok = pdf2pdfa(tmp_file_full_path, norm_file_full_path)
-            elif tmp_ext == 'html':
-                norm_ok = unoconv2x(tmp_file_full_path, norm_file_full_path,
-                                    'pdf', file_type)
-        elif os.path.exists(tmp_file_full_path):
-            os.remove(tmp_file_full_path)
-
-        if norm_ok and tmp_ok:
-            os.remove(tmp_file_full_path)
-        # TODO: Legg inn hvilken originalfiler som skal slettes
-
-        # if os.path.isfile(norm_file_full_path):
-        if glob.glob(os.path.splitext(norm_file_full_path)[0] + '.*'):
-            if norm_ok:
-                normalized_file = 1  # Converted now automatically
+                normalized['result'] = 1  # Converted successfully
+            #     os.remove(source_file_path) # WAIT: Bare når kjørt som generell behandling av arkivpakke
+        else:
+            if function:
+                normalized['result'] = None
+                normalized['error'] = "Missing converter function '" + function + "'"
+                normalized['norm_file_path'] = None
             else:
-                normalized_file = 2  # Converted now manually
+                normalized['result'] = 2  # Conversion not supported
+                normalized['norm_file_path'] = None
     else:
-        normalized_file = 4  # Converted earlier
+        normalized['result'] = 3  # Converted earlier, or manually
 
-    return normalized_file, norm_file_full_path
+    if os.path.isfile(tmp_file_path):
+        os.remove(tmp_file_path)
+
+    return normalized

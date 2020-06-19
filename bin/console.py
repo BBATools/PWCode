@@ -134,7 +134,9 @@ class Processing():
             # from functools import partial
             # printerr = partial(print, flush=True, file=sys.stderr)
 
-            self.process = subprocess.Popen([self.app.python_path, file_obj.path],
+            # WAIT: Gjør generelt så ikke bare python kan brukes
+            # WAIT: Bruke -u eller '-m pdb'? Eller konfigurerbart? Pr plugin?
+            self.process = subprocess.Popen([self.app.python_path, '-u', file_obj.path],
                                             bufsize=1,
                                             stdout=subprocess.PIPE,
                                             stderr=subprocess.PIPE,
