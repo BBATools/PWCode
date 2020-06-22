@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import ocrmypdf
 import subprocess
 import os
 import shutil
@@ -21,7 +22,8 @@ import signal
 import zipfile
 import re
 import pathlib
-# TODO: Missing deps under ?
+import img2pdf
+from PIL import Image
 # from pgmagick.api import Image
 # from pdfy import Pdfy
 from functools import reduce
@@ -151,8 +153,6 @@ def file_copy(src, dst):
 
     ok = False
     try:
-        # if os.path.isdir(dst):
-        #     dst = os.path.join(dst, os.path.basename(src))
         shutil.copyfile(src, dst)
     except Exception as e:
         print(e)
@@ -160,24 +160,84 @@ def file_copy(src, dst):
     return ok
 
 
-# TODO: Stopper opp med Exit code: 137 noen ganger -> fiks
-def image2norm(image_path, norm_path):
-    print('image2norm(python) ' + image_path + ' ' + norm_path)
-    sys.stdout.flush()
-
-    ok = False
-    try:
-        img = Image(image_path)
-        img.write(norm_path)
-        ok = True
-    except Exception as e:
-        print(e)
-        ok = False
-    return ok
-
-
-# def docbuilder2x(file_path, tmp_path, format, file_type, tmp_dir):
 @add_converter()
+def image2norm(source_file_path, tmp_file_path, norm_file_path, keep_original, tmp_dir, mime_type):
+    ok = False
+    if mime_type == 'image/tiff':
+        command = ['tiff2pdf', source_file_path, '-o', tmp_file_path]
+        run_shell_command(command)
+
+        if os.path.exists(tmp_file_path):
+            print('ocrmypdf ' + tmp_file_path + ' ' + norm_file_path)
+            try:
+                ocrmypdf.ocr(tmp_file_path, norm_file_path, tesseract_timeout=0)
+                ok = True
+            except Exception as e:
+                print(e)
+                ok = False
+
+        return ok
+
+        # ok=False
+        # try:
+        #     # ocrmypdf.ocr(source_file_path, norm_file_path, tesseract_timeout=0)
+
+        #     ok=True
+        # except Exception as e:
+        #     print(e)
+        #     ok=False
+
+        # return ok
+
+        # @add_converter()
+        # def image2norm(source_file_path, tmp_file_path, norm_file_path, keep_original, tmp_dir, mime_type):
+        #     print('image2norm(python) ' + source_file_path + ' ' + norm_file_path)
+        #     # sys.stdout.flush()
+
+        #     ok = False
+        #     try:
+        #         img = Image.open(source_file_path)
+        #         if img.mode == "RGBA":
+        #             img = img.convert("RGB")
+        #         img.save(tmp_file_path, os.path.splitext(source_file_path)[1][1:])
+
+        #         with open(tmp_file_path, 'wb') as f:
+        #             f.write(img2pdf.convert(tmp_file_path))
+        #         ok = True
+        #     except Exception as e:
+        #         print(e)
+        #         ok = False
+
+        #     if ok and os.path.exists(tmp_file_path):
+        #         try:
+        #             ocrmypdf.ocr(tmp_file_path, norm_file_path, tesseract_timeout=0)
+        #             ok = True
+        #         except Exception as e:
+        #             print(e)
+        #             ok = False
+
+        #     return ok
+
+        # TODO: Stopper opp med Exit code: 137 noen ganger -> fiks
+        # @add_converter()
+        # def image2norm(image_path, norm_path):
+        #     print('image2norm(python) ' + image_path + ' ' + norm_path)
+        #     sys.stdout.flush()
+
+        #     ok = False
+        #     try:
+        #         img = Image(image_path)
+        #         img.write(norm_path)
+        #         ok = True
+        #     except Exception as e:
+        #         print(e)
+        #         ok = False
+        #     return ok
+
+        # def docbuilder2x(file_path, tmp_path, format, file_type, tmp_dir):
+
+
+@ add_converter()
 def docbuilder2x(source_file_path, tmp_file_path, norm_file_path, keep_original, tmp_dir, mime_type):
     ok = False
     docbuilder_file = tmp_dir + "/x2x.docbuilder"
