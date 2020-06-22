@@ -168,7 +168,6 @@ def image2norm(source_file_path, tmp_file_path, norm_file_path, keep_original, t
         run_shell_command(command)
 
         if os.path.exists(tmp_file_path):
-            # print('ocrmypdf ' + tmp_file_path + ' ' + norm_file_path)
             result = ocrmypdf.ocr(tmp_file_path, norm_file_path, tesseract_timeout=0, progress_bar=False)
             if str(result) == 'ExitCode.ok':
                 ok = True
@@ -283,18 +282,18 @@ def wkhtmltopdf(file_path, tmp_path):
     return ok
 
 
-def abi2x(file_path, tmp_path, format, file_type):
+@ add_converter()
+def abi2x(source_file_path, tmp_file_path, norm_file_path, keep_original, tmp_dir, mime_type):
     ok = False
-    command = ['abiword', '--to=' + format]
+    command = ['abiword', '--to=pdf', '--import-extension=rtf']
 
-    if file_type == 'application/rtf':
-        command.append('--import-extension=rtf')
-
-    command.extend(['-o', tmp_path, file_path])
+    command.extend(['-o', tmp_file_path, source_file_path])
     run_shell_command(command)
 
-    if os.path.exists(tmp_path):
-        ok = True
+    if os.path.exists(tmp_file_path):
+        result = ocrmypdf.ocr(tmp_file_path, norm_file_path, tesseract_timeout=0, progress_bar=False, skip_text=True)
+        if str(result) == 'ExitCode.ok':
+            ok = True
 
     return ok
 
