@@ -11,7 +11,7 @@ OJDBC10=$SCRIPTPATH/vendor/jdbc/ojdbc10.jar
 install_python_runtime() {
     if [ ! -f $PYTHON_BIN ]; then
         cd $SCRIPTPATH/vendor/linux
-        wget https://github.com/niess/python-appimage/releases/download/python3.8/python3.8.2-cp38-cp38-manylinux2014_x86_64.AppImage -O python.AppImage
+        wget https://github.com/niess/python-appimage/releases/download/python3.8/python3.8.3-cp38-cp38-manylinux2014_x86_64.AppImage -O python.AppImage
         chmod u+x python.AppImage;
         ./python.AppImage --appimage-extract > /dev/null
         rm python.AppImage
