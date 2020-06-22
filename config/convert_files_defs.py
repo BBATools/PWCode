@@ -103,13 +103,13 @@ def kill(proc_id):
 def run_shell_command(command, cwd=None, timeout=30):
     # ok = False
     os.environ['PYTHONUNBUFFERED'] = "1"
-    cmd = [' '.join(command)]
+    # cmd = [' '.join(command)]
     stdout = []
     stderr = []
     mix = []  # TODO: Fjern denne mm
 
-    print(''.join(cmd))
-    sys.stdout.flush()
+    # print(''.join(cmd))
+    # sys.stdout.flush()
 
     proc = subprocess.Popen(
         command,
@@ -168,13 +168,10 @@ def image2norm(source_file_path, tmp_file_path, norm_file_path, keep_original, t
         run_shell_command(command)
 
         if os.path.exists(tmp_file_path):
-            print('ocrmypdf ' + tmp_file_path + ' ' + norm_file_path)
-            try:
-                ocrmypdf.ocr(tmp_file_path, norm_file_path, tesseract_timeout=0)
+            # print('ocrmypdf ' + tmp_file_path + ' ' + norm_file_path)
+            result = ocrmypdf.ocr(tmp_file_path, norm_file_path, tesseract_timeout=0, progress_bar=False)
+            if str(result) == 'ExitCode.ok':
                 ok = True
-            except Exception as e:
-                print(e)
-                ok = False
 
         return ok
 
@@ -380,7 +377,7 @@ def html2pdf(file_path, tmp_path):
     return ok
 
 
-def file_convert(source_file_path, mime_type, function, target_dir, keep_original, tmp_dir, norm_ext):
+def file_convert(source_file_path, mime_type, function, target_dir, keep_original, tmp_dir, norm_ext, count_str):
     source_file_name = os.path.basename(source_file_path)
     base_file_name = os.path.splitext(source_file_name)[0] + '.'
     tmp_file_path = tmp_dir + '/' + base_file_name + 'tmp.pwb'
@@ -392,6 +389,7 @@ def file_convert(source_file_path, mime_type, function, target_dir, keep_origina
             pathlib.Path(target_dir).mkdir(parents=True, exist_ok=True)
 
             # TODO: Dict som input til conversion functions? https://stackoverflow.com/questions/1769403/what-is-the-purpose-and-use-of-kwargs
+            print(count_str + source_file_path + ' (' + mime_type + ')')
             ok = converters[function](source_file_path, tmp_file_path, norm_file_path, keep_original, tmp_dir, mime_type)
 
             if not ok:

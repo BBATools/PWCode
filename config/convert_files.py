@@ -111,7 +111,10 @@ def convert_folder(project_dir, folder, ext_option, tmp_dir, tika=False):
         os.remove(txt_target_path)
 
     data = etl.dicts(table)
+    count = 0
     for row in data:
+        count += 1
+        count_str = ('(' + str(count) + '/' + str(file_count) + '): ')
         source_file_path = row['source_file_path']
         mime_type = row['mime_type']
         result = None
@@ -130,7 +133,7 @@ def convert_folder(project_dir, folder, ext_option, tmp_dir, tika=False):
                 norm_ext = '.norm.' + norm_ext
 
             target_dir = os.path.dirname(source_file_path.replace(base_source_dir, base_target_dir))
-            normalized = file_convert(source_file_path, mime_type, function, target_dir, keep_original, tmp_dir, norm_ext)
+            normalized = file_convert(source_file_path, mime_type, function, target_dir, keep_original, tmp_dir, norm_ext, count_str)
 
             if normalized['error'] is not None:
                 print(normalized['error'])
