@@ -22,9 +22,8 @@ import signal
 import zipfile
 import re
 import pathlib
-import img2pdf
-from PIL import Image
-# from pgmagick.api import Image
+import img2pdf  # TODO: Test konvertering av png til pdf med denne og så til pdf/a heller enn copy (bedre for innsyn samt ocr)
+# from PIL import Image
 # from pdfy import Pdfy
 from functools import reduce
 
@@ -167,73 +166,71 @@ def image2norm(source_file_path, tmp_file_path, norm_file_path, keep_original, t
         command = ['tiff2pdf', source_file_path, '-o', tmp_file_path]
         run_shell_command(command)
 
-        if os.path.exists(tmp_file_path):
-            result = ocrmypdf.ocr(tmp_file_path, norm_file_path, tesseract_timeout=0, progress_bar=False)
-            if str(result) == 'ExitCode.ok':
-                ok = True
+    if os.path.exists(tmp_file_path):
+        ok = pdf2pdfa(tmp_file_path, norm_file_path)
 
-        return ok
+    return ok
 
-        # ok=False
-        # try:
-        #     # ocrmypdf.ocr(source_file_path, norm_file_path, tesseract_timeout=0)
+    # ok=False
+    # try:
+    #     # ocrmypdf.ocr(source_file_path, norm_file_path, tesseract_timeout=0)
 
-        #     ok=True
-        # except Exception as e:
-        #     print(e)
-        #     ok=False
+    #     ok=True
+    # except Exception as e:
+    #     print(e)
+    #     ok=False
 
-        # return ok
+    # return ok
 
-        # @add_converter()
-        # def image2norm(source_file_path, tmp_file_path, norm_file_path, keep_original, tmp_dir, mime_type):
-        #     print('image2norm(python) ' + source_file_path + ' ' + norm_file_path)
-        #     # sys.stdout.flush()
+    # @add_converter()
+    # def image2norm(source_file_path, tmp_file_path, norm_file_path, keep_original, tmp_dir, mime_type):
+    #     print('image2norm(python) ' + source_file_path + ' ' + norm_file_path)
+    #     # sys.stdout.flush()
 
-        #     ok = False
-        #     try:
-        #         img = Image.open(source_file_path)
-        #         if img.mode == "RGBA":
-        #             img = img.convert("RGB")
-        #         img.save(tmp_file_path, os.path.splitext(source_file_path)[1][1:])
+    #     ok = False
+    #     try:
+    #         img = Image.open(source_file_path)
+    #         if img.mode == "RGBA":
+    #             img = img.convert("RGB")
+    #         img.save(tmp_file_path, os.path.splitext(source_file_path)[1][1:])
 
-        #         with open(tmp_file_path, 'wb') as f:
-        #             f.write(img2pdf.convert(tmp_file_path))
-        #         ok = True
-        #     except Exception as e:
-        #         print(e)
-        #         ok = False
+    #         with open(tmp_file_path, 'wb') as f:
+    #             f.write(img2pdf.convert(tmp_file_path))
+    #         ok = True
+    #     except Exception as e:
+    #         print(e)
+    #         ok = False
 
-        #     if ok and os.path.exists(tmp_file_path):
-        #         try:
-        #             ocrmypdf.ocr(tmp_file_path, norm_file_path, tesseract_timeout=0)
-        #             ok = True
-        #         except Exception as e:
-        #             print(e)
-        #             ok = False
+    #     if ok and os.path.exists(tmp_file_path):
+    #         try:
+    #             ocrmypdf.ocr(tmp_file_path, norm_file_path, tesseract_timeout=0)
+    #             ok = True
+    #         except Exception as e:
+    #             print(e)
+    #             ok = False
 
-        #     return ok
+    #     return ok
 
-        # TODO: Stopper opp med Exit code: 137 noen ganger -> fiks
-        # @add_converter()
-        # def image2norm(image_path, norm_path):
-        #     print('image2norm(python) ' + image_path + ' ' + norm_path)
-        #     sys.stdout.flush()
+    # TODO: Stopper opp med Exit code: 137 noen ganger -> fiks
+    # @add_converter()
+    # def image2norm(image_path, norm_path):
+    #     print('image2norm(python) ' + image_path + ' ' + norm_path)
+    #     sys.stdout.flush()
 
-        #     ok = False
-        #     try:
-        #         img = Image(image_path)
-        #         img.write(norm_path)
-        #         ok = True
-        #     except Exception as e:
-        #         print(e)
-        #         ok = False
-        #     return ok
+    #     ok = False
+    #     try:
+    #         img = Image(image_path)
+    #         img.write(norm_path)
+    #         ok = True
+    #     except Exception as e:
+    #         print(e)
+    #         ok = False
+    #     return ok
 
-        # def docbuilder2x(file_path, tmp_path, format, file_type, tmp_dir):
+    # def docbuilder2x(file_path, tmp_path, format, file_type, tmp_dir):
 
 
-@ add_converter()
+@add_converter()
 def docbuilder2x(source_file_path, tmp_file_path, norm_file_path, keep_original, tmp_dir, mime_type):
     ok = False
     docbuilder_file = tmp_dir + "/x2x.docbuilder"
@@ -282,7 +279,7 @@ def wkhtmltopdf(file_path, tmp_path):
     return ok
 
 
-@ add_converter()
+@add_converter()
 def abi2x(source_file_path, tmp_file_path, norm_file_path, keep_original, tmp_dir, mime_type):
     ok = False
     command = ['abiword', '--to=pdf', '--import-extension=rtf']
@@ -291,11 +288,15 @@ def abi2x(source_file_path, tmp_file_path, norm_file_path, keep_original, tmp_di
     run_shell_command(command)
 
     if os.path.exists(tmp_file_path):
-        result = ocrmypdf.ocr(tmp_file_path, norm_file_path, tesseract_timeout=0, progress_bar=False, skip_text=True)
-        if str(result) == 'ExitCode.ok':
-            ok = True
+        ok = pdf2pdfa(tmp_file_path, norm_file_path)
 
     return ok
+
+
+# def libre2x(source_file_path, tmp_file_path, norm_file_path, keep_original, tmp_dir, mime_type):
+    # TODO: Endre så bruker collabora online (er installert på laptop). Se notater om curl kommando i joplin
+    # command = ["libreoffice", "--convert-to", "pdf", "--outdir", str(filein.parent), str(filein)]
+    # run_shell_command(command)
 
 
 def unoconv2x(file_path, norm_path, format, file_type):
@@ -326,39 +327,78 @@ def unoconv2x(file_path, norm_path, format, file_type):
     return ok
 
 
-# --> return ok= False bare da
-# WAIT: Se for flere gs argumenter: https://superuser.com/questions/360216/use-ghostscript-but-tell-it-to-not-reprocess-images
 def pdf2pdfa(pdf_path, pdfa_path):
-    # because of a ghostscript bug, which does not allow parameters that are longer than 255 characters
-    # we need to perform a directory changes, before we can actually return from the method
     ok = False
-
-    # TODO: Test om det er noen av valgene under som førte til stooore filer (dEncode-valgene)
-    if os.path.exists(pdf_path):
-        cwd = os.getcwd()
-        os.chdir(os.path.dirname(pdfa_path))
-        ghostScriptExec = [
-            'gs', '-dPDFA', '-dBATCH', '-dNOPAUSE',
-            '-sProcessColorModel=DeviceRGB', '-sDEVICE=pdfwrite', '-dSAFER',
-            '-sColorConversionStrategy=UseDeviceIndependentColor',
-            '-dEmbedAllFonts=true', '-dPrinted=true',
-            '-dPDFACompatibilityPolicy=1', '-dDetectDuplicateImages', '-r150',
-            '-dFastWebView=true'
-            # '-dColorConversionStrategy=/LeaveColorUnchanged',
-            # '-dEncodeColorImages=false', '-dEncodeGrayImages=false',
-            # '-dEncodeMonoImages=false', '-dPDFACompatibilityPolicy=1'
-        ]
-
-        command = ghostScriptExec + [
-            '-sOutputFile=' + os.path.basename(pdfa_path), pdf_path
-        ]
-        run_shell_command(command)
-        os.chdir(cwd)
-
-    if os.path.exists(pdfa_path):
+    result = ocrmypdf.ocr(pdf_path, pdfa_path, tesseract_timeout=0, progress_bar=False, skip_text=True)
+    if str(result) == 'ExitCode.ok':
         ok = True
 
     return ok
+
+    # # because of a ghostscript bug, which does not allow parameters that are longer than 255 characters
+    # # we need to perform a directory changes, before we can actually return from the method
+    # ok = False
+
+    # # TODO: Test om det er noen av valgene under som førte til stooore filer (dEncode-valgene)
+    # if os.path.exists(pdf_path):
+    #     cwd = os.getcwd()
+    #     os.chdir(os.path.dirname(pdfa_path))
+    #     ghostScriptExec = [
+    #         'gs', '-dPDFA', '-dBATCH', '-dNOPAUSE',
+    #         '-sProcessColorModel=DeviceRGB', '-sDEVICE=pdfwrite', '-dSAFER',
+    #         '-sColorConversionStrategy=UseDeviceIndependentColor',
+    #         '-dEmbedAllFonts=true', '-dPrinted=true',
+    #         '-dPDFACompatibilityPolicy=1', '-dDetectDuplicateImages', '-r150',
+    #         '-dFastWebView=true'
+    #         # '-dColorConversionStrategy=/LeaveColorUnchanged',
+    #         # '-dEncodeColorImages=false', '-dEncodeGrayImages=false',
+    #         # '-dEncodeMonoImages=false', '-dPDFACompatibilityPolicy=1'
+    #     ]
+
+    #     command = ghostScriptExec + [
+    #         '-sOutputFile=' + os.path.basename(pdfa_path), pdf_path
+    #     ]
+    #     run_shell_command(command)
+    #     os.chdir(cwd)
+
+    # if os.path.exists(pdfa_path):
+    #     ok = True
+
+    # return ok
+
+# --> return ok= False bare da
+# WAIT: Se for flere gs argumenter: https://superuser.com/questions/360216/use-ghostscript-but-tell-it-to-not-reprocess-images
+# def pdf2pdfa(pdf_path, pdfa_path):
+#     # because of a ghostscript bug, which does not allow parameters that are longer than 255 characters
+#     # we need to perform a directory changes, before we can actually return from the method
+#     ok = False
+
+#     # TODO: Test om det er noen av valgene under som førte til stooore filer (dEncode-valgene)
+#     if os.path.exists(pdf_path):
+#         cwd = os.getcwd()
+#         os.chdir(os.path.dirname(pdfa_path))
+#         ghostScriptExec = [
+#             'gs', '-dPDFA', '-dBATCH', '-dNOPAUSE',
+#             '-sProcessColorModel=DeviceRGB', '-sDEVICE=pdfwrite', '-dSAFER',
+#             '-sColorConversionStrategy=UseDeviceIndependentColor',
+#             '-dEmbedAllFonts=true', '-dPrinted=true',
+#             '-dPDFACompatibilityPolicy=1', '-dDetectDuplicateImages', '-r150',
+#             '-dFastWebView=true'
+#             # '-dColorConversionStrategy=/LeaveColorUnchanged',
+#             # '-dEncodeColorImages=false', '-dEncodeGrayImages=false',
+#             # '-dEncodeMonoImages=false', '-dPDFACompatibilityPolicy=1'
+#         ]
+
+#         command = ghostScriptExec + [
+#             '-sOutputFile=' + os.path.basename(pdfa_path), pdf_path
+#         ]
+#         run_shell_command(command)
+#         os.chdir(cwd)
+
+#     if os.path.exists(pdfa_path):
+#         ok = True
+
+#     return ok
 
 
 def html2pdf(file_path, tmp_path):
@@ -408,7 +448,7 @@ def file_convert(source_file_path, mime_type, function, target_dir, keep_origina
         else:
             if function:
                 normalized['result'] = None
-                normalized['error'] = "Missing converter function '" + function + "'"
+                normalized['error'] = "Missing converter function '" + function + "' Exiting."
                 normalized['norm_file_path'] = None
             else:
                 normalized['result'] = 2  # Conversion not supported

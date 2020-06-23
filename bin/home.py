@@ -490,7 +490,7 @@ class LinksFrame(ttk.Frame):
             msg_label.config(text='Not a valid path.')
             return
 
-        if path in self.folders:
+        if path in self.folders.values():
             msg_label.config(text='Duplicate folder')
             return
 

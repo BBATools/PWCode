@@ -311,12 +311,9 @@ def run_tika(tsv_path, base_source_dir, tmp_dir):
 
 
 def run_siegfried(base_source_dir, project_dir, tsv_path):
-    if os.path.exists(tsv_path):
-        return
-
     print('Identifying file types...')
 
-    csv_path = project_dir + 'tmp.csv'
+    csv_path = project_dir + '/tmp.csv'
     subprocess.run(
         'sf -z -csv ' + base_source_dir + ' > ' + csv_path,
         stderr=subprocess.DEVNULL,
