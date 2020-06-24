@@ -8,7 +8,7 @@ import subprocess
 import csv
 import petl as etl
 from common.xml_settings import XMLSettings
-from petl import extendheader, rename, appendtsv
+# from petl import extendheader, rename, appendtsv
 from convert_files_defs import file_convert
 
 # mime_type: (keep_original, function name, new file extension)
