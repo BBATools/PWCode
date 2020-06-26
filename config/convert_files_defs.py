@@ -24,11 +24,10 @@ import zipfile
 import re
 import pathlib
 # import img2pdf
-# from pdfy import Pdfy
+from pdfy import Pdfy
 from functools import reduce
 # import wand
 # from wand.image import Image, Color
-# from wand.image import Image
 # from wand.exceptions import BlobError
 
 # Dictionary of converter functions
@@ -151,13 +150,10 @@ def run_shell_command(command, cwd=None, timeout=30):
 
 
 @add_converter()
-def file_copy(source_file_path, tmp_file_path, norm_file_path, keep_original, tmp_dir, mime_type):
-    # print('cp ' + src + ' ' + dst)
-    # sys.stdout.flush()
-
+def file_copy(args):
     ok = False
     try:
-        shutil.copyfile(source_file_path, norm_file_path)
+        shutil.copyfile(args['source_file_path'], args['norm_file_path'])
         ok = True
     except Exception as e:
         print(e)
@@ -168,44 +164,41 @@ def file_copy(source_file_path, tmp_file_path, norm_file_path, keep_original, tm
 # TODO: Hvordan kalle denne med python: tesseract my-image.png nytt filnavn pdf -> må bruke subprocess
 
 @add_converter()
-def image2norm(source_file_path, tmp_file_path, norm_file_path, keep_original, tmp_dir, mime_type):
+def image2norm(args):
     ok = False
-    if mime_type == 'image/tiff':
-        command = ['tiff2pdf', source_file_path, '-o', tmp_file_path]
+    if args['mime_type'] == 'image/tiff':
+        command = ['tiff2pdf', args['source_file_path'], '-o', args['tmp_file_path']]
         run_shell_command(command)
-    else:
-        print("'" + mime_type + "' not supported by 'image2norm'. Exiting.")  # TODO: Hente def navn auto mulig?
-        # TODO: Return mer enn ok fra denne og andre slik at melding om hvilken type feil kan gis til brukes
 
-    if os.path.exists(tmp_file_path):
-        ok = pdf2pdfa(tmp_file_path, tmp_file_path, norm_file_path, keep_original, tmp_dir, mime_type)
+    if os.path.exists(args['tmp_file_path']):
+        ok = pdf2pdfa(args)
 
     return ok
 
 
 @add_converter()
-def docbuilder2x(source_file_path, tmp_file_path, norm_file_path, keep_original, tmp_dir, mime_type):
+def docbuilder2x(args):
     ok = False
-    docbuilder_file = tmp_dir + "/x2x.docbuilder"
+    docbuilder_file = args['tmp_dir'] + "/x2x.docbuilder"
     docbuilder = None
 
-    if mime_type in (
+    if args['mime_type'] in (
             'application/vnd.ms-excel',
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     ):
         docbuilder = [
-            'builder.OpenFile("' + source_file_path + '", "");',
+            'builder.OpenFile("' + args['source_file_path'] + '", "")',
             'var ws;',
             'var sheets = Api.GetSheets();',
             'var arrayLength = sheets.length;',
             'for (var i = 0; i < arrayLength; i++) {ws = sheets[i];ws.SetPageOrientation("xlLandscape");}',
-            'builder.SaveFile("pdf", "' + tmp_file_path + '");',
+            'builder.SaveFile("pdf", "' + args['tmp_file_path'] + '")',
             'builder.CloseFile();',
         ]
     else:
         docbuilder = [
-            'builder.OpenFile("' + source_file_path + '", "");',
-            'builder.SaveFile("pdf", "' + tmp_file_path + '");',
+            'builder.OpenFile("' + args['source_file_path'] + '", "")',
+            'builder.SaveFile("pdf", "' + args['tmp_file_path'] + '")',
             'builder.CloseFile();',
         ]
 
@@ -215,33 +208,32 @@ def docbuilder2x(source_file_path, tmp_file_path, norm_file_path, keep_original,
     command = ['documentbuilder', docbuilder_file]
     run_shell_command(command)
 
-    if os.path.exists(tmp_file_path):
-        ok = pdf2pdfa(tmp_file_path, tmp_file_path, norm_file_path, keep_original, tmp_dir, mime_type)
-
-    return ok
-
-
-def wkhtmltopdf(file_path, tmp_path):
-    ok = False
-    command = ['wkhtmltopdf', '-O', 'Landscape', file_path, tmp_path]
-    run_shell_command(command)
-
-    if os.path.exists(tmp_path):
-        ok = True
+    if os.path.exists(args['tmp_file_path']):
+        ok = pdf2pdfa(args)
 
     return ok
 
 
 @add_converter()
-def abi2x(source_file_path, tmp_file_path, norm_file_path, keep_original, tmp_dir, mime_type):
+def wkhtmltopdf(args):
     ok = False
-    command = ['abiword', '--to=pdf', '--import-extension=rtf']
-
-    command.extend(['-o', tmp_file_path, source_file_path])
+    command = ['wkhtmltopdf', '-O', 'Landscape', args['source_file_path'], args['tmp_file_path']]
     run_shell_command(command)
 
-    if os.path.exists(tmp_file_path):
-        ok = pdf2pdfa(tmp_file_path, tmp_file_path, norm_file_path, keep_original, tmp_dir, mime_type)
+    if os.path.exists(args['tmp_file_path']):
+        ok = pdf2pdfa(args)
+
+    return ok
+
+
+@add_converter()
+def abi2x(args):
+    ok = False
+    command = ['abiword', '--to=pdf', '--import-extension=rtf', '-o', args['tmp_file_path'], args['source_file_path']]
+    run_shell_command(command)
+
+    if os.path.exists(args['tmp_file_path']):
+        ok = pdf2pdfa(args)
 
     return ok
 
@@ -280,29 +272,29 @@ def unoconv2x(file_path, norm_path, format, file_type):
     return ok
 
 
-@add_converter()
-def pdf2pdfa(source_file_path, tmp_file_path, norm_file_path, keep_original, tmp_dir, mime_type):
+@ add_converter()
+def pdf2pdfa(args):
     ok = False
     ocrmypdf.configure_logging(-1)
-    result = ocrmypdf.ocr(source_file_path, norm_file_path, tesseract_timeout=0, progress_bar=False, skip_text=True)
+    result = ocrmypdf.ocr(args['tmp_file_path'], args['norm_file_path'], tesseract_timeout=0, progress_bar=False, skip_text=True)
     if str(result) == 'ExitCode.ok':
         ok = True
 
     return ok
 
 
-def html2pdf(file_path, tmp_path):
-    print('html2pdf(python) ' + file_path + ' ' + tmp_path)
-    sys.stdout.flush()
-
+@ add_converter()
+def html2pdf(args):
     ok = False
     try:
         p = Pdfy()
-        p.html_to_pdf(file_path, tmp_path)
-        ok = True
+        p.html_to_pdf(args['source_file_path'], args['tmp_file_path'])
     except Exception as e:
         print(e)
-        ok = False
+
+    if os.path.exists(args['tmp_file_path']):
+        ok = pdf2pdfa(args)
+
     return ok
 
 
@@ -317,15 +309,27 @@ def file_convert(source_file_path, mime_type, function, target_dir, keep_origina
         if function in converters:
             pathlib.Path(target_dir).mkdir(parents=True, exist_ok=True)
 
-            # TODO: Dict som input til conversion functions? https://stackoverflow.com/questions/1769403/what-is-the-purpose-and-use-of-kwargs
             print(count_str + source_file_path + ' (' + mime_type + ')')
-            ok = converters[function](source_file_path, tmp_file_path, norm_file_path, keep_original, tmp_dir, mime_type)
+
+            function_args = {'source_file_path': source_file_path,
+                             'tmp_file_path': tmp_file_path,
+                             'norm_file_path': norm_file_path,
+                             'keep_original': keep_original,
+                             'tmp_dir': tmp_dir,
+                             'mime_type': mime_type
+                             }
+
+            ok = converters[function](function_args)
 
             if not ok:
                 original_files = target_dir + '/original_documents/'
                 pathlib.Path(original_files).mkdir(parents=True, exist_ok=True)
-                file_copy(source_file_path, tmp_file_path, original_files + os.path.basename(source_file_path), keep_original, tmp_dir, mime_type)
-                # TODO: Fjern igjen hvis senere konvertering ok?
+
+                file_copy_args = {'source_file_path': source_file_path,
+                                  'norm_file_path': original_files + os.path.basename(source_file_path)
+                                  }
+
+                file_copy(file_copy_args)  # TODO: Fjern igjen hvis senere konvertering ok?
                 normalized['result'] = 0  # Conversion failed
                 normalized['norm_file_path'] = None
             elif keep_original:

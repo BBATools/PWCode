@@ -25,7 +25,7 @@ mime_to_norm = {
     'image/gif': (False, 'image2norm', 'pdf'),
     'application/vnd.ms-excel': (True, 'docbuilder2x', 'pdf'),
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': (True, 'docbuilder2x', 'pdf'),
-    'text/html': (False, 'html2pdf'),  # TODO: Legg til undervarianter her (var opprinnelig 'startswith)
+    'text/html': (False, 'html2pdf', 'pdf'),  # TODO: Legg til undervarianter her (var opprinnelig 'startswith)
     'application/xhtml+xml; charset=UTF-8': (False, 'wkhtmltopdf', 'pdf'),
     'application/msword': (False, 'docbuilder2x', 'pdf'),
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document': (False, 'docbuilder2x', 'pdf'),
@@ -375,3 +375,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
