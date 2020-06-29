@@ -275,6 +275,18 @@ def unoconv2x(file_path, norm_path, format, file_type):
 @ add_converter()
 def pdf2pdfa(args):
     ok = False
+
+    if args['mime_type'] == 'application/pdf':
+        args['tmp_file_path'] = args['source_file_path']
+
+        # WAIT: Legg inn ekstra sjekk her om hva som skal gjøres hvis ocr = True
+        if args['version'] in ('1a', '1b', '2a', '2b'):
+            file_copy(args)
+            if os.path.exists(args['norm_file_path']):
+                ok = True
+
+            return ok
+
     ocrmypdf.configure_logging(-1)
     result = ocrmypdf.ocr(args['tmp_file_path'], args['norm_file_path'], tesseract_timeout=0, progress_bar=False, skip_text=True)
     if str(result) == 'ExitCode.ok':
@@ -298,11 +310,13 @@ def html2pdf(args):
     return ok
 
 
-def file_convert(source_file_path, mime_type, function, target_dir, keep_original, tmp_dir, norm_ext, count_str):
+def file_convert(source_file_path, mime_type, version, function, target_dir, keep_original, tmp_dir, norm_ext, count_str, ocr):
     source_file_name = os.path.basename(source_file_path)
     base_file_name = os.path.splitext(source_file_name)[0] + '.'
-    tmp_file_path = tmp_dir + '/' + base_file_name + 'tmp.pwb'
-    norm_file_path = target_dir + '/' + base_file_name + norm_ext
+    tmp_file_path = tmp_dir + '/' + base_file_name + 'tmp'
+    norm_file_path = target_dir + '/' + base_file_name
+    if norm_ext:
+        norm_file_path = norm_file_path + norm_ext
     normalized = {'result': None, 'norm_file_path': norm_file_path, 'error': None}
 
     if not os.path.isfile(norm_file_path):
@@ -316,26 +330,28 @@ def file_convert(source_file_path, mime_type, function, target_dir, keep_origina
                              'norm_file_path': norm_file_path,
                              'keep_original': keep_original,
                              'tmp_dir': tmp_dir,
-                             'mime_type': mime_type
+                             'mime_type': mime_type,
+                             'version': version,
+                             'ocr': ocr
                              }
 
             ok = converters[function](function_args)
 
             if not ok:
-                original_files = target_dir + '/original_documents/'
-                pathlib.Path(original_files).mkdir(parents=True, exist_ok=True)
+                error_files = target_dir + '/error_documents/'
+                pathlib.Path(error_files).mkdir(parents=True, exist_ok=True)
 
                 file_copy_args = {'source_file_path': source_file_path,
-                                  'norm_file_path': original_files + os.path.basename(source_file_path)
+                                  'norm_file_path': error_files + os.path.basename(source_file_path)
                                   }
 
-                file_copy(file_copy_args)  # TODO: Fjern igjen hvis senere konvertering ok?
+                file_copy(file_copy_args)
                 normalized['result'] = 0  # Conversion failed
                 normalized['norm_file_path'] = None
             elif keep_original:
-                corrupted_files = target_dir + '/corrupted_documents/'
-                pathlib.Path(corrupted_files).mkdir(parents=True, exist_ok=True)
-                file_copy(source_file_path, corrupted_files + os.path.basename(source_file_path))
+                original_files = target_dir + '/original_documents/'
+                pathlib.Path(original_files).mkdir(parents=True, exist_ok=True)
+                file_copy(source_file_path, original_files + os.path.basename(source_file_path))
                 normalized['result'] = 1  # Converted successfully
             else:
                 normalized['result'] = 1  # Converted successfully

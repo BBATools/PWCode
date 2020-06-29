@@ -10,10 +10,11 @@ import petl as etl
 from common.xml_settings import XMLSettings
 # from petl import extendheader, rename, appendtsv
 from convert_files_defs import file_convert
+import base64
 
 # mime_type: (keep_original, function name, new file extension)
 mime_to_norm = {
-    'application/zip': (False, 'extract_nested_zip', None),  # TODO: Legg inn for denne
+    'application/zip': (False, 'extract_nested_zip', 'zip'),  # TODO: Legg inn for denne
     'application/pdf': (False, 'pdf2pdfa', 'pdf'),
     'image/tiff': (False, 'image2norm', 'pdf'),
     'image/jpeg': (False, 'image2norm', 'pdf'),
@@ -58,8 +59,9 @@ def append_txt_file(file_path, msg):
         txt_file.write(msg + '\n')
 
 
-def convert_folder(project_dir, folder, ext_option, tmp_dir, tika=False):
+def convert_folder(project_dir, folder, ext_option, tmp_dir, tika=False, ocr=False):
     # TODO: Bør den være convert folders heller? Hvordan best når flere ift brukervennlighet, messages
+    # TODO: Legg inn i gui at kan velge om skal ocr-behandles
     base_source_dir = folder.text
     base_target_dir = project_dir + '/' + folder.tag
     tsv_source_path = base_target_dir + '.tsv'
@@ -85,6 +87,10 @@ def convert_folder(project_dir, folder, ext_option, tmp_dir, tika=False):
 
     table = etl.fromtsv(tsv_source_path)
     row_count = etl.nrows(table)
+
+    # error_documents
+    # original_documents
+    # TODO: Legg inn at ikke skal telle filer i mapper med de to navnene over
     file_count = sum([len(files) for r, d, files in os.walk(base_source_dir)])
 
     # WAIT: Sjekk i forkant om garbage files som skal slettes?
@@ -99,10 +105,9 @@ def convert_folder(project_dir, folder, ext_option, tmp_dir, tika=False):
 
     # WAIT: Legg inn sjekk på filstørrelse før og etter konvertering
 
-    if first_run:
-        table = etl.rename(table, {'filename': 'source_file_path', 'filesize': 'file_size', 'mime': 'mime_type'}, strict=False)
-        table = etl.addfield(table, 'norm_file_path', None)
-        table = etl.addfield(table, 'result', None)
+    table = etl.rename(table, {'filename': 'source_file_path', 'filesize': 'file_size', 'mime': 'mime_type'}, strict=False)
+    table = etl.addfield(table, 'norm_file_path', None)
+    table = etl.addfield(table, 'result', None)
 
     header = etl.header(table)
     append_tsv_row(tsv_target_path, header)
@@ -117,6 +122,7 @@ def convert_folder(project_dir, folder, ext_option, tmp_dir, tika=False):
         count_str = ('(' + str(count) + '/' + str(file_count) + '): ')
         source_file_path = row['source_file_path']
         mime_type = row['mime_type']
+        version = row['version']
         result = None
         if not first_run:
             result = row['result']
@@ -128,12 +134,17 @@ def convert_folder(project_dir, folder, ext_option, tmp_dir, tika=False):
             keep_original = mime_to_norm[mime_type][0]
             function = mime_to_norm[mime_type][1]
 
-            norm_ext = mime_to_norm[mime_type][2]
-            if ext_option:
-                norm_ext = '.norm.' + norm_ext
+            # TODO: Bytt ut ext_option med valg for 'Merge Subfolders' -> finn bedre navn
+            # norm_ext = mime_to_norm[mime_type][2]
+            # if ext_option:
+            #     norm_ext = 'norm.' + norm_ext
 
+            norm_ext = (base64.b32encode(bytes(str(count), encoding='ascii'))).decode('utf8').replace('=', '').lower() + '.' + mime_to_norm[mime_type][2]
             target_dir = os.path.dirname(source_file_path.replace(base_source_dir, base_target_dir))
-            normalized = file_convert(source_file_path, mime_type, function, target_dir, keep_original, tmp_dir, norm_ext, count_str)
+            normalized = file_convert(source_file_path, mime_type, version, function, target_dir, keep_original, tmp_dir, norm_ext, count_str, ocr)
+
+            if not normalized:
+                return
 
             if normalized['error'] is not None:
                 print(normalized['error'])
@@ -375,5 +386,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
