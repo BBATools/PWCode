@@ -9,7 +9,7 @@ import csv
 import petl as etl
 from common.xml_settings import XMLSettings
 # from petl import extendheader, rename, appendtsv
-from convert_files_defs import file_convert
+from defs import file_convert
 import base64
 
 # mime_type: (keep_original, function name, new file extension)
@@ -59,7 +59,7 @@ def append_txt_file(file_path, msg):
         txt_file.write(msg + '\n')
 
 
-def convert_folder(project_dir, folder, ext_option, tmp_dir, tika=False, ocr=False):
+def convert_folder(project_dir, folder, merge, tmp_dir, tika=False, ocr=False):
     # TODO: Bør den være convert folders heller? Hvordan best når flere ift brukervennlighet, messages
     # TODO: Legg inn i gui at kan velge om skal ocr-behandles
     base_source_dir = folder.text
@@ -134,12 +134,9 @@ def convert_folder(project_dir, folder, ext_option, tmp_dir, tika=False, ocr=Fal
             keep_original = mime_to_norm[mime_type][0]
             function = mime_to_norm[mime_type][1]
 
-            # TODO: Bytt ut ext_option med valg for 'Merge Subfolders' -> finn bedre navn
-            # norm_ext = mime_to_norm[mime_type][2]
-            # if ext_option:
-            #     norm_ext = 'norm.' + norm_ext
-
+            # Ensure unique file names in dir hierarchy:
             norm_ext = (base64.b32encode(bytes(str(count), encoding='ascii'))).decode('utf8').replace('=', '').lower() + '.' + mime_to_norm[mime_type][2]
+
             target_dir = os.path.dirname(source_file_path.replace(base_source_dir, base_target_dir))
             normalized = file_convert(source_file_path, mime_type, version, function, target_dir, keep_original, tmp_dir, norm_ext, count_str, ocr)
 
@@ -171,6 +168,8 @@ def convert_folder(project_dir, folder, ext_option, tmp_dir, tika=False, ocr=Fal
         append_tsv_row(tsv_target_path, list(row.values()))
 
     shutil.move(tsv_target_path, tsv_source_path)
+
+    # TODO: Legg inn valg om at hvis merge = true kopieres alle filer til mappe på øverste nivå og så slettes tomme undermapper
 
     if converted_now:
         if errors:
@@ -366,9 +365,7 @@ def main():
 
     config = XMLSettings(config_path)
 
-    ext_option = config.get('options/ext')
-    if ext_option == 'none':
-        ext_option = ''
+    merge = config.get('options/merge')
 
     tree = ET.parse(config_path)
     folders = list(tree.find('folders'))
@@ -379,7 +376,7 @@ def main():
             return
 
     for folder in folders:
-        result = convert_folder(project_dir, folder, ext_option, tmp_dir)
+        result = convert_folder(project_dir, folder, merge, tmp_dir)
         if result == 'error':
             return
 

@@ -33,6 +33,7 @@ from tkinter import ttk
 # from tkinter import filedialog
 from settings import COLORS
 from gui.dialog import multi_open
+import pathlib
 
 
 class HomeTab(ttk.Frame):
@@ -64,21 +65,6 @@ class HomeTab(ttk.Frame):
 
     def open_home_url(self):
         webbrowser.open('https://github.com/BBATools/PWCode', new=2)
-
-    # def show_console(self, app):  # TODO: For test. Remove if send to new tab works better
-    #     path = '/home/bba/bin/PWCode/config/sidepanel/export_data.py'
-    #     app.model.open_file(path)
-
-    #     tab_id = app.editor_frame.path2id[path]
-    #     file_obj = app.editor_frame.id2path[tab_id]
-
-    #     # file_obj = app.model.current_file
-    #     # print(file_obj)
-    #     if file_obj:
-    #         self.console = ConsoleUi(self.right_frame, file_obj)
-    #         self.processing = Processing(file_obj, app)
-    #         # self.processing.show_message('run_file [Ctrl+Enter]\nkill_process [Ctrl+k]\n')
-    #         # self.console.pack(side=tk.RIGHT, fill=tk.BOTH, expand=1)
 
     def show_help(self, app):
         self.subheading = ttk.Label(self, text=app.settings.desc, style="SubHeading.TLabel")
@@ -157,6 +143,7 @@ class HomeTab(ttk.Frame):
                 msg_label.config(text=msg)
                 return
 
+        pathlib.Path(path + '/.pwcode').mkdir(parents=True, exist_ok=True)
         self.project_frame.configure(text=' ' + project_name + ' ')
         self.project_frame.name_entry.configure(state=tk.DISABLED)
 
@@ -205,7 +192,7 @@ class HomeTab(ttk.Frame):
             return
 
         config.put('name', self.project_frame.name_entry.get())
-        config.put('options/ext', self.project_frame.ext_option.get())
+        config.put('options/merge', self.project_frame.merge_option.get())
 
         i = 1
         for frame, path in self.project_frame.folders_frame.folders.items():
@@ -213,11 +200,19 @@ class HomeTab(ttk.Frame):
             config.put('folders/folder' + str(i), path)
             i += 1
 
-        self.project_frame.ext_option_frame.configure(state=tk.DISABLED)
+        self.project_frame.merge_option_frame.configure(state=tk.DISABLED)
         self.project_frame.name_frame.folder_button.configure(state=tk.DISABLED)
 
         config.save()
-        path = config_dir + 'convert_files.py'  # TODO: Må lese fra xml i tmp først og så kopiere xml til prosjektmappe
+        path = config_dir + 'convert_files/main.py'  # TODO: Må lese fra xml i tmp først og så kopiere xml til prosjektmappe
+
+        for filename in os.listdir(config_dir + 'convert_files'):
+            new_path = app.data_dir + project_name + '/.pwcode/' + filename
+            if filename == 'main.py':
+                new_path = app.data_dir + project_name + '/.pwcode/' + project_name + '_convert.py'
+                path = new_path
+
+            shutil.copy(config_dir + 'convert_files/' + filename, new_path)
 
         app.model.open_file(path)
 
@@ -244,16 +239,16 @@ class HomeTab(ttk.Frame):
         # options_label = ttk.Label(options_frame, text="Options:", width=16)
         # options_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 0), pady=3)
 
-        ext_label = ttk.Label(options_frame, text="Prepend extension:")
-        ext_label.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(8, 0))
-        options = ['', 'norm', 'none']
+        merge_label = ttk.Label(options_frame, text="Merge Subfolders:")
+        merge_label.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(8, 0))
+        options = ['', 'False', 'True']
         var = tk.StringVar()
-        var.set(options[2])
-        ext_option = ttk.OptionMenu(options_frame, var, *options)
-        ext_option.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(0, 55))
-        ext_option.configure(width=5)
-        self.project_frame.ext_option = var
-        self.project_frame.ext_option_frame = ext_option
+        var.set(options[1])
+        merge_option = ttk.OptionMenu(options_frame, var, *options)
+        merge_option.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(0, 55))
+        merge_option.configure(width=4)
+        self.project_frame.merge_option = var
+        self.project_frame.merge_option_frame = merge_option
 
     def export_data_project(self, app):
         self.reset_rhs("Export Data")
@@ -356,8 +351,8 @@ class Project(ttk.LabelFrame):
     def __init__(self, parent, app, grandparent, entry_text, *args, **kwargs):
         super().__init__(parent, *args, **kwargs, style="Links.TFrame")
         self.grandparent = grandparent
-        self.ext_option = None
-        self.ext_option_frame = None
+        self.merge_option = None
+        self.merge_option_frame = None
 
         self.name_frame = ttk.Frame(self, style="SubHeading.TLabel")
         self.name_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
