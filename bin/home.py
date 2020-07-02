@@ -219,6 +219,7 @@ class HomeTab(ttk.Frame):
         tab_id = app.editor_frame.path2id[path]
         file_obj = app.editor_frame.id2path[tab_id]
         text_editor = app.editor_frame.notebook.nametowidget(tab_id)
+        self.show_help(app)
         text_editor.run_file(file_obj, False)
 
     def convert_files_project(self, app):

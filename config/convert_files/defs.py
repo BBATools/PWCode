@@ -317,7 +317,9 @@ def file_convert(source_file_path, mime_type, version, function, target_dir, kee
     norm_file_path = target_dir + '/' + base_file_name
     if norm_ext:
         norm_file_path = norm_file_path + norm_ext
-    normalized = {'result': None, 'norm_file_path': norm_file_path, 'error': None}
+
+    # TODO: Endre så returneres file paths som starter med prosjektmappe? Alltid, eller bare når genereres arkivpakke?
+    normalized = {'result': None, 'norm_file_path': norm_file_path, 'error': None, 'original_file_copy': None}
 
     if not os.path.isfile(norm_file_path):
         if function in converters:
@@ -340,26 +342,29 @@ def file_convert(source_file_path, mime_type, version, function, target_dir, kee
             if not ok:
                 error_files = target_dir + '/error_documents/'
                 pathlib.Path(error_files).mkdir(parents=True, exist_ok=True)
-
                 file_copy_args = {'source_file_path': source_file_path,
                                   'norm_file_path': error_files + os.path.basename(source_file_path)
                                   }
-
                 file_copy(file_copy_args)
+                normalized['original_file_copy'] = file_copy_args['norm_file_path']  # TODO: Fjern fil hvis konvertering lykkes når kjørt på nytt
                 normalized['result'] = 0  # Conversion failed
                 normalized['norm_file_path'] = None
             elif keep_original:
                 original_files = target_dir + '/original_documents/'
                 pathlib.Path(original_files).mkdir(parents=True, exist_ok=True)
-                file_copy(source_file_path, original_files + os.path.basename(source_file_path))
+                file_copy_args = {'source_file_path': source_file_path,
+                                  'norm_file_path': original_files + os.path.basename(source_file_path)
+                                  }
+                file_copy(file_copy_args)
+                normalized['original_file_copy'] = file_copy_args['norm_file_path']
                 normalized['result'] = 1  # Converted successfully
             else:
                 normalized['result'] = 1  # Converted successfully
             #     os.remove(source_file_path) # WAIT: Bare når kjørt som generell behandling av arkivpakke
         else:
             if function:
-                normalized['result'] = None
-                normalized['error'] = "Missing converter function '" + function + "' Exiting."  # TODO: Endre så ikke avluttes men gir FM til bruker til slutt
+                normalized['result'] = 4
+                normalized['error'] = "Missing converter function '" + function + "'"
                 normalized['norm_file_path'] = None
             else:
                 normalized['result'] = 2  # Conversion not supported

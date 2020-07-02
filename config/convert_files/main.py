@@ -14,31 +14,30 @@ import base64
 
 # mime_type: (keep_original, function name, new file extension)
 mime_to_norm = {
-    'application/zip': (False, 'extract_nested_zip', 'zip'),  # TODO: Legg inn for denne
+    'application/msword': (False, 'docbuilder2x', 'pdf'),
     'application/pdf': (False, 'pdf2pdfa', 'pdf'),
-    'image/tiff': (False, 'image2norm', 'pdf'),
+    'application/rtf': (False, 'abi2x', 'pdf'),
+    'application/vnd.ms-excel': (True, 'docbuilder2x', 'pdf'),
+    # 'application/vnd.ms-project': ('pdf'), # TODO: Har ikke ferdig kode for denne ennå
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': (True, 'docbuilder2x', 'pdf'),
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': (True, 'docbuilder2x', 'pdf'),
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation': (True, 'docbuilder2x', 'pdf'),
+    'application/vnd.wordperfect': (False, 'docbuilder2x', 'pdf'),  # TODO: Mulig denne må endres til libreoffice
+    'application/xhtml+xml; charset=UTF-8': (False, 'wkhtmltopdf', 'pdf'),
+    'application/xml': (False, 'x2utf8', 'xml'),
+    'application/x-elf': (False, 'what?', None),  # executable on lin
+    'application/x-msdownload': (False, 'what?', None),  # executable on win
+    'application/x-ms-installer': (False, 'what?', None),  # Installer on win
+    'application/x-tika-msoffice': (False, 'delete_file', None),  # TODO: Skriv funksjon ferdig
+    'application/zip': (False, 'extract_nested_zip', 'zip'),  # TODO: Legg inn for denne
+    'image/gif': (False, 'image2norm', 'pdf'),
     'image/jpeg': (False, 'image2norm', 'pdf'),
     'image/png': (False, 'file_copy', 'png'),
+    'image/tiff': (False, 'image2norm', 'pdf'),
+    'text/html': (False, 'html2pdf', 'pdf'),  # TODO: Legg til undervarianter her (var opprinnelig 'startswith)
     'text/plain; charset=ISO-8859-1': (False, 'x2utf8', 'txt'),
     'text/plain; charset=UTF-8': (False, 'x2utf8', 'txt'),
     'text/plain; charset=windows-1252': (False, 'x2utf8', 'txt'),
-    'application/xml': (False, 'x2utf8', 'xml'),
-    'image/gif': (False, 'image2norm', 'pdf'),
-    'application/vnd.ms-excel': (True, 'docbuilder2x', 'pdf'),
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': (True, 'docbuilder2x', 'pdf'),
-    'text/html': (False, 'html2pdf', 'pdf'),  # TODO: Legg til undervarianter her (var opprinnelig 'startswith)
-    'application/xhtml+xml; charset=UTF-8': (False, 'wkhtmltopdf', 'pdf'),
-    'application/msword': (False, 'docbuilder2x', 'pdf'),
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': (False, 'docbuilder2x', 'pdf'),
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation': (False, 'docbuilder2x', 'pdf'),
-    'application/vnd.wordperfect': (False, 'docbuilder2x', 'pdf'),  # TODO: Mulig denne må endres til libreoffice
-    'application/rtf': (False, 'abi2x', 'pdf'),
-    'application/x-tika-msoffice': (False, 'delete_file', None),  # TODO: Skriv funksjon ferdig
-    # 'application/vnd.ms-project': ('pdf'), # TODO: Har ikke ferdig kode for denne ennå
-    # WAIT: Gjøre hva med executables i linjene under? delete_file?
-    'application/x-msdownload': (False, 'what?', None),  # executable on win
-    'application/x-ms-installer': (False, 'what?', None),  # Installer on win
-    'application/x-elf': (False, 'what?', None)  # executable on lin
 }
 
 
@@ -68,7 +67,6 @@ def convert_folder(project_dir, folder, merge, tmp_dir, tika=False, ocr=False):
     txt_target_path = base_target_dir + '_result.txt'
     tsv_target_path = base_target_dir + '_processed.tsv'
     json_tmp_dir = base_target_dir + '_tmp'
-    first_run = True
     converted_now = False
     errors = False
 
@@ -82,8 +80,6 @@ def convert_folder(project_dir, folder, merge, tmp_dir, tika=False, ocr=False):
             run_tika(tsv_source_path, base_source_dir, json_tmp_dir)
         else:
             run_siegfried(base_source_dir, project_dir, tsv_source_path)
-    else:
-        first_run = False
 
     table = etl.fromtsv(tsv_source_path)
     row_count = etl.nrows(table)
@@ -106,8 +102,11 @@ def convert_folder(project_dir, folder, merge, tmp_dir, tika=False, ocr=False):
     # WAIT: Legg inn sjekk på filstørrelse før og etter konvertering
 
     table = etl.rename(table, {'filename': 'source_file_path', 'filesize': 'file_size', 'mime': 'mime_type'}, strict=False)
-    table = etl.addfield(table, 'norm_file_path', None)
-    table = etl.addfield(table, 'result', None)
+
+    new_fields = ('norm_file_path', 'result', 'original_file_copy')
+    for field in new_fields:
+        if field not in etl.fieldnames(table):
+            table = etl.addfield(table, field, None)
 
     header = etl.header(table)
     append_tsv_row(tsv_target_path, header)
@@ -124,8 +123,7 @@ def convert_folder(project_dir, folder, merge, tmp_dir, tika=False, ocr=False):
         mime_type = row['mime_type']
         version = row['version']
         result = None
-        if not first_run:
-            result = row['result']
+        old_result = row['result']
 
         if mime_type not in mime_to_norm.keys():
             result = 'Conversion not supported'
@@ -140,13 +138,6 @@ def convert_folder(project_dir, folder, merge, tmp_dir, tika=False, ocr=False):
             target_dir = os.path.dirname(source_file_path.replace(base_source_dir, base_target_dir))
             normalized = file_convert(source_file_path, mime_type, version, function, target_dir, keep_original, tmp_dir, norm_ext, count_str, ocr)
 
-            if not normalized:
-                return
-
-            if normalized['error'] is not None:
-                print(normalized['error'])
-                return 'error'
-
             if normalized['result'] == 0:
                 errors = True
                 result = 'Conversion failed'
@@ -159,25 +150,39 @@ def convert_folder(project_dir, folder, merge, tmp_dir, tika=False, ocr=False):
                 result = 'Conversion not supported'
                 append_txt_file(txt_target_path, result + ': ' + source_file_path + ' (' + mime_type + ')')
             elif normalized['result'] == 3:
-                if result != 'Converted successfully':
+                if old_result not in ('Converted successfully', 'Manually converted'):
                     result = 'Manually converted'
                     converted_now = True
+                else:
+                    result = old_result
+            elif normalized['result'] == 4:
+                converted_now = True
+                errors = True
+                result = normalized['error']
+                append_txt_file(txt_target_path, result + ': ' + source_file_path + ' (' + mime_type + ')')
 
         row['norm_file_path'] = normalized['norm_file_path']
         row['result'] = result
+        row['original_file_copy'] = normalized['original_file_copy']
         append_tsv_row(tsv_target_path, list(row.values()))
 
     shutil.move(tsv_target_path, tsv_source_path)
 
     # TODO: Legg inn valg om at hvis merge = true kopieres alle filer til mappe på øverste nivå og så slettes tomme undermapper
 
+    msg = None
     if converted_now:
         if errors:
-            print("\nNot all files were converted. See '" + txt_target_path + "' for details.")
+            msg = "Not all files were converted. See '" + txt_target_path + "' for details."
+            # print("\nNot all files were converted. See '" + txt_target_path + "' for details.\n")
         else:
-            print('\nAll files converted succcessfully.')
+            msg = 'All files converted succcessfully.'
+            # print('\nAll files converted succcessfully.\n')
     else:
-        print('No new files converted')
+        msg = 'All files converted previously.'
+        # print('\nAll files converted previously.\n')
+
+    return msg
 
 
 def flatten_dir(destination, tsv_log=None):
@@ -298,7 +303,7 @@ def run_tika(tsv_path, base_source_dir, tmp_dir):
     # if not os.path.isfile(tsv_path):
     # TODO: Endre så bruker bundlet java
     # TODO: Legg inn switch for om hente ut metadata også (bruke tika da). Bruke hva ellers?
-    print('Identifying file types and extracting metadata...')
+    print('\nIdentifying file types and extracting metadata...')
     subprocess.run(  # TODO: Denne blir ikke avsluttet ved ctrl-k -> fix (kill prosess gruppe?)
         'java -jar ' + tika_path + ' -J -m -i ' + base_source_dir + ' -o ' + tmp_dir,
         stderr=subprocess.DEVNULL,
@@ -321,7 +326,7 @@ def run_tika(tsv_path, base_source_dir, tmp_dir):
 
 
 def run_siegfried(base_source_dir, project_dir, tsv_path):
-    print('Identifying file types...')
+    print('\nIdentifying file types...')
 
     csv_path = project_dir + '/tmp.csv'
     subprocess.run(
@@ -375,10 +380,28 @@ def main():
             print("'" + folder.text + "' is not a valid path. Exiting.")
             return
 
+    results = []
     for folder in folders:
         result = convert_folder(project_dir, folder, merge, tmp_dir)
-        if result == 'error':
-            return
+        results.append(result)
+        # results[folder] = result
+
+    msg = '\n' + '\n'.join(results)
+    print(msg)
+    # print('\n----------------------------------------------', flush=True)
+    # print('\n'.join(results))
+    # message('\n')
+    # print('{:s}\r'.format(''), end='', flush=True)
+    # message('\n'.join(results))
+
+    # TODO: Test å legge inne delay her. Er det delay andre steder i koden som kan ha betydning ? Teste å ha msg som return fra main og printes under?
+
+    # for folder in folders:  # TODO: Sjekk først om key finnes mm
+    #     print(folder)
+    #     print(results[folder])
+
+
+def message(x): return print(x, flush=True, end="")
 
 
 if __name__ == '__main__':
