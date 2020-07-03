@@ -59,7 +59,6 @@ def append_txt_file(file_path, msg):
 
 
 def convert_folder(project_dir, folder, merge, tmp_dir, tika=False, ocr=False):
-    # TODO: Bør den være convert folders heller? Hvordan best når flere ift brukervennlighet, messages
     # TODO: Legg inn i gui at kan velge om skal ocr-behandles
     base_source_dir = folder.text
     base_target_dir = project_dir + '/' + folder.tag
@@ -380,29 +379,18 @@ def main():
             print("'" + folder.text + "' is not a valid path. Exiting.")
             return
 
-    results = []
+    results = {}
     for folder in folders:
         result = convert_folder(project_dir, folder, merge, tmp_dir)
-        results.append(result)
-        # results[folder] = result
+        results[folder.text] = result
 
-    msg = '\n' + '\n'.join(results)
-    print(msg)
-    # print('\n----------------------------------------------', flush=True)
-    # print('\n'.join(results))
-    # message('\n')
-    # print('{:s}\r'.format(''), end='', flush=True)
-    # message('\n'.join(results))
+    print('\n')
+    for k, v in results.items():
+        print(k + ': ', v)
 
-    # TODO: Test å legge inne delay her. Er det delay andre steder i koden som kan ha betydning ? Teste å ha msg som return fra main og printes under?
-
-    # for folder in folders:  # TODO: Sjekk først om key finnes mm
-    #     print(folder)
-    #     print(results[folder])
-
-
-def message(x): return print(x, flush=True, end="")
+    return results
 
 
 if __name__ == '__main__':
     main()
+    print('\n')  # WAIT: For flushing last print in def. Better fix later
