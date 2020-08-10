@@ -180,7 +180,7 @@ def convert_folder(project_dir, folder, merge, tmp_dir, tika=False, ocr=False):
             msg = 'All files converted succcessfully.'
             # print('\nAll files converted succcessfully.\n')
     else:
-        msg = 'All files converted previously.'
+        msg = 'All files converted previously.' # TODO: Legg inn sjekk på at alle konvertert (converted_now ikke nok alene)
         # print('\nAll files converted previously.\n')
 
     return msg

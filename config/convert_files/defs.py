@@ -47,23 +47,6 @@ def delete_file():
     # TODO: Fjern garbage files og oppdater i tsv at det er gjort
     return
 
-
-# def image2norm(args):
-#     ok = False
-#     if args['mime_type'] == 'image/tiff':
-#         args['tmp_file_path'] = args['tmp_file_path'] + '.pdf'
-#         command = ['convert', args['source_file_path'], args['tmp_file_path']]
-#         run_shell_command(command)
-
-#     if os.path.exists(args['tmp_file_path']):
-#         ok = pdf2pdfa(args)
-
-#         # WAIT: Egen funksjon for sletting av tmp-filer som kalles fra alle def? Er nå under her for å håndtere endret tmp navn + i overordnet convert funkson
-#         if os.path.isfile(args['tmp_file_path']):
-#             os.remove(args['tmp_file_path'])
-
-#     return ok
-
 def x2utf8(args):
     # TODO: Sjekk om beholder extension alltid (ikke endre csv, xml mm)
     ok = False

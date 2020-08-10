@@ -23,6 +23,7 @@
 
 # from console import ConsoleUi, Processing
 from common.xml_settings import XMLSettings
+import inspect
 import commands
 import os
 import webbrowser
@@ -167,14 +168,42 @@ class HomeTab(ttk.Frame):
         msg_label = ttk.Label(frame, text="", style="Links.TButton")
         msg_label.pack(side=tk.LEFT, anchor=tk.E, pady=4, padx=(0, 12))
 
-    def convert_files(self, app):
-        config_dir = os.environ["pwcode_config_dir"]  # Get PWCode config path
+    def export_data(self, app): # WAIT: Fiks duplisering av kode mellom denne og convert_files
+        def_name = inspect.currentframe().f_code.co_name
+        config, config_dir = self.config_init(def_name)
 
-        config_path = config_dir + '/tmp/convert_files.xml'
+        project_name = self.project_frame.name_entry.get()
+        if not project_name:
+            msg_label.config(text='Missing project name')
+            return
+
+        ok = self.create_project_dir(app.data_dir + project_name, project_name)
+        if ok:
+            msg_label.config(text='')
+        else:
+            return       
+
+        config.put('name', self.project_frame.name_entry.get())
+        # config.put('options/merge', self.project_frame.merge_option.get())             
+
+        config.save()
+        self.run_plugin(app, project_name, config_dir, def_name)
+
+
+    def config_init(self, def_name):
+        config_dir = os.environ["pwcode_config_dir"]  # Get PWCode config path
+        config_path = config_dir + '/tmp/' + def_name + '.xml'
+
         if os.path.isfile(config_path):
             os.remove(config_path)
+ 
+        return  XMLSettings(config_path), config_dir    
 
-        config = XMLSettings(config_path)
+   
+    # TODO: Må lese fra xml i tmp først og så kopiere xml til prosjektmappe. Fortsatt riktig?
+    def convert_files(self, app):
+        def_name = inspect.currentframe().f_code.co_name
+        config, config_dir = self.config_init(def_name)
 
         if not hasattr(self.project_frame, 'folders_frame'):
             msg_label.config(text='No folders added')
@@ -204,23 +233,25 @@ class HomeTab(ttk.Frame):
         self.project_frame.name_frame.folder_button.configure(state=tk.DISABLED)
 
         config.save()
-        path = config_dir + 'convert_files/main.py'  # TODO: Må lese fra xml i tmp først og så kopiere xml til prosjektmappe
+        self.run_plugin(app, project_name, config_dir, def_name)
 
-        for filename in os.listdir(config_dir + 'convert_files'):
+
+    def run_plugin(self, app, project_name, config_dir, def_name):
+        for filename in os.listdir(config_dir + def_name):
             new_path = app.data_dir + project_name + '/.pwcode/' + filename
             if filename == 'main.py':
-                new_path = app.data_dir + project_name + '/.pwcode/' + project_name + '_convert.py'
+                new_path = app.data_dir + project_name + '/.pwcode/' + project_name + '_' + def_name + '.py'
                 path = new_path
 
-            shutil.copy(config_dir + 'convert_files/' + filename, new_path)
+            shutil.copy(config_dir + def_name + '/' + filename, new_path)
 
         app.model.open_file(path)
-
         tab_id = app.editor_frame.path2id[path]
         file_obj = app.editor_frame.id2path[tab_id]
         text_editor = app.editor_frame.notebook.nametowidget(tab_id)
         self.show_help(app)
-        text_editor.run_file(file_obj, False)
+        text_editor.run_file(file_obj, False)                
+
 
     def convert_files_project(self, app):
         self.reset_rhs("Convert Files")
