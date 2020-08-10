@@ -159,6 +159,8 @@ def convert_folder(project_dir, folder, merge, tmp_dir, tika=False, ocr=False):
                 errors = True
                 result = normalized['error']
                 append_txt_file(txt_target_path, result + ': ' + source_file_path + ' (' + mime_type + ')')
+            elif normalized['result'] == 5:
+                result = 'Not a file'
 
         row['norm_file_path'] = normalized['norm_file_path']
         row['result'] = result

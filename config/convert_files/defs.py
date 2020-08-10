@@ -25,6 +25,7 @@ import re
 import pathlib
 # import img2pdf
 from pdfy import Pdfy
+# from pathlib import Path
 from functools import reduce
 # import wand
 # from wand.image import Image, Color
@@ -47,24 +48,40 @@ def delete_file():
     return
 
 
-def x2utf8(file_path, norm_path, tmp_path, file_type):
+# def image2norm(args):
+#     ok = False
+#     if args['mime_type'] == 'image/tiff':
+#         args['tmp_file_path'] = args['tmp_file_path'] + '.pdf'
+#         command = ['convert', args['source_file_path'], args['tmp_file_path']]
+#         run_shell_command(command)
+
+#     if os.path.exists(args['tmp_file_path']):
+#         ok = pdf2pdfa(args)
+
+#         # WAIT: Egen funksjon for sletting av tmp-filer som kalles fra alle def? Er nå under her for å håndtere endret tmp navn + i overordnet convert funkson
+#         if os.path.isfile(args['tmp_file_path']):
+#             os.remove(args['tmp_file_path'])
+
+#     return ok
+
+def x2utf8(args):
     # TODO: Sjekk om beholder extension alltid (ikke endre csv, xml mm)
     ok = False
 
-    if file_type in ('text/plain; charset=windows-1252',
+    if args['mime_type'] in ('text/plain; charset=windows-1252',
                      'text/plain; charset=ISO-8859-1'):
         # WAIT: Juster så mindre repetisjon under
-        if file_type == 'text/plain; charset=windows-1252':
+        if args['mime_type'] == 'text/plain; charset=windows-1252':
             command = ['iconv', '-f', 'windows-1252']
-        elif file_type == 'text/plain; charset=ISO-8859-1':
+        elif args['mime_type'] == 'text/plain; charset=ISO-8859-1':
             command = ['iconv', '-f', 'ISO-8859-1']
 
-        command.extend(['-t', 'UTF8', file_path, '-o', tmp_path])
+        command.extend(['-t', 'UTF8', args['source_file_path'], '-o', args['tmp_file_path']])
         run_shell_command(command)
     else:
-        file_copy(file_path, tmp_path)
+        file_copy(args)
 
-    if os.path.exists(tmp_path):
+    if os.path.exists(args['tmp_file_path']):
         repls = (
             ('‘', 'æ'),
             ('›', 'ø'),
@@ -72,12 +89,12 @@ def x2utf8(file_path, norm_path, tmp_path, file_type):
         )
 
         # WAIT: Legg inn validering av utf8 -> https://pypi.org/project/validate-utf8/
-        file = open(norm_path, "w")
-        with open(tmp_path, 'r') as file_r:
+        file = open(args['norm_file_path'], "w")
+        with open(args['tmp_file_path'], 'r') as file_r:
             for line in file_r:
                 file.write(reduce(lambda a, kv: a.replace(*kv), repls, line))
 
-        if os.path.exists(norm_path):
+        if os.path.exists(args['norm_file_path']):
             ok = True
 
     return ok
@@ -167,11 +184,16 @@ def file_copy(args):
 def image2norm(args):
     ok = False
     if args['mime_type'] == 'image/tiff':
-        command = ['tiff2pdf', args['source_file_path'], '-o', args['tmp_file_path']]
+        args['tmp_file_path'] = args['tmp_file_path'] + '.pdf'
+        command = ['convert', args['source_file_path'], args['tmp_file_path']]
         run_shell_command(command)
 
     if os.path.exists(args['tmp_file_path']):
         ok = pdf2pdfa(args)
+
+        # WAIT: Egen funksjon for sletting av tmp-filer som kalles fra alle def? Er nå under her for å håndtere endret tmp navn + i overordnet convert funkson
+        if os.path.isfile(args['tmp_file_path']):
+            os.remove(args['tmp_file_path'])
 
     return ok
 
@@ -322,7 +344,11 @@ def file_convert(source_file_path, mime_type, version, function, target_dir, kee
     normalized = {'result': None, 'norm_file_path': norm_file_path, 'error': None, 'original_file_copy': None}
 
     if not os.path.isfile(norm_file_path):
-        if function in converters:
+        if os.path.islink(source_file_path):
+            normalized['result'] = 5  # Not a file
+            normalized['norm_file_path'] = None  # TODO: Fikk verdi fra linje over i tsv heller enn tom -> hvorfor?
+            # TODO: Fikk også 'Conversion not supported' heller enn "not a file" -> hvorfor?
+        elif function in converters:
             pathlib.Path(target_dir).mkdir(parents=True, exist_ok=True)
 
             print(count_str + source_file_path + ' (' + mime_type + ')')
