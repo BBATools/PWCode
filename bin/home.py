@@ -168,27 +168,6 @@ class HomeTab(ttk.Frame):
         msg_label = ttk.Label(frame, text="", style="Links.TButton")
         msg_label.pack(side=tk.LEFT, anchor=tk.E, pady=4, padx=(0, 12))
 
-    def export_data(self, app): # WAIT: Fiks duplisering av kode mellom denne og convert_files
-        def_name = inspect.currentframe().f_code.co_name
-        config, config_dir = self.config_init(def_name)
-
-        project_name = self.project_frame.name_entry.get()
-        if not project_name:
-            msg_label.config(text='Missing project name')
-            return
-
-        ok = self.create_project_dir(app.data_dir + project_name, project_name)
-        if ok:
-            msg_label.config(text='')
-        else:
-            return       
-
-        config.put('name', self.project_frame.name_entry.get())
-        # config.put('options/merge', self.project_frame.merge_option.get())             
-
-        config.save()
-        self.run_plugin(app, project_name, config_dir, def_name)
-
 
     def config_init(self, def_name):
         config_dir = os.environ["pwcode_config_dir"]  # Get PWCode config path
@@ -198,6 +177,68 @@ class HomeTab(ttk.Frame):
             os.remove(config_path)
  
         return  XMLSettings(config_path), config_dir    
+
+
+    def run_plugin(self, app, project_name, config_dir, def_name):
+        base_path = app.data_dir + project_name
+        if def_name == 'export_data':
+            base_path = app.data_dir + project_name + '_'
+
+        for filename in os.listdir(config_dir + def_name):
+            new_path = base_path + '/.pwcode/' + filename           
+            if filename == 'main.py':
+                new_path = base_path + '/.pwcode/' + project_name + '_' + def_name + '.py'
+                path = new_path
+
+            shutil.copy(config_dir + def_name + '/' + filename, new_path)
+
+        app.model.open_file(path)
+        tab_id = app.editor_frame.path2id[path]
+        file_obj = app.editor_frame.id2path[tab_id]
+        text_editor = app.editor_frame.notebook.nametowidget(tab_id)
+        self.show_help(app)
+        text_editor.run_file(file_obj, False)            
+
+
+    def export_data(self, app):
+        def_name = inspect.currentframe().f_code.co_name
+        # config, config_dir = self.config_init('pwcode')
+        config_dir = self.subsystem_entry_check(app)
+
+        if config_dir:
+            project_name = self.project_frame.name_entry.get()
+            self.run_plugin(app, project_name, config_dir, def_name)
+
+        # project_name = self.project_frame.name_entry.get()
+        # if not project_name:
+        #     msg_label.config(text='Missing project name')
+        #     return
+
+        # ok = self.create_project_dir(app.data_dir + project_name, project_name)
+        # if ok:
+        #     msg_label.config(text='')
+        # else:
+        #     return       
+
+        # config.put('name', self.project_frame.name_entry.get())
+        # config.put('options/memory', self.project_frame.memory_option.get()) 
+        # config.put('options/ddl', self.project_frame.ddl_option.get()) 
+        # # config.put('options/merge', self.project_frame.merge_option.get()) 
+
+        # i = 1
+        # for subsystem in subsystem_frames:
+        #     print(subsystem)
+        #     # config.put('subsystems/subsystem' + str(i), path)
+        #     i += 1         
+
+        # return                    
+
+        # config.save()
+
+
+        # self.run_plugin(app, project_name, config_dir, def_name)
+
+
 
    
     # TODO: Må lese fra xml i tmp først og så kopiere xml til prosjektmappe. Fortsatt riktig?
@@ -225,32 +266,15 @@ class HomeTab(ttk.Frame):
 
         i = 1
         for frame, path in self.project_frame.folders_frame.folders.items():
-            frame.remove_button.configure(state=tk.DISABLED)
+            # frame.remove_button.configure(state=tk.DISABLED)
             config.put('folders/folder' + str(i), path)
             i += 1
 
-        self.project_frame.merge_option_frame.configure(state=tk.DISABLED)
-        self.project_frame.name_frame.folder_button.configure(state=tk.DISABLED)
+        # self.project_frame.merge_option_frame.configure(state=tk.DISABLED)
+        # self.project_frame.name_frame.folder_button.configure(state=tk.DISABLED)
 
         config.save()
-        self.run_plugin(app, project_name, config_dir, def_name)
-
-
-    def run_plugin(self, app, project_name, config_dir, def_name):
-        for filename in os.listdir(config_dir + def_name):
-            new_path = app.data_dir + project_name + '/.pwcode/' + filename
-            if filename == 'main.py':
-                new_path = app.data_dir + project_name + '/.pwcode/' + project_name + '_' + def_name + '.py'
-                path = new_path
-
-            shutil.copy(config_dir + def_name + '/' + filename, new_path)
-
-        app.model.open_file(path)
-        tab_id = app.editor_frame.path2id[path]
-        file_obj = app.editor_frame.id2path[tab_id]
-        text_editor = app.editor_frame.notebook.nametowidget(tab_id)
-        self.show_help(app)
-        text_editor.run_file(file_obj, False)                
+        self.run_plugin(app, project_name, config_dir, def_name)            
 
 
     def convert_files_project(self, app):
@@ -274,12 +298,12 @@ class HomeTab(ttk.Frame):
         merge_label = ttk.Label(options_frame, text="Merge Subfolders:")
         merge_label.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(8, 0))
         options = ['', 'False', 'True']
-        var = tk.StringVar()
-        var.set(options[1])
-        merge_option = ttk.OptionMenu(options_frame, var, *options)
+        self.project_frame.merge_option = tk.StringVar()
+        self.project_frame.merge_option.set(options[1])
+        merge_option = ttk.OptionMenu(options_frame, self.project_frame.merge_option, *options)
         merge_option.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(0, 55))
         merge_option.configure(width=4)
-        self.project_frame.merge_option = var
+        # self.project_frame.merge_option = var
         self.project_frame.merge_option_frame = merge_option
 
     def export_data_project(self, app):
@@ -306,20 +330,21 @@ class HomeTab(ttk.Frame):
         memory_label = ttk.Label(options_frame, text="Allocated memory:")
         memory_label.pack(side=tk.LEFT, anchor=tk.N, pady=3)
         options = ['', '3 Gb', '4 Gb', '5 Gb', '6 Gb', '7 Gb', '8 Gb']
-        var = tk.StringVar()
-        var.set(options[2])
-        memory_option = ttk.OptionMenu(options_frame, var, *options)
+        self.project_frame.memory_option = tk.StringVar()
+        self.project_frame.memory_option.set(options[2])
+        memory_option = ttk.OptionMenu(options_frame, self.project_frame.memory_option, *options)
         memory_option.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(0, 55))
         memory_option.configure(width=4)
 
         ddl_label = ttk.Label(options_frame, text="DDL Generation:")
         ddl_label.pack(side=tk.LEFT, anchor=tk.N, pady=3)
         options = ['', 'Native', 'SQL Workbench']
-        var = tk.StringVar()
-        var.set(options[1])
-        ddl_option = ttk.OptionMenu(options_frame, var, *options)
+        self.project_frame.ddl_option = tk.StringVar()
+        self.project_frame.ddl_option.set(options[1])
+        ddl_option = ttk.OptionMenu(options_frame, self.project_frame.ddl_option, *options)
         ddl_option.pack(side=tk.LEFT, anchor=tk.N, pady=3)
         ddl_option.configure(width=12)
+
 
     def subsystem_entry(self, app):
         ok = None
@@ -337,14 +362,21 @@ class HomeTab(ttk.Frame):
             subsystem_frame.pack(side=tk.TOP, anchor=tk.W, fill="both", expand=1, pady=12)
             subsystem_frames.append(subsystem_frame)
 
-    def subsystem_entry_check(self, app):
-        # TODO: # skriv path for config til environment variable -> gjøre før kjøring av selve eksport bare heller?
-        config_path = self.system_dir + "/pwcode.xml"
-        if os.path.isfile(config_path):
-            os.remove(config_path)
 
-        config = XMLSettings(config_path)
+    def subsystem_entry_check(self, app):
+        # config_dir = os.environ["pwcode_config_dir"]  # Get PWCode config path
+        # config_path = config_dir + '/tmp/pwcode.xml'
+        # config_path = self.system_dir + "/pwcode.xml"
+        # if os.path.isfile(config_path):
+        #     os.remove(config_path)
+
+        # config = XMLSettings(config_path)
+
+        config, config_dir = self.config_init('pwcode')
+
         config.put('name', self.project_frame.name_entry.get())
+        config.put('options/memory', self.project_frame.memory_option.get()) 
+        config.put('options/ddl', self.project_frame.ddl_option.get())         
 
         subsystem_names = []
         for subsystem in subsystem_frames:
@@ -376,7 +408,7 @@ class HomeTab(ttk.Frame):
 
         config.save()
 
-        return 'ok'
+        return config_dir
 
 
 class Project(ttk.LabelFrame):
@@ -385,6 +417,8 @@ class Project(ttk.LabelFrame):
         self.grandparent = grandparent
         self.merge_option = None
         self.merge_option_frame = None
+        self.memory_option = None
+        self.ddl_option = None
 
         self.name_frame = ttk.Frame(self, style="SubHeading.TLabel")
         self.name_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)

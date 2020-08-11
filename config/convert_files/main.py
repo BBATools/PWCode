@@ -370,7 +370,6 @@ def main():
         shutil.copyfile(tmp_config_path, config_path)
 
     config = XMLSettings(config_path)
-
     merge = config.get('options/merge')
 
     tree = ET.parse(config_path)
