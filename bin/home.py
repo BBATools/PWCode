@@ -103,7 +103,7 @@ class HomeTab(ttk.Frame):
         self.recent_links_frame = RecentLinksFrame(self.left_frame, app).pack(side=tk.TOP, anchor=tk.W, pady=12)
         # self.left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
 
-    def system_entry_check(self, app):
+    def system_entry_check(self, app): # TODO: Slå sammen med run_plugin? Med arg om run? Også duplisering av kode i selve plugin main
         system_name = self.project_frame.name_entry.get()
         if not system_name:
             msg = 'Missing system name'
@@ -115,11 +115,7 @@ class HomeTab(ttk.Frame):
         self.system_dir = app.data_dir + system_name + '_'  # --> projects/[system_]
         system_dir = self.system_dir
 
-        archive_format = 'tar'  # WAIT: Sjekk om posix også her?
-        if shutil.which('wimcapture') is not None:
-            archive_format = 'wim'
-
-        archive = system_dir[:-1] + '/' + system_name + '.' + archive_format
+        archive = system_dir[:-1] + '/' + system_name + '.tar' 
         # TODO: Flere sjekker? Sjekke mot config xml fil og, eller bare?
         # TODO: Gjenbruke mappe hvis finnes og tom eller bare visse typer innhold?
 
@@ -133,6 +129,7 @@ class HomeTab(ttk.Frame):
             return
 
         return 'ok'
+
 
     def create_project_dir(self, path, project_name):
         if not self.project_dir_created:
@@ -149,6 +146,7 @@ class HomeTab(ttk.Frame):
         self.project_frame.name_entry.configure(state=tk.DISABLED)
 
         return 'ok'
+
 
     def reset_rhs(self, header):
         global msg_label
@@ -202,43 +200,11 @@ class HomeTab(ttk.Frame):
 
     def export_data(self, app):
         def_name = inspect.currentframe().f_code.co_name
-        # config, config_dir = self.config_init('pwcode')
-        config_dir = self.subsystem_entry_check(app)
+        config_dir = self.export_check(app)
 
         if config_dir:
             project_name = self.project_frame.name_entry.get()
             self.run_plugin(app, project_name, config_dir, def_name)
-
-        # project_name = self.project_frame.name_entry.get()
-        # if not project_name:
-        #     msg_label.config(text='Missing project name')
-        #     return
-
-        # ok = self.create_project_dir(app.data_dir + project_name, project_name)
-        # if ok:
-        #     msg_label.config(text='')
-        # else:
-        #     return       
-
-        # config.put('name', self.project_frame.name_entry.get())
-        # config.put('options/memory', self.project_frame.memory_option.get()) 
-        # config.put('options/ddl', self.project_frame.ddl_option.get()) 
-        # # config.put('options/merge', self.project_frame.merge_option.get()) 
-
-        # i = 1
-        # for subsystem in subsystem_frames:
-        #     print(subsystem)
-        #     # config.put('subsystems/subsystem' + str(i), path)
-        #     i += 1         
-
-        # return                    
-
-        # config.save()
-
-
-        # self.run_plugin(app, project_name, config_dir, def_name)
-
-
 
    
     # TODO: Må lese fra xml i tmp først og så kopiere xml til prosjektmappe. Fortsatt riktig?
@@ -306,6 +272,7 @@ class HomeTab(ttk.Frame):
         # self.project_frame.merge_option = var
         self.project_frame.merge_option_frame = merge_option
 
+
     def export_data_project(self, app):
         self.reset_rhs("Export Data")
 
@@ -351,7 +318,7 @@ class HomeTab(ttk.Frame):
         if len(subsystem_frames) == 0:
             ok = self.system_entry_check(app)
         else:
-            ok = self.subsystem_entry_check(app)
+            ok = self.export_check(app) # TODO: Riktig med 'ok' her?
 
         if ok:
             if len(subsystem_frames) == 0:
@@ -363,51 +330,56 @@ class HomeTab(ttk.Frame):
             subsystem_frames.append(subsystem_frame)
 
 
-    def subsystem_entry_check(self, app):
-        # config_dir = os.environ["pwcode_config_dir"]  # Get PWCode config path
-        # config_path = config_dir + '/tmp/pwcode.xml'
-        # config_path = self.system_dir + "/pwcode.xml"
-        # if os.path.isfile(config_path):
-        #     os.remove(config_path)
-
-        # config = XMLSettings(config_path)
+    def export_check(self, app):
+        # TODO: Sjekk kobling eller at kan brukes som mappenavn her hvis db subsystem og ikke bare filer
 
         config, config_dir = self.config_init('pwcode')
-
         config.put('name', self.project_frame.name_entry.get())
         config.put('options/memory', self.project_frame.memory_option.get()) 
         config.put('options/ddl', self.project_frame.ddl_option.get())         
 
+        i = 0
         subsystem_names = []
         for subsystem in subsystem_frames:
-            # subsystem_name = subsystem.db_name_entry.get().lower()
-            subsystem_name = subsystem.db_name_entry.get().lower() + '_' + subsystem.db_schema_entry.get().lower()
-            # TODO: Sjekk kobling eller at kan brukes som mappenavn her
+            subsystem_name = None
+
+            folder_paths = []
+            for frame, path in subsystem.folders_frame.folders.items():
+                folder_paths.append(path)
+
+            db_name = subsystem.db_name_entry.get().lower() 
+            db_schema = subsystem.db_schema_entry.get().lower()
 
             msg = None
-            if len(subsystem_name) < 2:
-                msg = 'Missing subsystem name'
+            if (len(db_name) == 0 or len(db_schema) == 0):
+                if folder_paths:
+                    subsystem_name = 'files' + str(i)
+                    i += 1
+                else:                    
+                    msg = 'Missing subsystem name'
             elif subsystem_name in subsystem_names:
                 msg = 'Duplicate subsystem name'
+            else: 
+                subsystem_name = db_name + '_' + db_schema              
 
             if msg:
                 msg_label.config(text=msg)
                 # WAIT: Slette system mappe hvis tom her? Også når cancel?
                 return
 
-            if not msg:
-                msg_label.config(text='')
-
+            msg_label.config(text='')
             subsystem_names.append(subsystem_name)
             subsystem.configure(text=' ' + subsystem_name + ' ')
 
-            config.put('subsystems/' + subsystem_name + '/db_name', subsystem.db_name_entry.get().lower())
-            config.put('subsystems/' + subsystem_name + '/schema_name', subsystem.db_schema_entry.get().lower())
+            config.put('subsystems/' + subsystem_name + '/db_name', db_name)
+            config.put('subsystems/' + subsystem_name + '/schema_name', db_schema)
 
-            # TODO: Gjøre auto sjekker av jdbc-kobling her ?
+            j = 0
+            for path in folder_paths: 
+                config.put('subsystems/' + subsystem_name + '/folders/folder' + str(j), path)
+                j += 1                           
 
         config.save()
-
         return config_dir
 
 

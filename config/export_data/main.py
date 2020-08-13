@@ -55,10 +55,10 @@ from defs import (
 def main():
     config_dir = os.environ['pwcode_config_dir']
     tmp_dir = config_dir + 'tmp'
+    os.chdir(tmp_dir)  # Avoid littering from subprocesses
     data_dir = os.environ['pwcode_data_dir']
     tmp_config_path = config_dir + '/tmp/pwcode.xml'
     tmp_config = XMLSettings(tmp_config_path)
-
 
     if not os.path.isfile(tmp_config_path):
         print('No config file found. Exiting.')
@@ -71,6 +71,10 @@ def main():
         print('No project folder found. Exiting.')
         return
 
+    archive = project_dir[:-1] + '/' + project_name + '.tar' # TODO: Endre kode så 'tar' og ikke 'wim' ytterst
+    if os.path.isfile(archive):
+        return "'" + archive + "' already exists. Exiting."         
+
     config_path = project_dir + '/pwcode.xml'
     if not os.path.isfile(config_path):
         shutil.copyfile(tmp_config_path, config_path)
@@ -79,45 +83,23 @@ def main():
     memory = config.get('options/memory').split(' ')[0]
     ddl = config.get('options/ddl')
 
+    tree = ET.parse(config_path)
+    subsystems = list(tree.find('subsystems'))
+    for subsystem in subsystems:
+        name = subsystem.tag
+        db_name = subsystem.find('db_name')
+        schema_name = subsystem.find('schema_name')
+        folders_tag = subsystem.find('folders')
+        if folders_tag:
+            folders = list(folders_tag)
+            for folder in folders:
+                if not os.path.isdir(folder.text):
+                    print("'" + folder.text + "' is not a valid path. Exiting.")
+                    return   
 
-    # tree = ET.parse(config_path)
-    # # folders = list(tree.find('folders'))
-
-    # # for folder in folders:
-    # #     if not os.path.isdir(folder.text):
-    # #         print("'" + folder.text + "' is not a valid path. Exiting.")
-    # #         return
-
-    # results = {}
-    # # for folder in folders:
-    # #     result = convert_folder(project_dir, folder, merge, tmp_dir)
-    # #     results[folder.text] = result
-
-    # # print('\n')
-    # # for k, v in results.items():
-    # #     print(k + ': ', v)
-
-    # return results
-
-    os.chdir(tmp_dir)  # Avoid littering from subprocesses
-
-    if project_name:
-        system_dir = data_dir + project_name + '_'  # --> projects/[system_]
-        archive = system_dir[:-1] + '/' + project_name + '.tar' # TODO: Endre kode så tar og ikke wim ytterst
-        if os.path.isfile(archive):
-            return "'" + archive + "' already exists. Exiting." 
-
-        # if EXPORT_TYPE != 'FILES':
-        #     if not (DB_NAME and DB_SCHEMA):
-        #         return 'Missing database- or schema -name. Exiting.'
-        #     else:
-        #         subsystem_dir = system_dir + '/content/sub_systems/' + DB_NAME + '_' + DB_SCHEMA
-
-#         if EXPORT_TYPE != 'DATABASE' and not DIR_PATHS:
-#             return 'Missing directory paths. Exiting.'
+        # export_files(system_dir, subsystem_dir, EXPORT_TYPE, project_name, DIR_PATHS, bin_dir, ARCHIVE_FORMAT)
 
 #         # Create data package directories and extract any files:
-#         export_files(system_dir, subsystem_dir, EXPORT_TYPE, project_name, DIR_PATHS, bin_dir, ARCHIVE_FORMAT)
 
 #         # Export database schema:
 #         if DB_NAME and DB_SCHEMA and JDBC_URL and EXPORT_TYPE != 'FILES':
@@ -157,9 +139,7 @@ def main():
 
 #         else:
 #             return 'All data copied. Create system data package now if finished extracting system data.'
-
-#     else:
-#         return 'Missing system name. Exiting.'            
+           
 
 
 
@@ -238,7 +218,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    msg = main()
+    print(msg)
     print('\n')  # WAIT: For flushing last print in def. Better fix later        
 
 
