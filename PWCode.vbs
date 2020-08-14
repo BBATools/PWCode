@@ -2,10 +2,12 @@ set WshShell = WScript.CreateObject("WScript.Shell" )
 set FSO = WScript.CreateObject("Scripting.FileSystemObject")
 
 SCRIPTPATH = Left(WScript.ScriptFullName, Len(WScript.ScriptFullName) - Len(WScript.ScriptName)) & "bin\"
-PYTHON_BIN=SCRIPTPATH & "vendor\windows\python\AppRun"
+PYTHON_BIN=SCRIPTPATH & "vendor\windows\python\pythonw.exe"
 PIP_DONE=SCRIPTPATH & "vendor\windows\python\pip_done"
 JAVA_BIN=SCRIPTPATH & "vendor\windows\jre\bin\javaw.exe"
 OJDBC10=SCRIPTPATH & "vendor\jdbc\ojdbc10.jar"
+PWCODE_BIN=SCRIPTPATH & "pwcode.py" 
+' WScript.Echo PYTHON_BIN
 
 paths = Array(PYTHON_BIN, PIP_DONE, JAVA_BIN, OJDBC10)
 
@@ -22,6 +24,16 @@ If Not Installed Then
   If Answer = vbYes Then
     WshShell.run("powershell -executionpolicy bypass -noexit -file vendor\windows\download_deps.ps1")
   End If
+else
+  ' cmd = "cmd /c " & Chr(34) & PYTHON_BIN & " " & PWCODE_BIN & Chr(34)
+  ' cmd = chr(34) & PYTHON_BIN & chr(34) & " " & chr(34) & PWCODE_BIN & chr(34)
+  cmd = PYTHON_BIN & " " & PWCODE_BIN
+  ' WScript.Echo cmd
+  ' WshShell.Run(cmd, 0, false)
+  ' cmd = chr(34) & PYTHON_BIN & chr(34) & " pwcode.py" 
+  wshShell.Run cmd, 1
+  ' Msgbox("It workee!")
+  ' javaCmd = chr(34) & PYTHON_BIN & chr(34) & " pwcode.py" 
 End If
 
 
